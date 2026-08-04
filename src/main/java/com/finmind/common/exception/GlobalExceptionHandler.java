@@ -1,8 +1,13 @@
 package com.finmind.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,12 +17,39 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Manejo centralizado de errores (API-03).
+ *
+ * Ninguna respuesta expone trazas internas ni nombres de clases. Lo que el
+ * cliente recibe es un ApiError uniforme; el detalle tecnico va al log.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(RecursoNoEncontradoException.class)
     public ResponseEntity<ApiError> noEncontrado(RecursoNoEncontradoException ex, HttpServletRequest req) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), req, null);
+    }
+
+    @ExceptionHandler(CorreoYaRegistradoException.class)
+    public ResponseEntity<ApiError> correoDuplicado(CorreoYaRegistradoException ex, HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /**
+     * Credenciales invalidas y usuario inexistente devuelven exactamente la misma
+     * respuesta. Distinguirlas permitiria averiguar que correos estan registrados.
+     */
+    @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
+    public ResponseEntity<ApiError> credencialesInvalidas(Exception ex, HttpServletRequest req) {
+        return build(HttpStatus.UNAUTHORIZED, "Correo o contrasena incorrectos", req, null);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiError> cuentaInactiva(DisabledException ex, HttpServletRequest req) {
+        return build(HttpStatus.FORBIDDEN, "La cuenta se encuentra inactiva", req, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -27,6 +59,17 @@ public class GlobalExceptionHandler {
             errores.put(fe.getField(), fe.getDefaultMessage());
         }
         return build(HttpStatus.BAD_REQUEST, "Error de validacion en los datos enviados", req, errores);
+    }
+
+    /**
+     * Red de seguridad. Cualquier excepcion no prevista se registra completa en el
+     * log y al cliente le llega un mensaje neutro.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> errorNoPrevisto(Exception ex, HttpServletRequest req) {
+        log.error("Error no controlado en {} {}", req.getMethod(), req.getRequestURI(), ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Ocurrio un error inesperado. Intente de nuevo mas tarde.", req, null);
     }
 
     private ResponseEntity<ApiError> build(HttpStatus status, String mensaje,
