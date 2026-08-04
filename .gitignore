@@ -1,0 +1,40 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+nbproject/private/
+build/
+
+# Secretos y configuracion local  -- NUNCA subir
+.env
+.env.local
+src/main/resources/application-local.yml
+src/main/resources/application-local.properties
+*.pem
+*.key
+
+# Logs
+logs/
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Frontend (React - Luis)
+node_modules/
+dist/
+.vite/
+npm-debug.log*
