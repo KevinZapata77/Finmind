@@ -6,6 +6,14 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      # La instancia gratuita en la nube tiene 1 CPU y 1 GB de RAM.
+      # Un pool grande la satura y empieza a rechazar conexiones.
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 900000
   jpa:
     hibernate:
       ddl-auto: validate
@@ -25,6 +33,8 @@ server:
   port: 8080
   error:
     include-message: always
+    include-stacktrace: never
+    include-binding-errors: never
 
 finmind:
   jwt:

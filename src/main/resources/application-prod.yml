@@ -1,0 +1,36 @@
+# Perfil de produccion / demostracion.
+# Se activa con: SPRING_PROFILES_ACTIVE=prod
+# Cumple CICD-02: configuracion de desarrollo, pruebas y produccion separada.
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: true
+    # En produccion nunca se limpia la base. Blindaje explicito.
+    clean-disabled: true
+
+server:
+  error:
+    # API-03: el manejo de errores no debe exponer trazas internas.
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+    include-exception: false
+
+springdoc:
+  # Dejar Swagger accesible para que el evaluador pruebe la API (DOC-04, API-08).
+  # Si el despliegue fuera real y publico, aqui iria swagger-ui.enabled: false
+  swagger-ui:
+    enabled: true
+
+logging:
+  level:
+    root: WARN
+    com.finmind: INFO
+    org.flywaydb: INFO
