@@ -1,0 +1,25 @@
+# Todo lo que no debe entrar a la imagen.
+# Sin esto, el contexto de build sube cientos de MB y, peor, puede filtrar el .env.
+
+.env
+.env.*
+!.env.example
+
+target/
+.git/
+.gitignore
+.github/
+
+.idea/
+.vscode/
+*.iml
+
+node_modules/
+dist/
+
+docs/
+*.md
+!README.md
+
+logs/
+*.log
