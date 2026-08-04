@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.Map;
 
 /**
  * Emision y verificacion de tokens JWT.
@@ -40,7 +39,8 @@ public class JwtService {
         Date ahora = new Date();
         return Jwts.builder()
                 .subject(usuario.getUsername())
-                .claims(Map.of("uid", usuario.getId(), "rol", usuario.getRol()))
+                .claim("uid", usuario.getId())
+                .claim("rol", usuario.getRol())
                 .issuedAt(ahora)
                 .expiration(new Date(ahora.getTime() + expiracionMs))
                 .signWith(clave)
