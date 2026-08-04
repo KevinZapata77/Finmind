@@ -1,0 +1,48 @@
+# Entorno local completo: MySQL + API, sin instalar nada mas que Docker.
+#
+# Uso:
+#   docker compose up --build        levanta base de datos y API
+#   docker compose down             detiene todo
+#   docker compose down -v          detiene y BORRA los datos locales
+#
+# Esto es para desarrollo. La demostracion va contra la base en la nube.
+
+services:
+
+  mysql:
+    image: mysql:8.4
+    container_name: finmind-mysql
+    environment:
+      MYSQL_DATABASE: finmind
+      MYSQL_USER: finmind_user
+      MYSQL_PASSWORD: ${LOCAL_DB_PASSWORD:-finmind_local}
+      MYSQL_ROOT_PASSWORD: ${LOCAL_DB_ROOT_PASSWORD:-root_local}
+      TZ: America/Bogota
+    ports:
+      - "3307:3306"   # 3307 en el host para no chocar con un MySQL ya instalado
+    volumes:
+      - mysql_datos:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: finmind-api
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/finmind?useSSL=false&serverTimezone=America/Bogota
+      DB_USERNAME: finmind_user
+      DB_PASSWORD: ${LOCAL_DB_PASSWORD:-finmind_local}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: 3600000
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql_datos:
