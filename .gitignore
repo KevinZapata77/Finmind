@@ -38,3 +38,7 @@ node_modules/
 dist/
 .vite/
 npm-debug.log*
+
+# Python (generador de mockups)
+__pycache__/
+*.pyc
