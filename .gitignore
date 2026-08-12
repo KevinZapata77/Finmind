@@ -38,3 +38,6 @@ node_modules/
 dist/
 .vite/
 npm-debug.log*
+
+# Herramientas descargadas por el IDE (extension de Java/Maven)
+.tools/
