@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:finmind_test;MODE=MySQL;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:finmind_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
     username: sa
     password: ""
     driver-class-name: org.h2.Driver
@@ -9,8 +9,8 @@ spring:
       ddl-auto: create-drop
     properties:
       hibernate:
-        # Obligatorio: application.yml fija el dialecto de MySQL y en pruebas
-        # la base es H2. Sin esta linea el contexto no arranca.
+        # Obligatorio: application.yml fija el dialecto de PostgreSQL y en pruebas
+        # la base es H2 en modo PostgreSQL. Sin esta linea el contexto no arranca.
         dialect: org.hibernate.dialect.H2Dialect
   flyway:
     enabled: false

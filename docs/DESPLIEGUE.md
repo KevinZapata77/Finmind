@@ -9,7 +9,7 @@ El estándar `EST-TEC-01` clasifica la contenerización como **condicionada**:
 
 **Justificación de FinMind:** la plataforma elegida para publicar la API despliega a partir
 de un contenedor. Además, la imagen resuelve `PROD-04` de forma directa — quien evalúe no
-necesita instalar JDK 21, Maven ni MySQL — y `CICD-01`, porque la construcción es un solo
+necesita instalar JDK 21, Maven ni PostgreSQL — y `CICD-01`, porque la construcción es un solo
 comando reproducible.
 
 ## Qué hace el Dockerfile
@@ -39,8 +39,8 @@ archivo, un `docker build` metería las credenciales dentro de la imagen.
 docker build -t finmind:0.1.0 .
 
 docker run --rm -p 8080:8080 \
-  -e DB_URL="jdbc:mysql://HOST:PUERTO/finmind?sslMode=REQUIRED&serverTimezone=America/Bogota" \
-  -e DB_USERNAME="finmind_app" \
+  -e DB_URL="jdbc:postgresql://HOST.neon.tech/finmind?sslmode=require" \
+  -e DB_USERNAME="usuario_de_neon" \
   -e DB_PASSWORD="..." \
   -e JWT_SECRET="..." \
   -e CORS_ALLOWED_ORIGINS="http://localhost:5173" \
@@ -53,8 +53,8 @@ docker run --rm -p 8080:8080 \
 docker compose up --build
 ```
 
-Levanta MySQL 8.4 y la API juntos. MySQL queda en el puerto **3307** del host para no
-chocar con una instalación previa. Flyway aplica las migraciones al arrancar.
+Levanta PostgreSQL 16 y la API juntos. PostgreSQL queda en el puerto **5433** del host
+para no chocar con una instalación previa. Flyway aplica las migraciones al arrancar.
 
 Requiere un `JWT_SECRET` definido en el `.env`.
 

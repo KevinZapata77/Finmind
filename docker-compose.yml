@@ -1,4 +1,4 @@
-# Entorno local completo: MySQL + API, sin instalar nada mas que Docker.
+# Entorno local completo: PostgreSQL + API, sin instalar nada mas que Docker.
 #
 # Uso:
 #   docker compose up --build        levanta base de datos y API
@@ -9,21 +9,20 @@
 
 services:
 
-  mysql:
-    image: mysql:8.4
-    container_name: finmind-mysql
+  postgres:
+    image: postgres:16-alpine
+    container_name: finmind-postgres
     environment:
-      MYSQL_DATABASE: finmind
-      MYSQL_USER: finmind_user
-      MYSQL_PASSWORD: ${LOCAL_DB_PASSWORD:-finmind_local}
-      MYSQL_ROOT_PASSWORD: ${LOCAL_DB_ROOT_PASSWORD:-root_local}
+      POSTGRES_DB: finmind
+      POSTGRES_USER: finmind_user
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD:-finmind_local}
       TZ: America/Bogota
     ports:
-      - "3307:3306"   # 3307 en el host para no chocar con un MySQL ya instalado
+      - "5433:5432"   # 5433 en el host para no chocar con un PostgreSQL ya instalado
     volumes:
-      - mysql_datos:/var/lib/mysql
+      - postgres_datos:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U finmind_user -d finmind"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -32,10 +31,10 @@ services:
     build: .
     container_name: finmind-api
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/finmind?useSSL=false&serverTimezone=America/Bogota
+      DB_URL: jdbc:postgresql://postgres:5432/finmind
       DB_USERNAME: finmind_user
       DB_PASSWORD: ${LOCAL_DB_PASSWORD:-finmind_local}
       JWT_SECRET: ${JWT_SECRET}
@@ -45,4 +44,4 @@ services:
       - "8080:8080"
 
 volumes:
-  mysql_datos:
+  postgres_datos:
