@@ -1,0 +1,109 @@
+/* Estilos de FinMind. Todos los valores salen de tokens.css: ningún color suelto. */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font: var(--font-cuerpo); color: var(--color-neutral-900); background: var(--color-canvas); }
+a { color: var(--color-primary-600); font-weight: 600; }
+
+/* Foco visible en todo elemento interactivo: criterio de accesibilidad, no decoración */
+:focus-visible { outline: 3px solid var(--color-primary-100); outline-offset: 2px; border-radius: var(--radio-sm); }
+
+/* ---------- pantallas de autenticación (UI-001, UI-002) ---------- */
+.pantalla-auth { display: grid; grid-template-columns: 40% 60%; min-height: 100vh; }
+.pantalla-auth__lateral { background: var(--color-primary-700); color: var(--color-surface);
+  padding: var(--space-6); display: flex; flex-direction: column; justify-content: center; }
+.pantalla-auth__lema { font: var(--font-display); font-size: 34px; margin: 0 0 var(--space-2); }
+.pantalla-auth__bajada { color: var(--color-primary-100); margin: 0; max-width: 34ch; }
+.pantalla-auth__panel { display: flex; align-items: center; justify-content: center; padding: var(--space-3); }
+
+.marca { display: flex; align-items: center; gap: var(--space-1); font: var(--font-seccion);
+  color: var(--color-surface); margin-bottom: var(--space-6); }
+.marca--clara { margin-bottom: var(--space-4); }
+.marca__logo { display: grid; place-items: center; width: 30px; height: 30px; border-radius: var(--radio-sm);
+  background: var(--color-primary-500); font-weight: 700; }
+
+.tarjeta { background: var(--color-surface); border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radio-lg); padding: var(--space-4); width: 100%; max-width: 460px;
+  display: flex; flex-direction: column; gap: var(--space-2); }
+.tarjeta__titulo { font: var(--font-titulo); margin: 0; }
+.tarjeta__bajada { color: var(--color-neutral-500); margin: 0 0 var(--space-1); }
+.tarjeta__pie { text-align: center; margin: var(--space-1) 0 0; color: var(--color-neutral-700); }
+.tarjeta--vacia { max-width: none; text-align: center; padding: var(--space-6); }
+
+/* ---------- campos ---------- */
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.campo__etiqueta { font: var(--font-etiqueta); color: var(--color-neutral-700); }
+.campo__control { font: var(--font-cuerpo); padding: 11px 12px; border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radio-md); background: var(--color-surface); color: var(--color-neutral-900); }
+.campo__control:focus { border-color: var(--color-primary-600); border-width: 2px; outline: none; }
+.campo__control--error { border-color: var(--color-error-600); border-width: 2px; }
+.campo__ayuda { font: var(--font-ayuda); color: var(--color-neutral-500); margin: 0; }
+.campo__error { font: var(--font-ayuda); font-weight: 600; color: var(--color-error-600); margin: 0; }
+.campo-con-accion { position: relative; }
+.campo-con-accion .enlace-boton { position: absolute; top: 0; right: 0; }
+.fila-doble { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+
+/* ---------- botones ---------- */
+.boton { font: var(--font-cuerpo); font-weight: 600; padding: 12px 16px; border-radius: var(--radio-md);
+  border: 1px solid transparent; cursor: pointer; }
+.boton--primario { background: var(--color-primary-600); color: var(--color-surface); }
+.boton--primario:hover:not(:disabled) { background: var(--color-primary-700); }
+.boton--secundario { background: var(--color-surface); color: var(--color-neutral-700); border-color: var(--color-neutral-300); }
+.boton--peligro { background: var(--color-surface); color: var(--color-error-600); border-color: var(--color-error-600); }
+.boton:disabled { background: var(--color-neutral-200); color: var(--color-neutral-500); cursor: not-allowed; }
+.enlace-boton { background: none; border: none; padding: 0; font: var(--font-ayuda); font-weight: 600;
+  color: var(--color-primary-600); cursor: pointer; text-decoration: underline; }
+.enlace-boton--claro { color: var(--color-neutral-300); }
+
+/* ---------- alertas: icono y texto, nunca solo color ---------- */
+.alerta { display: flex; gap: var(--space-1); padding: 12px; border-radius: var(--radio-md); border: 1px solid; }
+.alerta__icono { font-weight: 700; }
+.alerta__titulo { font-weight: 700; margin: 0; }
+.alerta__texto { margin: 0; font: var(--font-ayuda); }
+.alerta--error { background: var(--color-error-100); border-color: var(--color-error-600); color: var(--color-error-600); }
+.alerta--exito { background: var(--color-success-100); border-color: var(--color-success-600); color: var(--color-success-600); }
+.alerta--aviso { background: var(--color-warning-100); border-color: var(--color-warning-600); color: var(--color-warning-600); }
+
+/* ---------- fortaleza de contraseña ---------- */
+.fuerza { background: var(--color-neutral-100); border-radius: var(--radio-md); padding: 10px 12px;
+  display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
+.fuerza__rotulo { font: var(--font-ayuda); font-weight: 600; color: var(--color-neutral-700); grid-column: 1 / -1; }
+.fuerza__barra { height: 6px; background: var(--color-neutral-300); border-radius: 3px; overflow: hidden; }
+.fuerza__relleno { height: 100%; border-radius: 3px; }
+.fuerza__relleno--error { background: var(--color-error-600); }
+.fuerza__relleno--aviso { background: var(--color-warning-600); }
+.fuerza__relleno--exito { background: var(--color-success-600); }
+.fuerza__texto { font: var(--font-ayuda); font-weight: 600; }
+.fuerza__texto--error { color: var(--color-error-600); }
+.fuerza__texto--aviso { color: var(--color-warning-600); }
+.fuerza__texto--exito { color: var(--color-success-600); }
+
+.consentimiento { display: flex; align-items: center; gap: var(--space-1);
+  font: var(--font-cuerpo); color: var(--color-neutral-700); }
+
+/* ---------- aplicación autenticada (UI-003) ---------- */
+.aplicacion { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.barra-lateral { background: var(--color-neutral-900); color: var(--color-surface);
+  padding: var(--space-3) var(--space-2); display: flex; flex-direction: column; }
+.navegacion { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.navegacion__item { padding: 10px 14px; border-radius: var(--radio-md); color: var(--color-neutral-300);
+  text-decoration: none; font: var(--font-cuerpo); }
+.navegacion__item--activo { background: var(--color-primary-700); color: var(--color-surface); font-weight: 600; }
+.navegacion__item--inactivo { color: var(--color-neutral-500); }
+.barra-lateral__pie { border-top: 1px solid var(--color-neutral-700); padding-top: var(--space-2); }
+.barra-lateral__usuario { font: var(--font-ayuda); font-weight: 600; margin: 0 0 4px; }
+.contenido { padding: var(--space-3); }
+.contenido__titulo { font: var(--font-titulo); margin: 0 0 var(--space-3); }
+.vacio__titulo { font: var(--font-titulo); margin: 0 0 var(--space-1); }
+.vacio__texto { color: var(--color-neutral-500); margin: 0 auto var(--space-2); max-width: 52ch; }
+.vacio__meta { font: var(--font-ayuda); color: var(--color-neutral-500); margin: 0; }
+.estado-carga { padding: var(--space-4); color: var(--color-neutral-500); }
+
+/* ---------- responsive: móvil < 768 px ---------- */
+@media (max-width: 767px) {
+  .pantalla-auth { grid-template-columns: 1fr; }
+  .pantalla-auth__lateral { padding: var(--space-3); }
+  .pantalla-auth__lema { font-size: 26px; }
+  .fila-doble { grid-template-columns: 1fr; }
+  .aplicacion { grid-template-columns: 1fr; }
+  .barra-lateral { flex-direction: row; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-2); }
+  .navegacion { flex-direction: row; overflow-x: auto; }
+}

@@ -2,13 +2,13 @@ spring:
   application:
     name: finmind
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/finmind?useSSL=false&serverTimezone=America/Bogota}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/finmind}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.postgresql.Driver
     hikari:
-      # La instancia gratuita en la nube tiene 1 CPU y 1 GB de RAM.
-      # Un pool grande la satura y empieza a rechazar conexiones.
+      # Neon en plan gratuito escala a cero y tiene limite de conexiones.
+      # Un pool grande la satura; 5 alcanza de sobra para este proyecto.
       maximum-pool-size: 5
       minimum-idle: 1
       connection-timeout: 20000
@@ -20,7 +20,7 @@ spring:
     open-in-view: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
   flyway:
     enabled: true
@@ -48,6 +48,16 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Solo health. Ningun otro endpoint de actuator queda expuesto.
+        include: health
+  endpoint:
+    health:
+      show-details: never
 
 logging:
   level:

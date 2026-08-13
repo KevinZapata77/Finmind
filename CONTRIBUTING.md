@@ -87,7 +87,8 @@ Implementa HU-14 / RF-18.
 
 - Todo cambio de esquema entra como una nueva migración Flyway: `V<n>__descripcion.sql`.
 - Una migración ya publicada en `develop` **no se edita nunca**.
-- Kelin Montoya revisa y aprueba cualquier PR que toque `db/migration/`.
+- Todo PR que toque `db/migration/` requiere revision explicita del lider de proyecto,
+  que es el responsable del modelo de datos.
 
 ## Reglas de seguridad
 

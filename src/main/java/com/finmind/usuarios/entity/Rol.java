@@ -9,7 +9,8 @@ import jakarta.persistence.Table;
 
 /**
  * Rol de la aplicacion. Se corresponde con la tabla "roles" creada por
- * la migracion V1. Los dos roles existentes son ROLE_USUARIO y ROLE_ADMIN.
+ * la migracion V1. El id es Short porque en PostgreSQL la columna es SMALLINT;
+ * PostgreSQL no tiene TINYINT. Los dos roles existentes son ROLE_USUARIO y ROLE_ADMIN.
  *
  * El administrador NO tiene acceso a datos financieros de los usuarios (RF-26);
  * esa restriccion se aplica en la capa de servicio y en SecurityConfig, no aqui.
@@ -24,7 +25,7 @@ public class Rol {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Byte id;
+    private Short id;
 
     @Column(name = "nombre", nullable = false, length = 30, unique = true)
     private String nombre;
@@ -41,7 +42,7 @@ public class Rol {
         this.descripcion = descripcion;
     }
 
-    public Byte getId() {
+    public Short getId() {
         return id;
     }
 

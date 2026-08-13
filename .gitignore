@@ -42,3 +42,5 @@ npm-debug.log*
 # Python (generador de mockups)
 __pycache__/
 *.pyc
+# Herramientas descargadas por el IDE (extension de Java/Maven)
+.tools/

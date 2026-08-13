@@ -32,7 +32,10 @@ public class SecurityConfig {
             "/api/v1/auth/login",
             "/v3/api-docs/**",
             "/swagger-ui/**",
-            "/swagger-ui.html"
+            "/swagger-ui.html",
+            // OPS-03: permite verificar disponibilidad sin credenciales.
+            // Solo se expone health; el resto de actuator queda cerrado.
+            "/actuator/health"
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;

@@ -11,16 +11,20 @@ Instructor de seguimiento: Juan Carlos Quintero
 
 | Integrante | Rol | Responsabilidad técnica |
 |---|---|---|
-| Kevin Andrés Zapata Murillo | Líder de proyecto · Backend | API REST, Java 21 + Spring Boot |
+| Kevin Andrés Zapata Murillo | Líder de proyecto · Backend · Base de datos · Pruebas | API REST en Java 21 + Spring Boot, modelo PostgreSQL, migraciones y suite de pruebas |
 | Luis Méndez | Frontend | SPA en React, consumo de la API |
-| Kelin Montoya | Base de datos · Testing | Modelo MySQL, migraciones, pruebas |
+
+> **Cambio de equipo (agosto 2026).** El equipo pasó de tres a dos integrantes. Las
+> responsabilidades de base de datos y pruebas quedaron reasignadas al líder de proyecto.
+> El cambio y su impacto en capacidad están registrados formalmente en el documento de
+> gestión del proyecto.
 
 ## Stack
 
 - **Backend:** Java 21, Spring Boot 3.4, Spring Web, Spring Data JPA, Spring Security + JWT
-- **Base de datos:** MySQL 8, migraciones versionadas con Flyway
+- **Base de datos:** PostgreSQL 16 (Neon, serverless), migraciones versionadas con Flyway
 - **Documentación de API:** OpenAPI 3 / Swagger UI (springdoc)
-- **Pruebas:** JUnit 5, Spring Boot Test, H2 en memoria
+- **Pruebas:** JUnit 5, Spring Boot Test, H2 en memoria en modo PostgreSQL
 - **Frontend:** React (repositorio/carpeta a cargo de Luis)
 - **Build:** Maven
 
@@ -28,7 +32,7 @@ Instructor de seguimiento: Juan Carlos Quintero
 
 - JDK 21
 - Maven 3.9+
-- MySQL 8 con una base de datos `finmind` creada
+- PostgreSQL 16 con una base de datos `finmind`, local o en Neon (ver `docs/BASE_DATOS_EN_LINEA.md`)
 
 ## Puesta en marcha
 
@@ -67,6 +71,18 @@ src/main/java/com/finmind/
 
 Cada módulo sigue el mismo corte por capas: `controller` → `service` → `repository`, con
 `entity`, `dto` y `mapper` propios.
+
+## Pruebas
+
+```bash
+mvn test
+```
+
+Ejecuta la suite completa contra H2 en memoria, sin necesidad de base de datos externa.
+El flujo de autenticación tiene 12 pruebas que cubren casos positivos, negativos y
+accesos permitidos y denegados.
+
+## Migraciones
 
 Migraciones de base de datos: `src/main/resources/db/migration/`.
 Se aplican automáticamente con Flyway al arrancar. **Una migración publicada no se edita:**
