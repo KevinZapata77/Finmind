@@ -28,15 +28,6 @@ spring:
     baseline-on-migrate: true
   jackson:
     default-property-inclusion: non_null
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID:}
-            client-secret: ${GOOGLE_CLIENT_SECRET:}
-            # Solo pedimos identidad basica: nombre y correo. Nada mas.
-            scope: openid, profile, email
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
@@ -98,7 +89,43 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    mail:
+      # Al agregar el starter de correo, Actuator empezo a probar la conexion
+      # SMTP dentro de /actuator/health. Sin credenciales esa prueba falla y el
+      # health completo responde 503, o sea "la aplicacion esta caida".
+      #
+      # Y es falso: que el servidor de correo no responda no tumba a FinMind.
+      # El envio degrada solo (el codigo queda en el log) y todo lo demas sigue.
+      # Un health en 503 haria que el despliegue reinicie la aplicacion en vano.
+      enabled: false
 
 logging:
   level:
     com.finmind: DEBUG
+
+# ---------------------------------------------------------------------------
+# Acceso con Google (RF-029, RF-030)
+#
+# Va en un perfil aparte a proposito. Si se declara aqui con un valor por
+# defecto vacio, Spring construye la registracion igual y aborta el arranque
+# con "clientId cannot be empty": una cadena vacia no es lo mismo que una
+# propiedad ausente. En un perfil, sin activar, la registracion no existe y
+# SecurityConfig deja el acceso con Google apagado sin romper nada.
+#
+# Se activa con:  SPRING_PROFILES_ACTIVE=google
+# ---------------------------------------------------------------------------
+---
+spring:
+  config:
+    activate:
+      on-profile: google
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            # Solo pedimos identidad basica: nombre y correo. Nada mas.
+            scope: openid, profile, email
