@@ -8,6 +8,7 @@ import RecuperarContrasena from './paginas/RecuperarContrasena'
 import RestablecerContrasena from './paginas/RestablecerContrasena'
 import CallbackGoogle from './paginas/CallbackGoogle'
 import Panel from './paginas/Panel'
+import Cuentas from './paginas/Cuentas'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/restablecer" element={<RestablecerContrasena />} />
         <Route path="/oauth2/callback" element={<CallbackGoogle />} />
         <Route path="/panel" element={<RutaProtegida><Panel /></RutaProtegida>} />
+        <Route path="/cuentas" element={<RutaProtegida><Cuentas /></RutaProtegida>} />
         <Route path="*" element={<Navigate to="/panel" replace />} />
       </Routes>
     </AuthProvider>
