@@ -122,8 +122,11 @@ class AccesoSinSesionTest {
     // --------------------------------------------- Lo publico, solo lo justo
 
     @Test
-    @DisplayName("El chequeo de disponibilidad si es publico")
+    @DisplayName("El chequeo de disponibilidad responde 200 y es publico")
     void saludEsPublica() throws Exception {
+        // Esta prueba ya atrapo un fallo real: al sumar el starter de correo,
+        // Actuator incluyo la conexion SMTP en el health y devolvia 503. Un
+        // despliegue habria leido eso como "aplicacion caida" y la reiniciaria.
         mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
     }
 

@@ -89,6 +89,16 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    mail:
+      # Al agregar el starter de correo, Actuator empezo a probar la conexion
+      # SMTP dentro de /actuator/health. Sin credenciales esa prueba falla y el
+      # health completo responde 503, o sea "la aplicacion esta caida".
+      #
+      # Y es falso: que el servidor de correo no responda no tumba a FinMind.
+      # El envio degrada solo (el codigo queda en el log) y todo lo demas sigue.
+      # Un health en 503 haria que el despliegue reinicie la aplicacion en vano.
+      enabled: false
 
 logging:
   level:
