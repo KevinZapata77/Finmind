@@ -2,6 +2,8 @@ package com.finmind.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finmind.identidad.entity.CodigoVerificacion;
+import com.finmind.identidad.repository.CodigoVerificacionRepository;
 import com.finmind.usuarios.entity.Rol;
 import com.finmind.usuarios.entity.Usuario;
 import com.finmind.usuarios.repository.RolRepository;
@@ -50,8 +52,12 @@ class AuthFlujoTest {
     @Autowired
     private RolRepository rolRepository;
 
+    @Autowired
+    private CodigoVerificacionRepository codigoRepository;
+
     @BeforeEach
     void prepararDatos() {
+        codigoRepository.deleteAll();
         usuarioRepository.deleteAll();
         if (rolRepository.findByNombre(Rol.USUARIO).isEmpty()) {
             rolRepository.save(new Rol(Rol.USUARIO, "Usuario final"));
@@ -64,16 +70,42 @@ class AuthFlujoTest {
     // ------------------------------------------------------------------ registro
 
     @Test
-    @DisplayName("registro con datos validos devuelve 201 y un token")
+    @DisplayName("registro con datos validos devuelve 201 y la cuenta queda sin verificar")
     void registroValido() throws Exception {
         mockMvc.perform(post("/api/v1/auth/registro")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(cuerpoRegistro(CORREO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.tipo").value("Bearer"))
+                // RN-011: no se emite token al registrarse. El acceso llega tras verificar
+                .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(jsonPath("$.usuario.correo").value(CORREO))
                 .andExpect(jsonPath("$.usuario.rol").value(Rol.USUARIO));
+
+        Usuario creado = usuarioRepository.findByCorreo(CORREO).orElseThrow();
+        assertThat(creado.estaVerificado()).isFalse();
+    }
+
+    @Test
+    @DisplayName("al registrarse se emite un codigo de verificacion de seis digitos")
+    void registroEmiteCodigo() throws Exception {
+        registrarSinVerificar();
+        Usuario creado = usuarioRepository.findByCorreo(CORREO).orElseThrow();
+        var codigo = codigoRepository
+                .findByUsuarioIdAndTipoAndUsadoEnIsNull(creado.getId(), CodigoVerificacion.VERIFICACION);
+        assertThat(codigo).isPresent();
+        assertThat(codigo.get().getCodigo()).matches("\\d{6}");
+        assertThat(codigo.get().estaVigente()).isTrue();
+    }
+
+    @Test
+    @DisplayName("acceso denegado: iniciar sesion sin verificar el correo devuelve 403")
+    void loginSinVerificar() throws Exception {
+        registrarSinVerificar();
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cuerpoLogin(CORREO, CONTRASENA)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Debes verificar tu correo antes de iniciar sesion."));
     }
 
     @Test
@@ -208,15 +240,34 @@ class AuthFlujoTest {
 
     // ------------------------------------------------------------------- apoyo
 
-    private String registrarUsuario() throws Exception {
-        String respuesta = mockMvc.perform(post("/api/v1/auth/registro")
+    /** Registra la cuenta y la deja sin verificar. */
+    private void registrarSinVerificar() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/registro")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(cuerpoRegistro(CORREO)))
-                .andExpect(status().isCreated())
+                .andExpect(status().isCreated());
+    }
+
+    /**
+     * Registra, lee el codigo emitido y verifica la cuenta.
+     * Devuelve el token, que es lo que el resto de las pruebas necesita.
+     */
+    private String registrarUsuario() throws Exception {
+        registrarSinVerificar();
+        Usuario creado = usuarioRepository.findByCorreo(CORREO).orElseThrow();
+        String codigo = codigoRepository
+                .findByUsuarioIdAndTipoAndUsadoEnIsNull(creado.getId(), CodigoVerificacion.VERIFICACION)
+                .orElseThrow().getCodigo();
+
+        String respuesta = mockMvc.perform(post("/api/v1/auth/verificar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"correo":"%s","codigo":"%s"}
+                                """.formatted(CORREO, codigo)))
+                .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        JsonNode json = objectMapper.readTree(respuesta);
-        return json.get("token").asText();
+        return objectMapper.readTree(respuesta).get("token").asText();
     }
 
     private String cuerpoRegistro(String correo) {

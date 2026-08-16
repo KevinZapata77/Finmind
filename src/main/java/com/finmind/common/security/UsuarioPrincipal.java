@@ -21,6 +21,7 @@ public class UsuarioPrincipal implements UserDetails {
     private final String correo;
     private final String contrasenaHash;
     private final boolean activo;
+    private final boolean correoVerificado;
     private final String rol;
 
     public UsuarioPrincipal(Usuario usuario) {
@@ -28,6 +29,7 @@ public class UsuarioPrincipal implements UserDetails {
         this.correo = usuario.getCorreo();
         this.contrasenaHash = usuario.getContrasenaHash();
         this.activo = Boolean.TRUE.equals(usuario.getActivo());
+        this.correoVerificado = usuario.estaVerificado();
         this.rol = usuario.getRol().getNombre();
     }
 
@@ -59,9 +61,18 @@ public class UsuarioPrincipal implements UserDetails {
         return true;
     }
 
+    /**
+     * RN-011: una cuenta sin correo verificado se trata como bloqueada.
+     * Spring Security responde con LockedException, que el manejador global
+     * traduce a un mensaje que indica al usuario que debe verificar.
+     */
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return correoVerificado;
+    }
+
+    public boolean tieneCorreoVerificado() {
+        return correoVerificado;
     }
 
     @Override

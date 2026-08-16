@@ -36,6 +36,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- Inicio de sesion con cuenta de Google (RF-029, RF-030) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+        <!-- Envio de los codigos de verificacion y recuperacion (RF-025 a RF-028) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
         <!-- Expone /actuator/health para verificar disponibilidad del servicio (OPS-03) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

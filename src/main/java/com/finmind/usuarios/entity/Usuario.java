@@ -39,8 +39,18 @@ public class Usuario {
     @Column(name = "correo", nullable = false, length = 120, unique = true)
     private String correo;
 
-    @Column(name = "contrasena_hash", nullable = false, length = 100)
+    // Admite nulo: quien entra con Google no define contrasena en FinMind
+    @Column(name = "contrasena_hash", length = 100)
     private String contrasenaHash;
+
+    @Column(name = "correo_verificado", nullable = false)
+    private Boolean correoVerificado = Boolean.FALSE;
+
+    @Column(name = "proveedor", nullable = false, length = 10)
+    private String proveedor = LOCAL;
+
+    @Column(name = "proveedor_id", length = 120)
+    private String proveedorId;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "rol_id", nullable = false)
@@ -57,6 +67,9 @@ public class Usuario {
 
     @Column(name = "ultimo_acceso")
     private LocalDateTime ultimoAcceso;
+
+    public static final String LOCAL = "LOCAL";
+    public static final String GOOGLE = "GOOGLE";
 
     protected Usuario() {
         // Requerido por JPA.
@@ -85,6 +98,44 @@ public class Usuario {
     void alActualizar() {
         this.fechaActualizacion = LocalDateTime.now();
     }
+
+    /** RN-011: solo un correo verificado habilita el inicio de sesion. */
+    public boolean estaVerificado() {
+        return Boolean.TRUE.equals(correoVerificado);
+    }
+
+    public void marcarCorreoVerificado() {
+        this.correoVerificado = Boolean.TRUE;
+    }
+
+    public Boolean getCorreoVerificado() { return correoVerificado; }
+
+    /**
+     * Usuario creado a partir de una cuenta de Google.
+     * Nace verificado: Google ya comprobo que esa direccion existe y le
+     * pertenece, asi que pedirle un codigo seria pedir dos veces lo mismo.
+     */
+    public static Usuario deGoogle(String nombre, String apellido, String correo,
+                                   Rol rol, String proveedorId) {
+        Usuario u = new Usuario();
+        u.nombre = nombre;
+        u.apellido = apellido;
+        u.correo = correo;
+        u.rol = rol;
+        u.proveedor = GOOGLE;
+        u.proveedorId = proveedorId;
+        u.correoVerificado = Boolean.TRUE;
+        u.contrasenaHash = null;
+        u.activo = Boolean.TRUE;
+        return u;
+    }
+
+    public boolean esLocal() {
+        return LOCAL.equals(proveedor);
+    }
+
+    public String getProveedor() { return proveedor; }
+    public String getProveedorId() { return proveedorId; }
 
     public void registrarAcceso() {
         this.ultimoAcceso = LocalDateTime.now();

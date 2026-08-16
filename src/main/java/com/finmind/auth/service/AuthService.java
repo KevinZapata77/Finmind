@@ -7,6 +7,8 @@ import com.finmind.auth.dto.UsuarioResponse;
 import com.finmind.common.exception.CorreoYaRegistradoException;
 import com.finmind.common.security.JwtService;
 import com.finmind.common.security.UsuarioPrincipal;
+import com.finmind.identidad.service.ServicioCaptcha;
+import com.finmind.identidad.service.ServicioIdentidad;
 import com.finmind.usuarios.entity.Rol;
 import com.finmind.usuarios.entity.Usuario;
 import com.finmind.usuarios.repository.RolRepository;
@@ -26,17 +28,23 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final ServicioIdentidad servicioIdentidad;
+    private final ServicioCaptcha servicioCaptcha;
 
     public AuthService(UsuarioRepository usuarioRepository,
                        RolRepository rolRepository,
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
-                       JwtService jwtService) {
+                       JwtService jwtService,
+                       ServicioIdentidad servicioIdentidad,
+                       ServicioCaptcha servicioCaptcha) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.servicioIdentidad = servicioIdentidad;
+        this.servicioCaptcha = servicioCaptcha;
     }
 
     /**
@@ -47,6 +55,9 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse registrar(RegistroRequest peticion) {
+        // Primero el CAPTCHA: si no es una persona, no se toca la base de datos
+        servicioCaptcha.verificar(peticion.captchaToken());
+
         String correo = peticion.correo().trim().toLowerCase();
 
         if (usuarioRepository.existsByCorreo(correo)) {
@@ -66,11 +77,12 @@ public class AuthService {
 
         Usuario guardado = usuarioRepository.save(usuario);
 
-        UsuarioPrincipal principal = new UsuarioPrincipal(guardado);
-        return AuthResponse.de(
-                jwtService.generarToken(principal),
-                jwtService.getExpiracionMs(),
-                UsuarioResponse.de(guardado));
+        // RN-011: la cuenta nace sin verificar y no puede iniciar sesion todavia.
+        // Se emite y envia el codigo; el usuario continua en la pantalla UI-010.
+        servicioIdentidad.enviarCodigoVerificacion(guardado);
+
+        // No se emite token: el acceso llega tras verificar el correo.
+        return AuthResponse.de(null, 0, UsuarioResponse.de(guardado));
     }
 
     /**

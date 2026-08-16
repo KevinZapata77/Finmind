@@ -28,6 +28,25 @@ spring:
     baseline-on-migrate: true
   jackson:
     default-property-inclusion: non_null
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            # Solo pedimos identidad basica: nombre y correo. Nada mas.
+            scope: openid, profile, email
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
 
 server:
   port: 8080
@@ -37,6 +56,27 @@ server:
     include-binding-errors: never
 
 finmind:
+  # Si no hay credenciales de correo configuradas, el codigo se escribe en el
+  # log en lugar de enviarse. Permite demostrar el flujo sin depender del
+  # servidor de correo (mitigacion del riesgo RSK-07).
+  correo:
+    remitente: ${MAIL_FROM:no-responder@finmind.local}
+    habilitado: ${MAIL_ENABLED:false}
+  # A donde vuelve el navegador tras autenticarse con Google, con el token
+  oauth2:
+    redireccion-exito: ${OAUTH2_SUCCESS_URL:http://localhost:5173/oauth2/callback}
+    redireccion-error:  ${OAUTH2_ERROR_URL:http://localhost:5173/iniciar-sesion}
+  captcha:
+    # Con habilitado=false se omite la verificacion, para poder probar el
+    # registro sin claves del proveedor. En la demostracion va en true.
+    habilitado: ${CAPTCHA_ENABLED:false}
+    secreto: ${CAPTCHA_SECRET:}
+    # Turnstile de Cloudflare por defecto. Para reCAPTCHA de Google:
+    # https://www.google.com/recaptcha/api/siteverify
+    url-verificacion: ${CAPTCHA_VERIFY_URL:https://challenges.cloudflare.com/turnstile/v0/siteverify}
+  codigo:
+    vigencia-minutos: 15
+    intentos-maximos: 5
   jwt:
     secret: ${JWT_SECRET:clave_de_desarrollo_solo_local_minimo_32_caracteres}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}

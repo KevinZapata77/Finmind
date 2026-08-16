@@ -26,6 +26,12 @@ public record RegistroRequest(
 
         @NotBlank(message = "La contrasena es obligatoria")
         @Size(min = 8, max = 72, message = "La contrasena debe tener entre 8 y 72 caracteres")
-        String contrasena
+        String contrasena,
+
+        /**
+         * Token que entrega el widget de CAPTCHA en el navegador.
+         * Se valida contra el proveedor en el servidor, nunca en el cliente.
+         */
+        String captchaToken
 ) {
 }
