@@ -11,6 +11,8 @@ import org.springframework.security.authentication.LockedException;
 import com.finmind.identidad.service.ServicioIdentidad.CodigoInvalidoException;
 import com.finmind.identidad.service.ServicioCaptcha.CaptchaInvalidoException;
 import com.finmind.identidad.service.ServicioUsuarioGoogle.CuentaGoogleException;
+import com.finmind.cuentas.service.ServicioCuentas.NombreDeCuentaRepetidoException;
+import com.finmind.cuentas.service.ServicioCuentas.TipoDeCuentaInvalidoException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -79,6 +81,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CuentaGoogleException.class)
     public ResponseEntity<ApiError> cuentaGoogle(CuentaGoogleException ex, HttpServletRequest req) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /** 409: el usuario ya tiene una cuenta con ese nombre (RF-006). */
+    @ExceptionHandler(NombreDeCuentaRepetidoException.class)
+    public ResponseEntity<ApiError> nombreDeCuentaRepetido(NombreDeCuentaRepetidoException ex,
+                                                           HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /** 400: el tipo de cuenta no esta entre los permitidos. */
+    @ExceptionHandler(TipoDeCuentaInvalidoException.class)
+    public ResponseEntity<ApiError> tipoDeCuentaInvalido(TipoDeCuentaInvalidoException ex,
+                                                         HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
