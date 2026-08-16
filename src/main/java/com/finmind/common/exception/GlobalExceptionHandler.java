@@ -7,6 +7,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
+import com.finmind.identidad.service.ServicioIdentidad.CodigoInvalidoException;
+import com.finmind.identidad.service.ServicioCaptcha.CaptchaInvalidoException;
+import com.finmind.identidad.service.ServicioUsuarioGoogle.CuentaGoogleException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -50,6 +54,31 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ApiError> cuentaInactiva(DisabledException ex, HttpServletRequest req) {
         return build(HttpStatus.FORBIDDEN, "La cuenta se encuentra inactiva", req, null);
+    }
+
+    /** RN-011: cuenta con correo sin verificar. */
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ApiError> correoSinVerificar(LockedException ex, HttpServletRequest req) {
+        return build(HttpStatus.FORBIDDEN,
+                "Debes verificar tu correo antes de iniciar sesion.", req, null);
+    }
+
+    /** Codigo inexistente, vencido, equivocado o con los intentos agotados. */
+    @ExceptionHandler(CodigoInvalidoException.class)
+    public ResponseEntity<ApiError> codigoInvalido(CodigoInvalidoException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** El CAPTCHA falta, es falso o el proveedor lo rechazo. */
+    @ExceptionHandler(CaptchaInvalidoException.class)
+    public ResponseEntity<ApiError> captchaInvalido(CaptchaInvalidoException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** Conflicto entre una cuenta de Google y una cuenta local con el mismo correo. */
+    @ExceptionHandler(CuentaGoogleException.class)
+    public ResponseEntity<ApiError> cuentaGoogle(CuentaGoogleException ex, HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

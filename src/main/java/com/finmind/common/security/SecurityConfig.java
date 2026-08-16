@@ -13,6 +13,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -30,9 +32,17 @@ public class SecurityConfig {
     private static final String[] RUTAS_PUBLICAS = {
             "/api/v1/auth/registro",
             "/api/v1/auth/login",
+            // RF-025 a RF-028: el usuario aun no tiene sesion cuando los usa
+            "/api/v1/auth/verificar",
+            "/api/v1/auth/reenviar-codigo",
+            "/api/v1/auth/recuperar",
+            "/api/v1/auth/restablecer",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
+            // RF-029 y RF-030: el usuario todavia no tiene sesion cuando pasa por aqui
+            "/oauth2/**",
+            "/login/oauth2/**",
             // OPS-03: permite verificar disponibilidad sin credenciales.
             // Solo se expone health; el resto de actuator queda cerrado.
             "/actuator/health"
@@ -41,15 +51,23 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UsuarioDetallesService usuarioDetallesService;
     private final RespuestaNoAutorizada respuestaNoAutorizada;
+    private final ManejadorExitoGoogle manejadorExitoGoogle;
+    // Puede no existir: si no hay credenciales de Google configuradas, Spring
+    // no crea este bean y el acceso con Google simplemente queda deshabilitado.
+    private final ObjectProvider<ClientRegistrationRepository> registrosOAuth2;
     private final String origenesPermitidos;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           UsuarioDetallesService usuarioDetallesService,
                           RespuestaNoAutorizada respuestaNoAutorizada,
+                          ManejadorExitoGoogle manejadorExitoGoogle,
+                          ObjectProvider<ClientRegistrationRepository> registrosOAuth2,
                           @Value("${finmind.cors.allowed-origins}") String origenesPermitidos) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.usuarioDetallesService = usuarioDetallesService;
         this.respuestaNoAutorizada = respuestaNoAutorizada;
+        this.manejadorExitoGoogle = manejadorExitoGoogle;
+        this.registrosOAuth2 = registrosOAuth2;
         this.origenesPermitidos = origenesPermitidos;
     }
 
@@ -71,6 +89,14 @@ public class SecurityConfig {
                         .authenticationEntryPoint(respuestaNoAutorizada)
                         .accessDeniedHandler(respuestaNoAutorizada))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        // El acceso con Google solo se activa si hay credenciales configuradas.
+        // Asi la aplicacion arranca igual en un equipo sin esas claves.
+        if (registrosOAuth2.getIfAvailable() != null) {
+            http.oauth2Login(oauth -> oauth
+                    .successHandler(manejadorExitoGoogle)
+                    .failureUrl("/api/v1/auth/login?error=google"));
+        }
 
         return http.build();
     }
