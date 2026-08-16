@@ -5,6 +5,8 @@ import { ErrorApi } from '../api/cliente'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
+import Captcha from '../componentes/Captcha'
+import BotonGoogle from '../componentes/BotonGoogle'
 
 /** UI-002 — Crear cuenta. Implementa HU-001 / RF-001. */
 export default function CrearCuenta() {
@@ -15,6 +17,9 @@ export default function CrearCuenta() {
   const [errorGeneral, setErrorGeneral] = useState(null)
   const [enviando, setEnviando] = useState(false)
   const [acepta, setAcepta] = useState(false)
+  // RF-031: token del CAPTCHA. Vacío significa "aún no resuelto".
+  const [captchaToken, setCaptchaToken] = useState('')
+  const captchaExigido = Boolean(import.meta.env.VITE_CAPTCHA_SITE_KEY)
 
   const cambiar = (e) => setDatos({ ...datos, [e.target.name]: e.target.value })
 
@@ -28,8 +33,12 @@ export default function CrearCuenta() {
     e.preventDefault()
     setErrores({}); setErrorGeneral(null); setEnviando(true)
     try {
-      await crearCuenta(datos)
-      navegar('/panel', { replace: true })
+      await crearCuenta({ ...datos, captchaToken })
+      // La cuenta nace sin verificar: el siguiente paso es el código, no el panel.
+      navegar('/verificar', {
+        replace: true,
+        state: { correo: datos.correo, aviso: `Enviamos un código a ${datos.correo}.` },
+      })
     } catch (err) {
       if (err instanceof ErrorApi && err.erroresPorCampo) setErrores(err.erroresPorCampo)
       else setErrorGeneral(err.message)
@@ -88,7 +97,14 @@ export default function CrearCuenta() {
             Acepto el tratamiento de mis datos personales.
           </label>
 
-          <Boton type="submit" cargando={enviando} disabled={!acepta}>Crear cuenta</Boton>
+          <Captcha onToken={setCaptchaToken} />
+
+          <Boton type="submit" cargando={enviando}
+                 disabled={!acepta || (captchaExigido && !captchaToken)}>
+            Crear cuenta
+          </Boton>
+
+          <BotonGoogle texto="Registrarme con Google" />
 
           <p className="tarjeta__pie">
             ¿Ya tienes cuenta? <Link to="/iniciar-sesion">Iniciar sesión</Link>

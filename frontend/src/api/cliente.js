@@ -61,10 +61,24 @@ async function peticion(ruta, { metodo = 'GET', cuerpo, autenticada = true } = {
 }
 
 export const api = {
-  // RF-001 / HU-001
+  // RF-001 / HU-001. Ya no devuelve token: la cuenta nace sin verificar
   registro: (datos) => peticion('/auth/registro', { metodo: 'POST', cuerpo: datos, autenticada: false }),
   // RF-002 / HU-002
   login: (datos) => peticion('/auth/login', { metodo: 'POST', cuerpo: datos, autenticada: false }),
   // RF-003 / HU-003
   miPerfil: () => peticion('/usuarios/me'),
+  // RF-025 / HU-021. Al verificar sí devuelve token
+  verificar: (datos) => peticion('/auth/verificar', { metodo: 'POST', cuerpo: datos, autenticada: false }),
+  // RF-026 / HU-022
+  reenviarCodigo: (correo) => peticion('/auth/reenviar-codigo', { metodo: 'POST', cuerpo: { correo }, autenticada: false }),
+  // RF-027 / HU-023
+  recuperar: (correo) => peticion('/auth/recuperar', { metodo: 'POST', cuerpo: { correo }, autenticada: false }),
+  // RF-028 / HU-024
+  restablecer: (datos) => peticion('/auth/restablecer', { metodo: 'POST', cuerpo: datos, autenticada: false }),
+}
+
+/** RF-029. Sale de la aplicación: el navegador va a Google y vuelve con el token. */
+export function irAGoogle() {
+  const raiz = BASE.replace(/\/api\/v1\/?$/, '')
+  window.location.href = `${raiz}/oauth2/authorization/google`
 }
