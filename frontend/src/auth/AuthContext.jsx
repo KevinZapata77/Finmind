@@ -27,11 +27,36 @@ export function AuthProvider({ children }) {
     return r.usuario
   }, [])
 
+  /**
+   * El registro ya NO deja al usuario dentro: la cuenta nace sin verificar.
+   * Devuelve el usuario para que la pantalla lo lleve a ingresar el código.
+   */
   const crearCuenta = useCallback(async (datos) => {
     const r = await api.registro(datos)
+    return r.usuario
+  }, [])
+
+  /** Tras verificar el código sí llega el token y la sesión queda abierta. */
+  const verificarCorreo = useCallback(async (correo, codigo) => {
+    const r = await api.verificar({ correo, codigo })
     guardarToken(r.token)
     setUsuario(r.usuario)
     return r.usuario
+  }, [])
+
+  const restablecerContrasena = useCallback(async (datos) => {
+    const r = await api.restablecer(datos)
+    guardarToken(r.token)
+    setUsuario(r.usuario)
+    return r.usuario
+  }, [])
+
+  /** El token llega en la URL de retorno de Google. */
+  const entrarConToken = useCallback(async (token) => {
+    guardarToken(token)
+    const u = await api.miPerfil()
+    setUsuario(u)
+    return u
   }, [])
 
   const cerrarSesion = useCallback(() => {
@@ -40,8 +65,10 @@ export function AuthProvider({ children }) {
   }, [])
 
   const valor = useMemo(
-    () => ({ usuario, cargando, iniciarSesion, crearCuenta, cerrarSesion }),
-    [usuario, cargando, iniciarSesion, crearCuenta, cerrarSesion],
+    () => ({ usuario, cargando, iniciarSesion, crearCuenta, verificarCorreo,
+             restablecerContrasena, entrarConToken, cerrarSesion }),
+    [usuario, cargando, iniciarSesion, crearCuenta, verificarCorreo,
+     restablecerContrasena, entrarConToken, cerrarSesion],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>

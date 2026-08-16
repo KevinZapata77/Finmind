@@ -5,6 +5,7 @@ import { ErrorApi } from '../api/cliente'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
+import BotonGoogle from '../componentes/BotonGoogle'
 
 /** UI-001 — Iniciar sesión. Implementa HU-002 / RF-002. */
 export default function IniciarSesion() {
@@ -70,6 +71,12 @@ export default function IniciarSesion() {
           </div>
 
           <Boton type="submit" cargando={enviando}>Iniciar sesión</Boton>
+
+          <p className="tarjeta__pie">
+            <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>
+          </p>
+
+          <BotonGoogle texto="Entrar con Google" />
 
           <p className="tarjeta__pie">
             ¿No tienes cuenta? <Link to="/crear-cuenta">Crear cuenta</Link>
