@@ -6,8 +6,8 @@ import com.finmind.identidad.entity.CodigoVerificacion;
 import com.finmind.identidad.repository.CodigoVerificacionRepository;
 import com.finmind.usuarios.entity.Rol;
 import com.finmind.usuarios.entity.Usuario;
-import com.finmind.usuarios.repository.RolRepository;
 import com.finmind.usuarios.repository.UsuarioRepository;
+import com.finmind.soporte.LimpiadorDeDatos;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,21 +50,14 @@ class AuthFlujoTest {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
-    private RolRepository rolRepository;
-
-    @Autowired
     private CodigoVerificacionRepository codigoRepository;
+
+    @Autowired private LimpiadorDeDatos limpiador;
 
     @BeforeEach
     void prepararDatos() {
-        codigoRepository.deleteAll();
-        usuarioRepository.deleteAll();
-        if (rolRepository.findByNombre(Rol.USUARIO).isEmpty()) {
-            rolRepository.save(new Rol(Rol.USUARIO, "Usuario final"));
-        }
-        if (rolRepository.findByNombre(Rol.ADMIN).isEmpty()) {
-            rolRepository.save(new Rol(Rol.ADMIN, "Administrador de plataforma"));
-        }
+        // Un solo punto de limpieza para todas las pruebas: ver LimpiadorDeDatos.
+        limpiador.limpiar();
     }
 
     // ------------------------------------------------------------------ registro
