@@ -93,49 +93,76 @@ def ui002():
 
 # ------------------------------------------------- UI-003 Panel
 def ui003():
-    o = shell("Panel", "Panel")
-    o.append(txt(272, 108, "Agosto 2026", "font.body.md", N5))
-    o.append(boton(1044, 90, 204, 40, "+ Nuevo movimiento"))
-    tarjetas = [("Balance del mes", "$ 1.240.000", OK6, "+8% vs julio"),
-                ("Ingresos", "$ 3.100.000", N9, "2 registros"),
-                ("Gastos", "$ 1.860.000", ER6, "34 registros")]
-    x = 272
-    for tit, val, col, sub in tarjetas:
-        o.append(rect(x, 150, 300, 118, S, RL, N2))
-        o.append(txt(x + 24, 182, tit, "font.label", N5))
-        o.append(txt(x + 24, 220, val, "font.numero.lg", col))
-        o.append(txt(x + 24, 244, sub, "font.caption", N5))
-        x += 320
-    o.append(rect(272, 292, 620, 400, S, RL, N2))
-    o.append(txt(296, 328, "Gastos por categoria", "font.heading.md"))
-    o.append(txt(296, 350, "Agosto 2026", "font.caption", N5))
+    """UI-003 Inicio. Rehecha por CHG-UX-007: primero anotar, despues consultar."""
+    o = shell("Inicio", "Inicio")
+
+    # --- RF-040: registro rapido, en una sola fila -------------------------
+    o.append(rect(272, 96, 948, 96, S, RL, P6, sw=2))
+    o.append(rect(296, 116, 84, 36, OK1, RM, OK6, sw=2))
+    o.append(txt(338, 139, "Entro", "font.body.md", OK6, "middle", weight=600))
+    o.append(rect(388, 116, 84, 36, N1, RM, N2, sw=2))
+    o.append(txt(430, 139, "Salio", "font.body.md", N7, "middle", weight=600))
+    o.append(rect(484, 116, 300, 36, S, RM, N3))
+    o.append(txt(498, 139, "Cuanto?", "font.body.md", N5))
+    o.append(rect(796, 116, 260, 36, S, RM, N3))
+    o.append(txt(810, 139, "Ventas", "font.body.md", N9))
+    o.append(txt(1040, 140, "v", "font.caption", N5))
+    o.append(boton(1068, 116, 128, 36, "Anotar"))
+    x = 296
+    for etiqueta in ("$ 5.000", "$ 10.000", "$ 20.000", "$ 50.000", "$ 100.000"):
+        ancho = len(etiqueta) * 7 + 16
+        o.append(rect(x, 160, ancho, 22, P1, RS))
+        o.append(txt(x + ancho / 2, 175, etiqueta, "font.caption", P6, "middle"))
+        x += ancho + 8
+    o.append(txt(1196, 175, "+ Nueva categoria", "font.caption", P6, "end", weight=600))
+
+    # --- Tira compacta: la pregunta de todos los dias ----------------------
+    o.append(rect(272, 208, 948, 70, N1, RM))
+    for k, (rot, neto, det, col) in enumerate([
+            ("Hoy", "$ 92.000", "+$ 120.000 y -$ 28.000", OK6),
+            ("Esta semana", "$ 418.000", "+$ 610.000 y -$ 192.000", N9),
+            ("Este mes", "$ 1.240.000", "+$ 3.100.000 y -$ 1.860.000", N9)]):
+        cx = 296 + k * 316
+        o.append(txt(cx, 232, rot, "font.label", N7))
+        o.append(txt(cx, 256, neto, "font.heading.md", col))
+        o.append(txt(cx, 272, det, "font.caption", N5))
+
+    # --- Composicion del gasto (RF-022) ------------------------------------
+    o.append(txt(272, 316, "Como vas en agosto", "font.heading.md"))
+    o.append(txt(1196, 316, "Agosto 2026", "font.caption", N5, "end"))
+    o.append(rect(272, 336, 620, 344, S, RL, N2))
+    o.append(txt(296, 370, "En que se fue tu dinero", "font.heading.md"))
     datos = [("Vivienda", 620, "$ 620.000", P6), ("Alimentacion", 480, "$ 480.000", P5),
              ("Transporte", 310, "$ 310.000", OK6), ("Servicios", 240, "$ 240.000", WA6),
-             ("Salud", 130, "$ 130.000", N5), ("Otros", 80, "$ 80.000", N3)]
-    y = 396
+             ("Deudas y cuotas", 130, "$ 130.000", ER6), ("Otros", 80, "$ 80.000", N3)]
+    y = 404
     for nombre, valor, etiqueta, color in datos:
-        ancho = int(valor / 620 * 300)
         o.append(txt(296, y + 12, nombre, "font.body.md", N7))
-        o.append(rect(420, y, 300, 16, N1, 8))
-        o.append(rect(420, y, ancho, 16, color, 8))
+        o.append(rect(456, y, 264, 14, N1, 7))
+        o.append(rect(456, y, int(valor / 620 * 264), 14, color, 7))
         o.append(txt(868, y + 12, etiqueta, "font.body.md", N9, "end", weight=600))
-        y += 46
-    o.append(rect(912, 292, 336, 400, S, RL, N2))
-    o.append(txt(936, 328, "Presupuestos", "font.heading.md"))
-    pres = [("Alimentacion", 0.80, "80%", OK6), ("Transporte", 0.62, "62%", OK6),
-            ("Entretenimiento", 1.04, "104%", ER6), ("Servicios", 0.48, "48%", OK6)]
-    y = 372
-    for nombre, pct, etiqueta, color in pres:
-        o.append(txt(936, y, nombre, "font.body.md", N7))
-        o.append(txt(1224, y, etiqueta, "font.body.md", color, "end", weight=700))
-        o.append(rect(936, y + 12, 288, 10, N1, 5))
-        o.append(rect(936, y + 12, int(min(pct, 1) * 288), 10, color, 5))
-        if pct > 1:
-            o.append(txt(936, y + 42, "Superaste el limite en $ 48.000", "font.caption", ER6, weight=600))
-            y += 20
-        y += 62
-    o.append(rect(936, 636, 288, 36, WA1, RM, WA6))
-    o.append(txt(950, 659, "1 presupuesto excedido este mes", "font.caption", WA6, weight=600))
+        y += 44
+
+    # --- Patrimonio neto (RF-038) ------------------------------------------
+    o.append(rect(912, 336, 308, 160, S, RL, N2))
+    o.append(txt(936, 370, "Patrimonio neto", "font.label", N7))
+    o.append(txt(936, 404, "-$ 2.615.000", "font.numero.lg", ER6))
+    o.append(txt(936, 430, "$ 4.235.000 en cuentas", "font.caption", N5))
+    o.append(txt(936, 448, "-$ 6.850.000 en deudas", "font.caption", N5))
+    o.append(txt(936, 474, "Debes mas de lo que tienes.", "font.caption", ER6, weight=600))
+
+    # --- Presupuestos que piden atencion (RF-019) --------------------------
+    o.append(rect(912, 512, 308, 168, S, RL, WA6))
+    o.append(txt(936, 546, "Necesitan tu atencion", "font.heading.md"))
+    o.append(rect(936, 564, 260, 46, ER1, RM, ER6))
+    o.append(txt(950, 586, "Entretenimiento 104%", "font.caption", ER6, weight=700))
+    o.append(txt(950, 602, "Te pasaste por $ 48.000", "font.caption", N7))
+    o.append(rect(936, 618, 260, 46, WA1, RM, WA6))
+    o.append(txt(950, 640, "Alimentacion 80%", "font.caption", WA6, weight=700))
+    o.append(txt(950, 656, "Te quedan $ 100.000", "font.caption", N7))
+
     pie(o, W, H, "MK-003 / UI-003")
-    return svg(W, H, o, "UI-003 Panel de balance",
-               "Panel con tarjetas de balance, ingresos y gastos, grafico de barras de gastos por categoria y consumo de presupuestos con alerta de exceso.")
+    return svg(W, H, o, "UI-003 Inicio",
+               "Inicio con registro rapido en una fila, el resumen de hoy, la semana y el mes en "
+               "una tira compacta, la composicion del gasto, el patrimonio neto en negativo y los "
+               "presupuestos que requieren atencion.")
