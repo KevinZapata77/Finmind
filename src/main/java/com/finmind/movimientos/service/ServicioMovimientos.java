@@ -1,0 +1,122 @@
+package com.finmind.movimientos.service;
+
+import com.finmind.categorias.entity.Categoria;
+import com.finmind.categorias.service.ServicioCategorias;
+import com.finmind.common.exception.RecursoNoEncontradoException;
+import com.finmind.cuentas.entity.Cuenta;
+import com.finmind.cuentas.repository.CuentaRepository;
+import com.finmind.movimientos.dto.*;
+import com.finmind.movimientos.entity.Transaccion;
+import com.finmind.movimientos.repository.TransaccionRepository;
+import com.finmind.usuarios.entity.Usuario;
+import com.finmind.usuarios.repository.UsuarioRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+
+/**
+ * Ingresos y gastos (RF-012 a RF-016).
+ *
+ * Cada movimiento cruza tres cosas del usuario: cuenta, categoria y el usuario
+ * mismo. Las tres se validan contra el token, nunca contra lo que mande el
+ * cliente (RN-005).
+ */
+@Service
+public class ServicioMovimientos {
+
+    private static final int TAMANO_MAXIMO = 100;
+
+    private final TransaccionRepository movimientos;
+    private final CuentaRepository cuentas;
+    private final ServicioCategorias categorias;
+    private final UsuarioRepository usuarios;
+
+    public ServicioMovimientos(TransaccionRepository movimientos, CuentaRepository cuentas,
+                               ServicioCategorias categorias, UsuarioRepository usuarios) {
+        this.movimientos = movimientos;
+        this.cuentas = cuentas;
+        this.categorias = categorias;
+        this.usuarios = usuarios;
+    }
+
+    @Transactional
+    public MovimientoResponse registrar(Long usuarioId, MovimientoRequest p) {
+        Cuenta cuenta = exigirCuenta(usuarioId, p.cuentaId());
+        Categoria categoria = categorias.exigirUsable(usuarioId, p.categoriaId());
+        Usuario dueno = usuarios.findById(usuarioId)
+                .orElseThrow(() -> new IllegalStateException("El token es valido pero el usuario ya no existe"));
+
+        Transaccion t = new Transaccion(dueno, cuenta, categoria, p.monto(), p.fecha(), p.descripcion());
+        return MovimientoResponse.de(movimientos.save(t));
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaMovimientos listar(Long usuarioId, LocalDate desde, LocalDate hasta,
+                                    Long cuentaId, Long categoriaId, String tipo,
+                                    int pagina, int tamano) {
+        int limite = Math.min(Math.max(tamano, 1), TAMANO_MAXIMO);
+        String tipoNorm = (tipo == null || tipo.isBlank()) ? null : tipo.trim().toUpperCase();
+
+        Page<Transaccion> pag = movimientos.buscar(usuarioId, desde, hasta, cuentaId,
+                categoriaId, tipoNorm, PageRequest.of(Math.max(pagina, 0), limite));
+
+        // Los totales se calculan sobre el rango completo, no sobre la pagina.
+        LocalDate d = desde != null ? desde : LocalDate.of(1900, 1, 1);
+        LocalDate h = hasta != null ? hasta : LocalDate.of(2999, 12, 31);
+        BigDecimal ingresos = movimientos.totalPorTipo(usuarioId, Transaccion.INGRESO, d, h);
+        BigDecimal gastos = movimientos.totalPorTipo(usuarioId, Transaccion.GASTO, d, h);
+
+        List<MovimientoResponse> filas = pag.getContent().stream().map(MovimientoResponse::de).toList();
+        return PaginaMovimientos.de(pag, filas, ingresos, gastos);
+    }
+
+    @Transactional(readOnly = true)
+    public MovimientoResponse consultar(Long usuarioId, Long id) {
+        return MovimientoResponse.de(exigirPropio(usuarioId, id));
+    }
+
+    @Transactional
+    public MovimientoResponse actualizar(Long usuarioId, Long id, MovimientoRequest p) {
+        Transaccion t = exigirPropio(usuarioId, id);
+        Cuenta cuenta = exigirCuenta(usuarioId, p.cuentaId());
+        Categoria categoria = categorias.exigirUsable(usuarioId, p.categoriaId());
+        t.editar(cuenta, categoria, p.monto(), p.fecha(), p.descripcion());
+        return MovimientoResponse.de(t);
+    }
+
+    /**
+     * RF-016. Aqui si se borra de verdad, a diferencia de cuentas y categorias.
+     * Un movimiento equivocado no es historia que preservar: es un dato falso,
+     * y dejarlo "inactivo" descuadraria el saldo o exigiria filtrarlo en cada
+     * consulta para siempre.
+     */
+    @Transactional
+    public void eliminar(Long usuarioId, Long id) {
+        movimientos.delete(exigirPropio(usuarioId, id));
+    }
+
+    private Transaccion exigirPropio(Long usuarioId, Long id) {
+        return movimientos.findByIdAndUsuarioId(id, usuarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("El movimiento no existe"));
+    }
+
+    private Cuenta exigirCuenta(Long usuarioId, Long cuentaId) {
+        Cuenta c = cuentas.findByIdAndUsuarioId(cuentaId, usuarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("La cuenta no existe"));
+        if (!c.estaActiva()) {
+            throw new CuentaInactivaException(
+                    "La cuenta '" + c.getNombre() + "' esta desactivada. Reactívala o elige otra.");
+        }
+        return c;
+    }
+
+    /** 409: se intento mover plata en una cuenta desactivada. */
+    public static class CuentaInactivaException extends RuntimeException {
+        public CuentaInactivaException(String m) { super(m); }
+    }
+}

@@ -1,6 +1,9 @@
 package com.finmind.soporte;
 
+import com.finmind.categorias.entity.Categoria;
+import com.finmind.categorias.repository.CategoriaRepository;
 import com.finmind.cuentas.repository.CuentaRepository;
+import com.finmind.movimientos.repository.TransaccionRepository;
 import com.finmind.obligaciones.repository.ObligacionRepository;
 import com.finmind.obligaciones.repository.PagoObligacionRepository;
 import com.finmind.identidad.repository.CodigoVerificacionRepository;
@@ -9,6 +12,8 @@ import com.finmind.usuarios.repository.RolRepository;
 import com.finmind.usuarios.repository.UsuarioRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * Deja la base en blanco entre pruebas.
@@ -30,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class LimpiadorDeDatos {
 
+    private final TransaccionRepository movimientos;
+    private final CategoriaRepository categorias;
     private final CuentaRepository cuentas;
     private final ObligacionRepository obligaciones;
     private final PagoObligacionRepository pagos;
@@ -37,12 +44,16 @@ public class LimpiadorDeDatos {
     private final UsuarioRepository usuarios;
     private final RolRepository roles;
 
-    public LimpiadorDeDatos(CuentaRepository cuentas,
+    public LimpiadorDeDatos(TransaccionRepository movimientos,
+                            CategoriaRepository categorias,
+                            CuentaRepository cuentas,
                             ObligacionRepository obligaciones,
                             PagoObligacionRepository pagos,
                             CodigoVerificacionRepository codigos,
                             UsuarioRepository usuarios,
                             RolRepository roles) {
+        this.movimientos = movimientos;
+        this.categorias = categorias;
         this.cuentas = cuentas;
         this.obligaciones = obligaciones;
         this.pagos = pagos;
@@ -54,6 +65,10 @@ public class LimpiadorDeDatos {
     @Transactional
     public void limpiar() {
         // --- hijos primero -------------------------------------------------
+        // Los movimientos apuntan a cuentas y categorias: van de primeros.
+        movimientos.deleteAllInBatch();
+        // Solo las de usuarios: las del sistema son catalogo, igual que los roles.
+        categorias.borrarLasDeUsuarios();
         // Los pagos apuntan a obligaciones: van antes que ellas.
         pagos.deleteAllInBatch();
         obligaciones.deleteAllInBatch();
@@ -66,6 +81,31 @@ public class LimpiadorDeDatos {
         usuarios.deleteAllInBatch();
 
         sembrarRoles();
+        sembrarCategoriasDelSistema();
+    }
+
+    /**
+     * Las categorias del sistema las siembra la migracion V1, pero en pruebas
+     * Flyway esta apagado y el esquema lo genera Hibernate desde las entidades.
+     * Sin esto, en pruebas no existiria ninguna categoria y no se podria
+     * registrar un solo movimiento.
+     *
+     * La lista es la misma de V1__esquema_inicial.sql. Si alla cambia, aqui tambien.
+     */
+    private void sembrarCategoriasDelSistema() {
+        if (!categorias.findAll().isEmpty()) return;
+        List.of(
+                new Categoria(null, "Salario",         Categoria.INGRESO, "wallet",   "#15803D"),
+                new Categoria(null, "Otros ingresos",  Categoria.INGRESO, "plus",     "#0E8368"),
+                new Categoria(null, "Alimentacion",    Categoria.GASTO,   "utensils", "#B45309"),
+                new Categoria(null, "Transporte",      Categoria.GASTO,   "bus",      "#0B6B57"),
+                new Categoria(null, "Vivienda",        Categoria.GASTO,   "home",     "#0A5647"),
+                new Categoria(null, "Servicios",       Categoria.GASTO,   "bolt",     "#374151"),
+                new Categoria(null, "Salud",           Categoria.GASTO,   "heart",    "#B91C1C"),
+                new Categoria(null, "Educacion",       Categoria.GASTO,   "book",     "#6B7280"),
+                new Categoria(null, "Entretenimiento", Categoria.GASTO,   "film",     "#0E8368"),
+                new Categoria(null, "Otros gastos",    Categoria.GASTO,   "dots",     "#D1D5DB")
+        ).forEach(categorias::save);
     }
 
     /** Los roles son catalogo: si no estan, ningun registro puede completarse. */
