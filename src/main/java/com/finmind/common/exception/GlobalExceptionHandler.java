@@ -17,6 +17,10 @@ import com.finmind.obligaciones.service.ServicioObligaciones.NombreDeObligacionR
 import com.finmind.obligaciones.service.ServicioObligaciones.TipoDeObligacionInvalidoException;
 import com.finmind.obligaciones.service.ServicioObligaciones.ObligacionCerradaException;
 import com.finmind.obligaciones.service.ServicioObligaciones.PagoExcedeLaDeudaException;
+import com.finmind.categorias.service.ServicioCategorias.CategoriaRepetidaException;
+import com.finmind.categorias.service.ServicioCategorias.TipoDeCategoriaInvalidoException;
+import com.finmind.categorias.service.ServicioCategorias.CategoriaInactivaException;
+import com.finmind.movimientos.service.ServicioMovimientos.CuentaInactivaException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -127,6 +131,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> pagoExcesivo(PagoExcedeLaDeudaException ex,
                                                  HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** 409: ya existe una categoria con ese nombre y tipo (RF-009). */
+    @ExceptionHandler(CategoriaRepetidaException.class)
+    public ResponseEntity<ApiError> categoriaRepetida(CategoriaRepetidaException ex, HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /** 400: el tipo de categoria no es INGRESO ni GASTO. */
+    @ExceptionHandler(TipoDeCategoriaInvalidoException.class)
+    public ResponseEntity<ApiError> tipoCategoria(TipoDeCategoriaInvalidoException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** 409: se intento usar una categoria o una cuenta desactivada (RF-012). */
+    @ExceptionHandler({CategoriaInactivaException.class, CuentaInactivaException.class})
+    public ResponseEntity<ApiError> recursoInactivo(RuntimeException ex, HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

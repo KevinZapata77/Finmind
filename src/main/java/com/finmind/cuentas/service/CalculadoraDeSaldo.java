@@ -1,5 +1,6 @@
 package com.finmind.cuentas.service;
 
+import com.finmind.movimientos.repository.TransaccionRepository;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -7,20 +8,26 @@ import java.math.BigDecimal;
 /**
  * Saldo actual de una cuenta = saldo inicial + ingresos - gastos.
  *
- * LIMITACION CONOCIDA (DT-09): el modulo de movimientos todavia no existe, asi
- * que hoy no hay nada que sumar y el neto es cero. Es decir: el saldo actual
- * que se devuelve es correcto -- una cuenta sin movimientos tiene exactamente
- * su saldo inicial -- pero estara incompleto en cuanto se registren
- * movimientos, si no se completa esta clase primero.
+ * DT-09 CERRADA. Mientras no existia el modulo de movimientos esta clase
+ * devolvia cero, y el saldo actual coincidia con el inicial. Ahora suma de
+ * verdad. La firma no cambio: por eso el resto del modulo de cuentas no se
+ * entero de nada.
  *
- * Existe como clase aparte, y no como una linea suelta dentro del servicio,
- * para que al construir el modulo de movimientos el cambio sea evidente y
- * ocurra en un solo lugar. La firma ya es la definitiva.
+ * La suma la hace la base, no Java. Traer todos los movimientos de una cuenta
+ * para recorrerlos en memoria funciona con datos de prueba y se cae con un
+ * usuario que lleve dos anios registrando gastos.
  */
 @Component
 public class CalculadoraDeSaldo {
 
+    private final TransaccionRepository movimientos;
+
+    public CalculadoraDeSaldo(TransaccionRepository movimientos) {
+        this.movimientos = movimientos;
+    }
+
     public BigDecimal movimientoNetoDe(Long cuentaId) {
-        return BigDecimal.ZERO;
+        if (cuentaId == null) return BigDecimal.ZERO;
+        return movimientos.netoDeLaCuenta(cuentaId);
     }
 }

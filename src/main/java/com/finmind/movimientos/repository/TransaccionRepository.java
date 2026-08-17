@@ -1,0 +1,64 @@
+package com.finmind.movimientos.repository;
+
+import com.finmind.movimientos.entity.Transaccion;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Optional;
+
+public interface TransaccionRepository extends JpaRepository<Transaccion, Long> {
+
+    /** RN-005. */
+    Optional<Transaccion> findByIdAndUsuarioId(Long id, Long usuarioId);
+
+    /**
+     * Listado con filtros opcionales (RF-014). Los nulos se ignoran, asi que una
+     * sola consulta cubre todas las combinaciones sin construir SQL a mano.
+     */
+    @Query("""
+           SELECT t FROM Transaccion t
+           WHERE t.usuario.id = :usuarioId
+             AND (:desde       IS NULL OR t.fecha >= :desde)
+             AND (:hasta       IS NULL OR t.fecha <= :hasta)
+             AND (:cuentaId    IS NULL OR t.cuenta.id = :cuentaId)
+             AND (:categoriaId IS NULL OR t.categoria.id = :categoriaId)
+             AND (:tipo        IS NULL OR t.tipo = :tipo)
+           ORDER BY t.fecha DESC, t.id DESC
+           """)
+    Page<Transaccion> buscar(@Param("usuarioId") Long usuarioId,
+                             @Param("desde") LocalDate desde,
+                             @Param("hasta") LocalDate hasta,
+                             @Param("cuentaId") Long cuentaId,
+                             @Param("categoriaId") Long categoriaId,
+                             @Param("tipo") String tipo,
+                             Pageable pagina);
+
+    /**
+     * DT-09 resuelta: movimiento neto de una cuenta.
+     * Se suma en la base porque traer miles de movimientos para sumarlos en
+     * memoria funciona con datos de prueba y se cae con un usuario real.
+     */
+    @Query("""
+           SELECT COALESCE(SUM(CASE WHEN t.tipo = 'INGRESO' THEN t.monto ELSE -t.monto END), 0)
+           FROM Transaccion t WHERE t.cuenta.id = :cuentaId
+           """)
+    BigDecimal netoDeLaCuenta(@Param("cuentaId") Long cuentaId);
+
+    /** Para el balance del periodo (RF-021). */
+    @Query("""
+           SELECT COALESCE(SUM(t.monto), 0) FROM Transaccion t
+           WHERE t.usuario.id = :usuarioId AND t.tipo = :tipo
+             AND t.fecha BETWEEN :desde AND :hasta
+           """)
+    BigDecimal totalPorTipo(@Param("usuarioId") Long usuarioId, @Param("tipo") String tipo,
+                            @Param("desde") LocalDate desde, @Param("hasta") LocalDate hasta);
+
+    boolean existsByCategoriaId(Long categoriaId);
+
+    boolean existsByCuentaId(Long cuentaId);
+}
