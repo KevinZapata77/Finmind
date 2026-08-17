@@ -224,8 +224,12 @@ class MetasYAdministracionTest {
 
         // El administrador entra a los mismos endpoints financieros: solo ve LO SUYO,
         // que esta vacio. El rol no abre ninguna puerta a los datos de otros.
+        // El admin ve UNA cuenta: la de efectivo que le crearon a el al registrarse.
+        // Ninguna de Ana, aunque tenga rol de administrador.
         mockMvc.perform(get("/api/v1/cuentas").header("Authorization", "Bearer " + admin))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[?(@.nombre == 'Ahorros')]").isEmpty());
         mockMvc.perform(get("/api/v1/metas").header("Authorization", "Bearer " + admin))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
         mockMvc.perform(get("/api/v1/obligaciones/patrimonio").header("Authorization", "Bearer " + admin))

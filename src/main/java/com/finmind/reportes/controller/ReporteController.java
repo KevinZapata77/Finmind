@@ -39,6 +39,13 @@ public class ReporteController {
         return ResponseEntity.ok(servicio.gastoPorCategoria(principal.getId(), anio, mes));
     }
 
+    @GetMapping("/resumen-rapido")
+    @Operation(summary = "Lo de hoy, la semana y el mes", description = "RF-040. Alimenta el registro rapido")
+    public ResponseEntity<ResumenRapidoResponse> resumenRapido(
+            @AuthenticationPrincipal UsuarioPrincipal principal) {
+        return ResponseEntity.ok(servicio.resumenRapido(principal.getId()));
+    }
+
     @GetMapping("/panel")
     @Operation(summary = "Todo el panel en una sola llamada", description = "RF-021, RF-022, RF-038")
     public ResponseEntity<PanelResponse> panel(

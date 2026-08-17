@@ -137,6 +137,22 @@ class CuentasFlujoTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    @DisplayName("RF-040: al registrarse ya existe una cuenta de efectivo")
+    void naceConCuentaDeEfectivo() throws Exception {
+        String token = usuarioListo("ana@finmind.test");
+
+        // Sin esto, el primer gesto de alguien recien registrado seria llenar un
+        // formulario de cuentas antes de poder anotar un solo peso.
+        mockMvc.perform(get("/api/v1/cuentas").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].nombre").value("Efectivo"))
+                .andExpect(jsonPath("$[0].tipo").value("EFECTIVO"))
+                .andExpect(jsonPath("$[0].saldoActual").value(0))
+                .andExpect(jsonPath("$[0].activa").value(true));
+    }
+
     // ------------------------------------------------- Listar (RF-007)
 
     @Test
@@ -148,15 +164,18 @@ class CuentasFlujoTest {
         mockMvc.perform(patch("/api/v1/cuentas/" + id + "/desactivar")
                 .header("Authorization", "Bearer " + token)).andExpect(status().isOk());
 
+        // Cuentan tres: la Efectivo que se crea al registrarse, mas las dos de la prueba.
         mockMvc.perform(get("/api/v1/cuentas").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].nombre").value("Nueva"));
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[?(@.nombre == 'Nueva')]").isNotEmpty())
+                .andExpect(jsonPath("$[?(@.nombre == 'Vieja')]").isEmpty());
 
         mockMvc.perform(get("/api/v1/cuentas?incluirInactivas=true")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[?(@.nombre == 'Vieja')]").isNotEmpty());
     }
 
     // ------------------------------------------------- RN-005
@@ -185,10 +204,12 @@ class CuentasFlujoTest {
         mockMvc.perform(patch("/api/v1/cuentas/" + cuentaDeAna + "/desactivar")
                 .header("Authorization", "Bearer " + tokenLuis)).andExpect(status().isNotFound());
 
-        // Y el listado de Luis sigue vacio: no ve nada de Ana.
+        // Luis solo ve SU cuenta de efectivo. La de Ana no aparece por ningun lado.
         mockMvc.perform(get("/api/v1/cuentas").header("Authorization", "Bearer " + tokenLuis))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].nombre").value("Efectivo"))
+                .andExpect(jsonPath("$[?(@.nombre == 'Ahorros de Ana')]").isEmpty());
     }
 
     @Test

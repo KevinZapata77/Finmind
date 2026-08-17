@@ -22,6 +22,9 @@ public class Cuenta {
     /** RN-020: este tipo representa deuda, no dinero disponible. */
     public static final String TARJETA_CREDITO = "TARJETA_CREDITO";
 
+    /** La que se crea sola al registrarse: el punto de partida de todos. */
+    public static final String EFECTIVO = "EFECTIVO";
+
     public static final Set<String> TIPOS = Set.of(
             "EFECTIVO", "AHORROS", "CORRIENTE", "TARJETA_CREDITO", "BILLETERA_DIGITAL", "OTRO");
 
