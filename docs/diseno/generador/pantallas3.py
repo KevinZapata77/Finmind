@@ -212,3 +212,95 @@ def ui007():
     return svg(W, H, o, "UI-007 Metas de ahorro",
                "Listado de metas con barra de avance, monto acumulado sobre objetivo y porcentaje. "
                "Incluye accion para crear una meta nueva y abonar a las existentes.")
+
+
+# --------------------------------------------- UI-014 Obligaciones
+def ui014():
+    o = shell("Obligaciones", "Obligaciones")
+    for i, (rot, val, col) in enumerate([
+            ("Debes en total", "$ 6.850.000", ER6),
+            ("Cuotas de este mes", "$ 780.000", N9),
+            ("Patrimonio neto", "-$ 2.615.000", ER6)]):
+        cx = 272 + i * 320
+        o.append(rect(cx, 100, 300, 96, S, RL, N2))
+        o.append(txt(cx + 20, 130, rot, "font.label", N7))
+        o.append(txt(cx + 20, 166, val, "font.numero.lg", col))
+    o.append(boton(1020, 212, 200, 44, "Nueva obligacion"))
+    o.append(aviso(272, 212, 700, "Cuotas por vencer",
+                   "Tarjeta Visa el dia 15 y Credito de vehiculo el dia 20.", "warn"))
+
+    deudas = [("Tarjeta Visa", "Bancolombia · Tarjeta de credito", "$ 1.850.000",
+               "$ 2.400.000", 23, "$ 37.000", "$ 300.000", 15),
+              ("Credito de vehiculo", "Banco de Bogota · Credito de vehiculo", "$ 4.200.000",
+               "$ 9.000.000", 53, "$ 56.000", "$ 380.000", 20),
+              ("Prestamo de mi tia", "Familia · Prestamo personal, sin interes", "$ 800.000",
+               "$ 1.000.000", 20, "$ 0", "$ 100.000", 5)]
+    y = 296
+    for nombre, meta, saldo, original, pct, interes, cuota, dia in deudas:
+        o.append(rect(272, y, 948, 130, S, RL, N2))
+        o.append(txt(296, y + 32, nombre, "font.heading.md"))
+        o.append(txt(1196, y + 32, saldo, "font.heading.md", ER6, "end"))
+        o.append(txt(296, y + 54, f"{meta} · cuota {cuota} el dia {dia}", "font.caption", N5))
+        o.append(rect(296, y + 68, 900, 10, N2, 5))
+        o.append(rect(296, y + 68, int(900 * pct / 100), 10, P6, 5))
+        o.append(txt(296, y + 98, f"Pagado {pct}% de {original}", "font.caption", N7))
+        o.append(txt(700, y + 98, f"Interes de este mes: {interes}", "font.caption", WA6))
+        o.append(txt(1000, y + 98, "Registrar pago", "font.caption", P6, weight=600))
+        o.append(txt(1196, y + 98, "Cancelar", "font.caption", P6, "end", weight=600))
+        y += 142
+    pie(o, W, H, "MK-014 / UI-014")
+    return svg(W, H, o, "UI-014 Obligaciones",
+               "Listado de deudas con saldo pendiente, barra de avance, interes del mes y cuota. "
+               "Arriba, el total adeudado, las cuotas del mes y el patrimonio neto en negativo.")
+
+
+# --------------------------------------------- UI-015 Categorias
+def ui015():
+    o = shell("Categorias", "Categorias")
+    o.append(boton(1020, 108, 200, 44, "Nueva categoria"))
+    o.append(txt(272, 130, "Gastos", "font.heading.md"))
+
+    filas = [("Alimentacion", "#B45309", True, True), ("Transporte", "#0B6B57", True, True),
+             ("Mascotas", "#0E8368", False, True), ("Gimnasio", "#6B7280", False, False)]
+    y = 156
+    for nombre, color, sistema, activa in filas:
+        o.append(rect(272, y, 948, 56, S if activa else N1, RM, N2))
+        o.append(rect(296, y + 22, 14, 14, color, 7))
+        o.append(txt(324, y + 34, nombre, "font.body.md", N9 if activa else N7))
+        ancho = len(nombre) * 8 + 40
+        if sistema:
+            o.append(rect(324 + ancho, y + 18, 92, 20, N2, RS))
+            o.append(txt(370 + ancho, y + 32, "Del sistema", "font.caption", N7, "middle", weight=600))
+            o.append(txt(1196, y + 34, "No se modifica", "font.caption", N5, "end"))
+        else:
+            if not activa:
+                o.append(rect(324 + ancho, y + 18, 92, 20, N2, RS))
+                o.append(txt(370 + ancho, y + 32, "Desactivada", "font.caption", N7, "middle", weight=600))
+            o.append(txt(1090, y + 34, "Editar", "font.caption", P6, weight=600))
+            o.append(txt(1196, y + 34, "Desactivar" if activa else "Reactivar",
+                         "font.caption", P6, "end", weight=600))
+        y += 64
+
+    o.append(txt(272, y + 34, "Ingresos", "font.heading.md"))
+    y += 60
+    for nombre, color, sistema in [("Salario", "#15803D", True), ("Freelance", "#0E8368", False)]:
+        o.append(rect(272, y, 948, 56, S, RM, N2))
+        o.append(rect(296, y + 22, 14, 14, color, 7))
+        o.append(txt(324, y + 34, nombre, "font.body.md"))
+        ancho = len(nombre) * 8 + 40
+        if sistema:
+            o.append(rect(324 + ancho, y + 18, 92, 20, N2, RS))
+            o.append(txt(370 + ancho, y + 32, "Del sistema", "font.caption", N7, "middle", weight=600))
+            o.append(txt(1196, y + 34, "No se modifica", "font.caption", N5, "end"))
+        else:
+            o.append(txt(1090, y + 34, "Editar", "font.caption", P6, weight=600))
+            o.append(txt(1196, y + 34, "Desactivar", "font.caption", P6, "end", weight=600))
+        y += 64
+
+    o.append(aviso(272, y + 16, 948, "Las del sistema no se editan",
+                   "Las ven todos los usuarios. Si uno pudiera renombrar 'Salario', se lo cambiaria "
+                   "a todos los demas. Desactivar una propia no borra sus movimientos.", "info"))
+    pie(o, W, H, "MK-015 / UI-015")
+    return svg(W, H, o, "UI-015 Categorias",
+               "Categorias separadas en gastos e ingresos, con su color, las del sistema marcadas "
+               "y sin acciones de edicion, y una propia desactivada en gris.")
