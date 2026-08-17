@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, ErrorApi, TIPOS_DE_CUENTA, etiquetaDeTipo, formatearDinero } from '../api/cliente'
+import { api, ErrorApi, TIPOS_DE_CUENTA, etiquetaDeTipo, formatearDinero, ES_PASIVO } from '../api/cliente'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
@@ -78,8 +78,14 @@ export default function Cuentas() {
     }
   }
 
-  const total = cuentas
-    .filter((c) => c.activa)
+  // RN-020. Antes esto sumaba TODO, tarjetas incluidas, y le informaba al usuario
+  // mas dinero del que tiene: el saldo de una tarjeta es deuda, no disponible.
+  const activas = cuentas.filter((c) => c.activa)
+  const disponible = activas
+    .filter((c) => !ES_PASIVO(c.tipo))
+    .reduce((suma, c) => suma + Number(c.saldoActual ?? 0), 0)
+  const enTarjetas = activas
+    .filter((c) => ES_PASIVO(c.tipo))
     .reduce((suma, c) => suma + Number(c.saldoActual ?? 0), 0)
 
   return (
@@ -88,8 +94,14 @@ export default function Cuentas() {
         <div>
           <h1 className="pagina__titulo">Mis cuentas</h1>
           <p className="pagina__bajada">
-            Saldo total disponible: <strong>{formatearDinero(total)}</strong>
+            Dinero disponible: <strong>{formatearDinero(disponible)}</strong>
           </p>
+          {enTarjetas > 0 && (
+            <p className="pagina__nota">
+              No incluye {formatearDinero(enTarjetas)} en tarjetas de crédito:
+              eso es deuda, no dinero tuyo. Lo ves en <strong>Obligaciones</strong>.
+            </p>
+          )}
         </div>
         <Boton onClick={abrirCreacion}>Nueva cuenta</Boton>
       </header>
@@ -178,7 +190,9 @@ export default function Cuentas() {
               </div>
 
               <div className="cuenta__saldo">
-                <strong>{formatearDinero(c.saldoActual, c.moneda)}</strong>
+                <strong className={ES_PASIVO(c.tipo) ? 'cuenta__deuda' : undefined}>
+                  {ES_PASIVO(c.tipo) && '− '}{formatearDinero(c.saldoActual, c.moneda)}
+                </strong>
                 <span className="cuenta__inicial">
                   Inicial: {formatearDinero(c.saldoInicial, c.moneda)}
                 </span>

@@ -83,7 +83,14 @@ export const api = {
   editarCuenta: (id, datos) => peticion(`/cuentas/${id}`, { metodo: 'PUT', cuerpo: datos }),
   desactivarCuenta: (id) => peticion(`/cuentas/${id}/desactivar`, { metodo: 'PATCH' }),
   activarCuenta: (id) => peticion(`/cuentas/${id}/activar`, { metodo: 'PATCH' }),
+
+  // --- Obligaciones (RF-035 a RF-039) ---
+  obligaciones: (soloActivas = true) => peticion(`/obligaciones?soloActivas=${soloActivas}`),
+  patrimonio: () => peticion('/obligaciones/patrimonio'),
 }
+
+/** RN-020: la tarjeta de credito no es dinero disponible, es deuda. */
+export const ES_PASIVO = (tipo) => tipo === 'TARJETA_CREDITO'
 
 /** Etiquetas de los seis tipos. Los valores los fija el backend. */
 export const TIPOS_DE_CUENTA = [
