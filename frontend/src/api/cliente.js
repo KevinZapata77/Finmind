@@ -87,6 +87,54 @@ export const api = {
   // --- Obligaciones (RF-035 a RF-039) ---
   obligaciones: (soloActivas = true) => peticion(`/obligaciones?soloActivas=${soloActivas}`),
   patrimonio: () => peticion('/obligaciones/patrimonio'),
+  crearObligacion: (datos) => peticion('/obligaciones', { metodo: 'POST', cuerpo: datos }),
+  editarObligacion: (id, datos) => peticion(`/obligaciones/${id}`, { metodo: 'PUT', cuerpo: datos }),
+  cancelarObligacion: (id) => peticion(`/obligaciones/${id}/cancelar`, { metodo: 'PATCH' }),
+  pagarObligacion: (id, datos) => peticion(`/obligaciones/${id}/pagos`, { metodo: 'POST', cuerpo: datos }),
+  pagosDeObligacion: (id) => peticion(`/obligaciones/${id}/pagos`),
+
+  // --- Categorias (RF-009 a RF-011) ---
+  categorias: (tipo) => peticion(`/categorias${tipo ? `?tipo=${tipo}` : ''}`),
+  crearCategoria: (datos) => peticion('/categorias', { metodo: 'POST', cuerpo: datos }),
+
+  // --- Movimientos (RF-012 a RF-016) ---
+  movimientos: (filtros = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(filtros).filter(([, v]) => v !== '' && v != null)
+    ).toString()
+    return peticion(`/transacciones${q ? `?${q}` : ''}`)
+  },
+  crearMovimiento: (datos) => peticion('/transacciones', { metodo: 'POST', cuerpo: datos }),
+  editarMovimiento: (id, datos) => peticion(`/transacciones/${id}`, { metodo: 'PUT', cuerpo: datos }),
+  borrarMovimiento: (id) => peticion(`/transacciones/${id}`, { metodo: 'DELETE' }),
+
+  // --- Presupuestos (RF-017 a RF-020) ---
+  presupuestos: (anio, mes) => peticion(`/presupuestos?anio=${anio}&mes=${mes}`),
+  crearPresupuesto: (datos) => peticion('/presupuestos', { metodo: 'POST', cuerpo: datos }),
+  editarPresupuesto: (id, datos) => peticion(`/presupuestos/${id}`, { metodo: 'PUT', cuerpo: datos }),
+  desactivarPresupuesto: (id) => peticion(`/presupuestos/${id}/desactivar`, { metodo: 'PATCH' }),
+
+  // --- Reportes (RF-021, RF-022) ---
+  panel: (anio, mes) => peticion(`/reportes/panel?anio=${anio}&mes=${mes}`),
+}
+
+/** Tipos de obligacion. Los valores los fija el backend. */
+export const TIPOS_DE_OBLIGACION = [
+  { valor: 'TARJETA_CREDITO', etiqueta: 'Tarjeta de crédito' },
+  { valor: 'PRESTAMO_BANCARIO', etiqueta: 'Préstamo bancario' },
+  { valor: 'PRESTAMO_PERSONAL', etiqueta: 'Préstamo personal' },
+  { valor: 'CREDITO_HIPOTECARIO', etiqueta: 'Crédito hipotecario' },
+  { valor: 'CREDITO_VEHICULO', etiqueta: 'Crédito de vehículo' },
+  { valor: 'OTRO', etiqueta: 'Otro' },
+]
+
+export const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
+/** Fecha de hoy en el formato que espera el backend, sin desfase de zona horaria. */
+export const hoyISO = () => {
+  const d = new Date()
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 }
 
 /** RN-020: la tarjeta de credito no es dinero disponible, es deuda. */
