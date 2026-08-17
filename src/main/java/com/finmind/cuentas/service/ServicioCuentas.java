@@ -97,6 +97,21 @@ public class ServicioCuentas {
     }
 
     /**
+     * RN-020. Suma solo el dinero que el usuario TIENE.
+     *
+     * Las cuentas de tipo TARJETA_CREDITO quedan fuera: su saldo no es dinero
+     * disponible sino deuda, y sumarlo le informaria al usuario mas plata de la
+     * que realmente tiene. Esas deudas viven en el modulo de obligaciones.
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal totalActivos(Long usuarioId) {
+        return cuentas.findByUsuarioIdAndActivaTrueOrderByNombreAsc(usuarioId).stream()
+                .filter(c -> !Cuenta.TARJETA_CREDITO.equals(c.getTipo()))
+                .map(c -> c.getSaldoInicial().add(calculadora.movimientoNetoDe(c.getId())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
      * RN-005. Una cuenta ajena responde "no existe", no "no puedes".
      * Distinguirlos revelaria que esa cuenta existe y de quien es.
      */

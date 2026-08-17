@@ -19,6 +19,9 @@ import java.util.Set;
 @Table(name = "cuentas")
 public class Cuenta {
 
+    /** RN-020: este tipo representa deuda, no dinero disponible. */
+    public static final String TARJETA_CREDITO = "TARJETA_CREDITO";
+
     public static final Set<String> TIPOS = Set.of(
             "EFECTIVO", "AHORROS", "CORRIENTE", "TARJETA_CREDITO", "BILLETERA_DIGITAL", "OTRO");
 
