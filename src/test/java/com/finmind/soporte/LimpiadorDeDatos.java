@@ -1,6 +1,8 @@
 package com.finmind.soporte;
 
 import com.finmind.cuentas.repository.CuentaRepository;
+import com.finmind.obligaciones.repository.ObligacionRepository;
+import com.finmind.obligaciones.repository.PagoObligacionRepository;
 import com.finmind.identidad.repository.CodigoVerificacionRepository;
 import com.finmind.usuarios.entity.Rol;
 import com.finmind.usuarios.repository.RolRepository;
@@ -29,15 +31,21 @@ import org.springframework.transaction.annotation.Transactional;
 public class LimpiadorDeDatos {
 
     private final CuentaRepository cuentas;
+    private final ObligacionRepository obligaciones;
+    private final PagoObligacionRepository pagos;
     private final CodigoVerificacionRepository codigos;
     private final UsuarioRepository usuarios;
     private final RolRepository roles;
 
     public LimpiadorDeDatos(CuentaRepository cuentas,
+                            ObligacionRepository obligaciones,
+                            PagoObligacionRepository pagos,
                             CodigoVerificacionRepository codigos,
                             UsuarioRepository usuarios,
                             RolRepository roles) {
         this.cuentas = cuentas;
+        this.obligaciones = obligaciones;
+        this.pagos = pagos;
         this.codigos = codigos;
         this.usuarios = usuarios;
         this.roles = roles;
@@ -46,6 +54,9 @@ public class LimpiadorDeDatos {
     @Transactional
     public void limpiar() {
         // --- hijos primero -------------------------------------------------
+        // Los pagos apuntan a obligaciones: van antes que ellas.
+        pagos.deleteAllInBatch();
+        obligaciones.deleteAllInBatch();
         cuentas.deleteAllInBatch();
         codigos.deleteAllInBatch();
         // AL AGREGAR UN MODULO NUEVO, su tabla va AQUI ARRIBA si apunta a usuarios

@@ -13,6 +13,10 @@ import com.finmind.identidad.service.ServicioCaptcha.CaptchaInvalidoException;
 import com.finmind.identidad.service.ServicioUsuarioGoogle.CuentaGoogleException;
 import com.finmind.cuentas.service.ServicioCuentas.NombreDeCuentaRepetidoException;
 import com.finmind.cuentas.service.ServicioCuentas.TipoDeCuentaInvalidoException;
+import com.finmind.obligaciones.service.ServicioObligaciones.NombreDeObligacionRepetidoException;
+import com.finmind.obligaciones.service.ServicioObligaciones.TipoDeObligacionInvalidoException;
+import com.finmind.obligaciones.service.ServicioObligaciones.ObligacionCerradaException;
+import com.finmind.obligaciones.service.ServicioObligaciones.PagoExcedeLaDeudaException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -94,6 +98,34 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TipoDeCuentaInvalidoException.class)
     public ResponseEntity<ApiError> tipoDeCuentaInvalido(TipoDeCuentaInvalidoException ex,
                                                          HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** 409: ya existe otra obligacion con ese nombre (RF-035). */
+    @ExceptionHandler(NombreDeObligacionRepetidoException.class)
+    public ResponseEntity<ApiError> obligacionRepetida(NombreDeObligacionRepetidoException ex,
+                                                       HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /** 409: la obligacion ya esta pagada o cancelada (RF-036). */
+    @ExceptionHandler(ObligacionCerradaException.class)
+    public ResponseEntity<ApiError> obligacionCerrada(ObligacionCerradaException ex,
+                                                      HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /** 400: tipo de obligacion no permitido. */
+    @ExceptionHandler(TipoDeObligacionInvalidoException.class)
+    public ResponseEntity<ApiError> tipoObligacion(TipoDeObligacionInvalidoException ex,
+                                                   HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** 400: el pago supera la deuda total (RF-036). */
+    @ExceptionHandler(PagoExcedeLaDeudaException.class)
+    public ResponseEntity<ApiError> pagoExcesivo(PagoExcedeLaDeudaException ex,
+                                                 HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
     }
 
