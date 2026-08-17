@@ -570,3 +570,30 @@ a { color: var(--color-primary-600); font-weight: 600; }
   .movimiento { grid-template-columns: 10px 1fr; }
   .movimiento__monto, .movimiento__acciones { grid-column: 2; }
 }
+
+/* Categorías — UI-015 (RF-009 a RF-011) */
+.lista-categorias { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+
+.categoria {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radio-md);
+}
+
+.categoria--inactiva { background: var(--color-neutral-100); }
+.categoria__color { width: 14px; height: 14px; border-radius: 7px; }
+.categoria__nombre { font: var(--font-cuerpo); color: var(--color-neutral-900); display: flex; align-items: center; gap: var(--space-2); }
+.categoria__acciones { display: flex; gap: var(--space-3); align-items: center; }
+
+.campo__color {
+  width: 100%; height: 40px; padding: 2px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radio-md);
+  background: var(--color-surface);
+  cursor: pointer;
+}

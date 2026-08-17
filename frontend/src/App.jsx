@@ -12,6 +12,7 @@ import Cuentas from './paginas/Cuentas'
 import Movimientos from './paginas/Movimientos'
 import Presupuestos from './paginas/Presupuestos'
 import Obligaciones from './paginas/Obligaciones'
+import Categorias from './paginas/Categorias'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/movimientos" element={<RutaProtegida><Movimientos /></RutaProtegida>} />
         <Route path="/presupuestos" element={<RutaProtegida><Presupuestos /></RutaProtegida>} />
         <Route path="/obligaciones" element={<RutaProtegida><Obligaciones /></RutaProtegida>} />
+        <Route path="/categorias" element={<RutaProtegida><Categorias /></RutaProtegida>} />
         <Route path="*" element={<Navigate to="/panel" replace />} />
       </Routes>
     </AuthProvider>

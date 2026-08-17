@@ -13,6 +13,7 @@ const SECCIONES = [
   { a: '/movimientos', texto: 'Movimientos' },
   { a: '/presupuestos', texto: 'Presupuestos' },
   { a: '/cuentas', texto: 'Cuentas' },
+  { a: '/categorias', texto: 'Categorías' },
   { a: '/obligaciones', texto: 'Obligaciones' },
 ]
 

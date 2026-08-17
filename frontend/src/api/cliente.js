@@ -96,6 +96,10 @@ export const api = {
   // --- Categorias (RF-009 a RF-011) ---
   categorias: (tipo) => peticion(`/categorias${tipo ? `?tipo=${tipo}` : ''}`),
   crearCategoria: (datos) => peticion('/categorias', { metodo: 'POST', cuerpo: datos }),
+  editarCategoria: (id, datos) => peticion(`/categorias/${id}`, { metodo: 'PUT', cuerpo: datos }),
+  desactivarCategoria: (id) => peticion(`/categorias/${id}/desactivar`, { metodo: 'PATCH' }),
+  activarCategoria: (id) => peticion(`/categorias/${id}/activar`, { metodo: 'PATCH' }),
+  todasLasCategorias: () => peticion('/categorias?soloActivas=false'),
 
   // --- Movimientos (RF-012 a RF-016) ---
   movimientos: (filtros = {}) => {
