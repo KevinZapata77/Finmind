@@ -21,6 +21,9 @@ import com.finmind.categorias.service.ServicioCategorias.CategoriaRepetidaExcept
 import com.finmind.categorias.service.ServicioCategorias.TipoDeCategoriaInvalidoException;
 import com.finmind.categorias.service.ServicioCategorias.CategoriaInactivaException;
 import com.finmind.movimientos.service.ServicioMovimientos.CuentaInactivaException;
+import com.finmind.presupuestos.service.ServicioPresupuestos.PresupuestoRepetidoException;
+import com.finmind.presupuestos.service.ServicioPresupuestos.PresupuestoSoloDeGastoException;
+import com.finmind.presupuestos.service.ServicioPresupuestos.PeriodoInvalidoException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -149,6 +152,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({CategoriaInactivaException.class, CuentaInactivaException.class})
     public ResponseEntity<ApiError> recursoInactivo(RuntimeException ex, HttpServletRequest req) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /** 409: RN-006, ya hay un presupuesto de esa categoria para ese mes. */
+    @ExceptionHandler(PresupuestoRepetidoException.class)
+    public ResponseEntity<ApiError> presupuestoRepetido(PresupuestoRepetidoException ex,
+                                                        HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /** 400: se intento presupuestar una categoria de ingreso o un periodo invalido. */
+    @ExceptionHandler({PresupuestoSoloDeGastoException.class, PeriodoInvalidoException.class})
+    public ResponseEntity<ApiError> presupuestoInvalido(RuntimeException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

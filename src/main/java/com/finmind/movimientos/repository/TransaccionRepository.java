@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface TransaccionRepository extends JpaRepository<Transaccion, Long> {
@@ -57,6 +58,39 @@ public interface TransaccionRepository extends JpaRepository<Transaccion, Long> 
            """)
     BigDecimal totalPorTipo(@Param("usuarioId") Long usuarioId, @Param("tipo") String tipo,
                             @Param("desde") LocalDate desde, @Param("hasta") LocalDate hasta);
+
+    /**
+     * RN-009: consumo de un presupuesto. Solo GASTO, solo esa categoria, solo ese mes.
+     * Los ingresos no consumen presupuesto: un reintegro no "libera" gasto.
+     */
+    @Query("""
+           SELECT COALESCE(SUM(t.monto), 0) FROM Transaccion t
+           WHERE t.usuario.id = :usuarioId AND t.categoria.id = :categoriaId
+             AND t.tipo = 'GASTO' AND t.fecha BETWEEN :desde AND :hasta
+           """)
+    BigDecimal consumoDeCategoria(@Param("usuarioId") Long usuarioId,
+                                  @Param("categoriaId") Long categoriaId,
+                                  @Param("desde") LocalDate desde,
+                                  @Param("hasta") LocalDate hasta);
+
+    /**
+     * RF-022: composicion del gasto por categoria.
+     * Devuelve filas [categoriaId, nombre, color, total] ya agrupadas y ordenadas
+     * por la base. Traer los movimientos y agrupar en Java daria el mismo numero
+     * y mucho mas trabajo al servidor.
+     */
+    @Query("""
+           SELECT t.categoria.id, t.categoria.nombre, t.categoria.colorHex, SUM(t.monto)
+           FROM Transaccion t
+           WHERE t.usuario.id = :usuarioId AND t.tipo = :tipo
+             AND t.fecha BETWEEN :desde AND :hasta
+           GROUP BY t.categoria.id, t.categoria.nombre, t.categoria.colorHex
+           ORDER BY SUM(t.monto) DESC
+           """)
+    List<Object[]> agruparPorCategoria(@Param("usuarioId") Long usuarioId,
+                                       @Param("tipo") String tipo,
+                                       @Param("desde") LocalDate desde,
+                                       @Param("hasta") LocalDate hasta);
 
     boolean existsByCategoriaId(Long categoriaId);
 
