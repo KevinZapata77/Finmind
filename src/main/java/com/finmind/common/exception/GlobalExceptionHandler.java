@@ -24,6 +24,12 @@ import com.finmind.movimientos.service.ServicioMovimientos.CuentaInactivaExcepti
 import com.finmind.presupuestos.service.ServicioPresupuestos.PresupuestoRepetidoException;
 import com.finmind.presupuestos.service.ServicioPresupuestos.PresupuestoSoloDeGastoException;
 import com.finmind.presupuestos.service.ServicioPresupuestos.PeriodoInvalidoException;
+import com.finmind.metas.service.ServicioMetas.MetaRepetidaException;
+import com.finmind.metas.service.ServicioMetas.MetaCerradaException;
+import com.finmind.metas.service.ServicioMetas.AbonoExcesivoException;
+import com.finmind.metas.service.ServicioMetas.ObjetivoMenorQueLoAhorradoException;
+import com.finmind.administracion.service.ServicioAdministracion.AdminNoSePuedeDesactivarException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -165,6 +171,34 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({PresupuestoSoloDeGastoException.class, PeriodoInvalidoException.class})
     public ResponseEntity<ApiError> presupuestoInvalido(RuntimeException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** 409: conflictos de metas y de administracion. */
+    @ExceptionHandler({MetaRepetidaException.class, MetaCerradaException.class,
+                       AdminNoSePuedeDesactivarException.class})
+    public ResponseEntity<ApiError> conflictoDeNegocio(RuntimeException ex, HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /** 400: el abono o el objetivo de una meta no son coherentes. */
+    @ExceptionHandler({AbonoExcesivoException.class, ObjetivoMenorQueLoAhorradoException.class})
+    public ResponseEntity<ApiError> metaInvalida(RuntimeException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /**
+     * 403: el usuario esta autenticado pero su rol no alcanza (RF-023).
+     *
+     * @PreAuthorize lanza AuthorizationDeniedException DENTRO del controlador, o sea
+     * despues del filtro que atiende las denegaciones. Sin este manejador caia en el
+     * cajon de "error inesperado" y respondia 500: le decia al usuario que el servidor
+     * se rompio cuando lo que pasa es que no tiene permiso, y ademas ensuciaba el log
+     * con un ERROR por cada intento normal de acceso.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> accesoDenegado(AccessDeniedException ex, HttpServletRequest req) {
+        log.warn("Acceso denegado a {} {}", req.getMethod(), req.getRequestURI());
+        return build(HttpStatus.FORBIDDEN, "No tienes permiso para esta operacion", req, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
