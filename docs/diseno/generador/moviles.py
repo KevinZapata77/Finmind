@@ -49,7 +49,7 @@ def m003():
     o.append(txt(40, 614, "Entretenimiento va en 104% del limite.", "font.caption", WA6))
     o.append(rect(20, 648, 350, 48, P6, RM))
     o.append(txt(195, 678, "+ Nuevo movimiento", "font.body.md", S, "middle", weight=600))
-    pie(o, MW, MH, "MK-003m", "0.5")
+    pie(o, MW, MH, "MK-003m", "1.0")
     return svg(MW, MH, o, "UI-003 Panel, version movil",
                "Panel adaptado a movil: balance destacado, tarjetas de ingresos y gastos en dos columnas, gastos por categoria, alerta de presupuesto y navegacion inferior de cuatro destinos.")
 
@@ -72,7 +72,7 @@ def m005():
     o.append(txt(36, 686, "Llegas al 80% de $ 1.000.000", "font.caption", P7))
     o.append(rect(20, 712, 350, 48, P6, RM))
     o.append(txt(195, 742, "Guardar movimiento", "font.body.md", S, "middle", weight=600))
-    pie(o, MW, MH, "MK-005m", "0.5")
+    pie(o, MW, MH, "MK-005m", "1.0")
     return svg(MW, MH, o, "UI-005 Registrar movimiento, version movil",
                "Formulario de registro en una sola columna con campos apilados, controles de 44 pixeles de alto y accion principal fija al final.")
 
@@ -81,7 +81,7 @@ def sistema():
     W2, H2 = 1280, 900
     o = [rect(0, 0, W2, H2, S)]
     o.append(txt(48, 64, "FinMind - Sistema de diseno", "font.display"))
-    o.append(txt(48, 92, "Todos los mockups se generan a partir de estos tokens. v0.5 - 2026-08-05", "font.body.md", N5))
+    o.append(txt(48, 92, "Todos los mockups se generan a partir de estos tokens. v1.0 - 2026-08-16", "font.body.md", N5))
     o.append(txt(48, 148, "Paleta y contraste verificado (WCAG AA 4.5:1)", "font.heading.md"))
     paleta = [("primary.700", P7, "8.62"), ("primary.600", P6, "6.45"), ("primary.500", P5, "4.62"),
               ("primary.100", P1, "-"), ("success.600", OK6, "5.02"), ("warning.600", WA6, "5.02"),

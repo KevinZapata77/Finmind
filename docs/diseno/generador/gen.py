@@ -56,6 +56,59 @@ def campo(x, y, w, label, valor="", ph=False, error=None, foco=False):
     return "".join(o)
 
 
+def separador(x, y, w, palabra="o"):
+    """Linea con una palabra al medio, entre el formulario y el acceso externo."""
+    mitad = w / 2
+    return "".join([
+        rect(x, y, mitad - 18, 1, N3),
+        rect(x + mitad + 18, y, mitad - 18, 1, N3),
+        txt(x + mitad, y + 5, palabra, "font.caption", N5, "middle"),
+    ])
+
+
+def boton_google(x, y, w, label="Continuar con Google"):
+    """Fondo blanco y borde: es la presentacion que exigen las condiciones de marca."""
+    return "".join([
+        rect(x, y, w, 44, S, RM, N3),
+        txt(x + 34, y + 29, "G", "font.heading.md", "#4285F4", "middle", weight=700),
+        txt(x + w / 2 + 16, y + 28, label, "font.body.md", "#1F1F1F", "middle", weight=600),
+    ])
+
+
+def captcha(x, y, w):
+    """RF-031. El widget solo obtiene un token; quien lo valida es el servidor."""
+    return "".join([
+        rect(x, y, w, 62, N1, RM, N3),
+        rect(x + 14, y + 21, 20, 20, S, RS, N5, 2),
+        txt(x + 20, y + 36, "v", "font.label", OK6, weight=700),
+        txt(x + 48, y + 30, "No soy un robot", "font.body.md", N9),
+        txt(x + 48, y + 46, "Verificacion de seguridad", "font.caption", N5),
+        txt(x + w - 16, y + 40, "Turnstile", "font.caption", N5, "end"),
+    ])
+
+
+def casillas_codigo(x, y, digitos="", n=6, ancho=52, sep=12):
+    """Las seis casillas del codigo de verificacion (UI-010, UI-012)."""
+    o = []
+    for i in range(n):
+        cx = x + i * (ancho + sep)
+        lleno = i < len(digitos)
+        o.append(rect(cx, y, ancho, 64, S, RM, P6 if lleno else N3, 2 if lleno else 1))
+        if lleno:
+            o.append(txt(cx + ancho / 2, y + 42, digitos[i], "font.heading.lg", N9, "middle"))
+    return "".join(o)
+
+
+def aviso(x, y, w, titulo, cuerpo, tono="info"):
+    """Franja de aviso. El color nunca es el unico indicador: siempre hay texto."""
+    fondo, borde = {"info": (P1, P6), "ok": (OK1, OK6),
+                    "warn": (WA1, WA6), "error": (ER1, ER6)}[tono]
+    o = [rect(x, y, w, 56, fondo, RM, borde), rect(x, y, 4, 56, borde)]
+    o.append(txt(x + 18, y + 24, titulo, "font.body.md", borde, weight=700))
+    o.append(txt(x + 18, y + 42, cuerpo, "font.caption", N7))
+    return "".join(o)
+
+
 NAV = [("Panel", "UI-003"), ("Movimientos", "UI-004"), ("Presupuestos", "UI-006"),
        ("Metas", "UI-007"), ("Cuentas", "UI-008"), ("Reportes", "UI-009")]
 
@@ -91,8 +144,11 @@ def svg(w, h, cuerpo, titulo, desc):
             f'<desc id="d">{esc(desc)}</desc>{"".join(cuerpo)}</svg>')
 
 
-def pie(o, w, h, codigo, version="0.5"):
-    o.append(txt(w - 20, h - 14, f"{codigo}  v{version}  FinMind  2026-08-05",
+FECHA = "2026-08-16"
+
+
+def pie(o, w, h, codigo, version="1.0"):
+    o.append(txt(w - 20, h - 14, f"{codigo}  v{version}  FinMind  {FECHA}",
                  "font.caption", N5, "end"))
 
 
