@@ -20,6 +20,8 @@ archivos = [
     ("UI-011_recuperar-contrasena.svg", pantallas3.ui011()),
     ("UI-012_restablecer-contrasena.svg", pantallas3.ui012()),
     ("UI-013_retorno-google.svg", pantallas3.ui013()),
+    ("UI-014_obligaciones.svg", pantallas3.ui014()),
+    ("UI-015_categorias.svg", pantallas3.ui015()),
     ("UI-003m_panel_movil.svg", moviles.m003()),
     ("UI-005m_registrar-movimiento_movil.svg", moviles.m005()),
     ("sistema-de-diseno.svg", moviles.sistema()),
