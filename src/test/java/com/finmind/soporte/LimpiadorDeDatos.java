@@ -4,6 +4,7 @@ import com.finmind.categorias.entity.Categoria;
 import com.finmind.categorias.repository.CategoriaRepository;
 import com.finmind.cuentas.repository.CuentaRepository;
 import com.finmind.movimientos.repository.TransaccionRepository;
+import com.finmind.presupuestos.repository.PresupuestoRepository;
 import com.finmind.obligaciones.repository.ObligacionRepository;
 import com.finmind.obligaciones.repository.PagoObligacionRepository;
 import com.finmind.identidad.repository.CodigoVerificacionRepository;
@@ -36,6 +37,7 @@ import java.util.List;
 public class LimpiadorDeDatos {
 
     private final TransaccionRepository movimientos;
+    private final PresupuestoRepository presupuestos;
     private final CategoriaRepository categorias;
     private final CuentaRepository cuentas;
     private final ObligacionRepository obligaciones;
@@ -45,6 +47,7 @@ public class LimpiadorDeDatos {
     private final RolRepository roles;
 
     public LimpiadorDeDatos(TransaccionRepository movimientos,
+                            PresupuestoRepository presupuestos,
                             CategoriaRepository categorias,
                             CuentaRepository cuentas,
                             ObligacionRepository obligaciones,
@@ -53,6 +56,7 @@ public class LimpiadorDeDatos {
                             UsuarioRepository usuarios,
                             RolRepository roles) {
         this.movimientos = movimientos;
+        this.presupuestos = presupuestos;
         this.categorias = categorias;
         this.cuentas = cuentas;
         this.obligaciones = obligaciones;
@@ -67,6 +71,8 @@ public class LimpiadorDeDatos {
         // --- hijos primero -------------------------------------------------
         // Los movimientos apuntan a cuentas y categorias: van de primeros.
         movimientos.deleteAllInBatch();
+        // Los presupuestos apuntan a categorias: tambien van antes que ellas.
+        presupuestos.deleteAllInBatch();
         // Solo las de usuarios: las del sistema son catalogo, igual que los roles.
         categorias.borrarLasDeUsuarios();
         // Los pagos apuntan a obligaciones: van antes que ellas.
