@@ -3,6 +3,8 @@ package com.finmind.soporte;
 import com.finmind.categorias.entity.Categoria;
 import com.finmind.categorias.repository.CategoriaRepository;
 import com.finmind.cuentas.repository.CuentaRepository;
+import com.finmind.administracion.repository.AuditoriaAdminRepository;
+import com.finmind.metas.repository.MetaAhorroRepository;
 import com.finmind.movimientos.repository.TransaccionRepository;
 import com.finmind.presupuestos.repository.PresupuestoRepository;
 import com.finmind.obligaciones.repository.ObligacionRepository;
@@ -37,6 +39,8 @@ import java.util.List;
 public class LimpiadorDeDatos {
 
     private final TransaccionRepository movimientos;
+    private final MetaAhorroRepository metas;
+    private final AuditoriaAdminRepository auditoria;
     private final PresupuestoRepository presupuestos;
     private final CategoriaRepository categorias;
     private final CuentaRepository cuentas;
@@ -47,6 +51,8 @@ public class LimpiadorDeDatos {
     private final RolRepository roles;
 
     public LimpiadorDeDatos(TransaccionRepository movimientos,
+                            MetaAhorroRepository metas,
+                            AuditoriaAdminRepository auditoria,
                             PresupuestoRepository presupuestos,
                             CategoriaRepository categorias,
                             CuentaRepository cuentas,
@@ -56,6 +62,8 @@ public class LimpiadorDeDatos {
                             UsuarioRepository usuarios,
                             RolRepository roles) {
         this.movimientos = movimientos;
+        this.metas = metas;
+        this.auditoria = auditoria;
         this.presupuestos = presupuestos;
         this.categorias = categorias;
         this.cuentas = cuentas;
@@ -71,6 +79,9 @@ public class LimpiadorDeDatos {
         // --- hijos primero -------------------------------------------------
         // Los movimientos apuntan a cuentas y categorias: van de primeros.
         movimientos.deleteAllInBatch();
+        metas.deleteAllInBatch();
+        // La auditoria apunta al administrador que hizo la accion.
+        auditoria.deleteAllInBatch();
         // Los presupuestos apuntan a categorias: tambien van antes que ellas.
         presupuestos.deleteAllInBatch();
         // Solo las de usuarios: las del sistema son catalogo, igual que los roles.

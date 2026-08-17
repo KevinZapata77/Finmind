@@ -189,6 +189,15 @@ public class Usuario {
         this.contrasenaHash = contrasenaHash;
     }
 
+    /**
+     * El rol solo se cambia desde el servidor (RN-004). No hay endpoint que lo
+     * exponga: el ascenso a administrador se hace directamente en la base, que
+     * es lo apropiado para un sistema con dos administradores.
+     */
+    public void cambiarRol(Rol rol) {
+        this.rol = rol;
+    }
+
     public void setActivo(Boolean activo) {
         this.activo = activo;
     }
