@@ -147,7 +147,7 @@ def ui008():
 
 # --------------------------------------------- UI-009 Administracion
 def ui009():
-    o = shell("Administracion", "Reportes")
+    o = shell("Administracion", "Administracion")
     o.append(txt(272, 116, "Usuarios registrados", "font.heading.md", N9))
     o.append(txt(272, 140, "Solo el administrador ve esta pantalla (RF-023, RF-024).",
                  "font.caption", N5))
