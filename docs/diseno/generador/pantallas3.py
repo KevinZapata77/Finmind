@@ -189,10 +189,10 @@ def ui009():
 # --------------------------------------------- UI-007 Metas de ahorro
 def ui007():
     o = shell("Metas de ahorro", "Metas")
-    o.append(aviso(272, 100, 948, "Fuera del alcance del MVP (EXC-01)",
-                   "Esta pantalla no se construye en la version 1.0. Se documenta para dejar clara "
-                   "la intencion, no para prometer que estara.", "warn"))
-    o.append(txt(272, 210, "Asi se veria", "font.heading.md", N9))
+    o.append(aviso(272, 100, 948, "Programada para la ultima iteracion",
+                   "Incorporada al MVP por CR-005, que revoco la exclusion EXC-01. Se construye despues "
+                   "del nucleo: movimientos, presupuestos y reportes van primero.", "info"))
+    o.append(boton(1020, 196, 200, 44, "Nueva meta"))
     metas = [("Viaje a Cartagena", "$ 1.200.000", "$ 3.000.000", 0.40),
              ("Fondo de emergencia", "$ 4.500.000", "$ 6.000.000", 0.75),
              ("Computador nuevo", "$ 300.000", "$ 4.000.000", 0.075)]
@@ -204,10 +204,11 @@ def ui007():
         o.append(rect(296, y + 52, 900, 10, N2, 5))
         o.append(rect(296, y + 52, int(900 * pct), 10, P6, 5))
         o.append(txt(296, y + 82, f"{actual} de {meta}", "font.caption", N5))
+        o.append(txt(1196, y + 82, "Abonar", "font.caption", P6, "end", weight=600))
         y += 108
     o.append(rect(272, y + 10, 948, 70, S, RL, N3, dash="6 4"))
     o.append(txt(746, y + 52, "+  Nueva meta de ahorro", "font.body.md", N5, "middle", weight=600))
     pie(o, W, H, "MK-007 / UI-007")
-    return svg(W, H, o, "UI-007 Metas de ahorro, fuera del MVP",
-               "Boceto de metas de ahorro con barras de progreso, marcado desde arriba como excluido "
-               "de la version 1.0 segun EXC-01.")
+    return svg(W, H, o, "UI-007 Metas de ahorro",
+               "Listado de metas con barra de avance, monto acumulado sobre objetivo y porcentaje. "
+               "Incluye accion para crear una meta nueva y abonar a las existentes.")
