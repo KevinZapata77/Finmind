@@ -73,6 +73,28 @@ public class ServicioReportes {
                 enAlerta);
     }
 
+    /**
+     * Lo de hoy, la semana y el mes en una sola consulta por periodo.
+     * La semana empieza el lunes, que es como cuenta la mayoria en Colombia.
+     */
+    @Transactional(readOnly = true)
+    public ResumenRapidoResponse resumenRapido(Long usuarioId) {
+        LocalDate hoy = LocalDate.now();
+        LocalDate lunes = hoy.with(java.time.DayOfWeek.MONDAY);
+        LocalDate primeroDelMes = hoy.withDayOfMonth(1);
+
+        return new ResumenRapidoResponse(
+                periodo(usuarioId, hoy, hoy),
+                periodo(usuarioId, lunes, hoy),
+                periodo(usuarioId, primeroDelMes, hoy));
+    }
+
+    private ResumenRapidoResponse.Periodo periodo(Long usuarioId, LocalDate desde, LocalDate hasta) {
+        return ResumenRapidoResponse.Periodo.de(
+                movimientos.totalPorTipo(usuarioId, Transaccion.INGRESO, desde, hasta),
+                movimientos.totalPorTipo(usuarioId, Transaccion.GASTO, desde, hasta));
+    }
+
     private LocalDate[] rangoDelMes(Short anio, Short mes) {
         YearMonth actual = YearMonth.now();
         YearMonth periodo = YearMonth.of(

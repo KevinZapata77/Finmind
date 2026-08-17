@@ -121,7 +121,15 @@ public class LimpiadorDeDatos {
                 new Categoria(null, "Salud",           Categoria.GASTO,   "heart",    "#B91C1C"),
                 new Categoria(null, "Educacion",       Categoria.GASTO,   "book",     "#6B7280"),
                 new Categoria(null, "Entretenimiento", Categoria.GASTO,   "film",     "#0E8368"),
-                new Categoria(null, "Otros gastos",    Categoria.GASTO,   "dots",     "#D1D5DB")
+                new Categoria(null, "Otros gastos",    Categoria.GASTO,   "dots",     "#D1D5DB"),
+                // Agregadas por la migracion V5
+                new Categoria(null, "Ventas",              Categoria.INGRESO, "tag",       "#0E8368"),
+                new Categoria(null, "Trabajo por horas",   Categoria.INGRESO, "clock",     "#0B6B57"),
+                new Categoria(null, "Servicios prestados", Categoria.INGRESO, "briefcase", "#15803D"),
+                new Categoria(null, "Arriendos",           Categoria.INGRESO, "building",  "#0A5647"),
+                new Categoria(null, "Prestamo recibido",   Categoria.INGRESO, "handshake", "#374151"),
+                new Categoria(null, "Deudas y cuotas",     Categoria.GASTO,   "receipt",   "#B91C1C"),
+                new Categoria(null, "Ahorro",              Categoria.GASTO,   "piggy",     "#0E8368")
         ).forEach(categorias::save);
     }
 

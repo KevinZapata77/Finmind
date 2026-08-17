@@ -7,6 +7,8 @@ import com.finmind.auth.dto.UsuarioResponse;
 import com.finmind.common.exception.CorreoYaRegistradoException;
 import com.finmind.common.security.JwtService;
 import com.finmind.common.security.UsuarioPrincipal;
+import com.finmind.cuentas.entity.Cuenta;
+import com.finmind.cuentas.repository.CuentaRepository;
 import com.finmind.identidad.service.ServicioCaptcha;
 import com.finmind.identidad.service.ServicioIdentidad;
 import com.finmind.usuarios.entity.Rol;
@@ -30,6 +32,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final ServicioIdentidad servicioIdentidad;
     private final ServicioCaptcha servicioCaptcha;
+    private final CuentaRepository cuentas;
 
     public AuthService(UsuarioRepository usuarioRepository,
                        RolRepository rolRepository,
@@ -37,7 +40,8 @@ public class AuthService {
                        AuthenticationManager authenticationManager,
                        JwtService jwtService,
                        ServicioIdentidad servicioIdentidad,
-                       ServicioCaptcha servicioCaptcha) {
+                       ServicioCaptcha servicioCaptcha,
+                       CuentaRepository cuentas) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.passwordEncoder = passwordEncoder;
@@ -45,6 +49,7 @@ public class AuthService {
         this.jwtService = jwtService;
         this.servicioIdentidad = servicioIdentidad;
         this.servicioCaptcha = servicioCaptcha;
+        this.cuentas = cuentas;
     }
 
     /**
@@ -76,6 +81,16 @@ public class AuthService {
                 rolUsuario);
 
         Usuario guardado = usuarioRepository.save(usuario);
+
+        // Toda cuenta nueva arranca con una cuenta de efectivo.
+        //
+        // POR QUE: un movimiento exige cuenta por llave foranea. Sin esto, el
+        // primer gesto de un usuario recien registrado no era anotar su plata
+        // sino llenar un formulario de cuentas que no habia pedido. El tramite
+        // iba antes del valor, y eso es lo que hace que una aplicacion se
+        // abandone a los tres dias.
+        cuentas.save(new Cuenta(guardado, "Efectivo", Cuenta.EFECTIVO,
+                java.math.BigDecimal.ZERO, "COP"));
 
         // RN-011: la cuenta nace sin verificar y no puede iniciar sesion todavia.
         // Se emite y envia el codigo; el usuario continua en la pantalla UI-010.

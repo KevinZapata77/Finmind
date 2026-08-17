@@ -310,6 +310,28 @@ class PresupuestosYReportesTest {
                 .andExpect(jsonPath("$.presupuestosEnAlerta[0].estado").value("EXCEDIDO"));
     }
 
+    @Test
+    @DisplayName("RF-040: el resumen rapido trae hoy, la semana y el mes")
+    void resumenRapido() throws Exception {
+        String token = usuarioListo("ana@finmind.test");
+        long cuenta = crearCuenta(token);
+        long ingreso = categoria(token, "INGRESO");
+        long gasto = categoria(token, "GASTO");
+
+        gastar(token, cuenta, ingreso, "80000.00");
+        gastar(token, cuenta, gasto, "30000.00");
+
+        // Todo se registro hoy, asi que los tres periodos coinciden.
+        mockMvc.perform(get("/api/v1/reportes/resumen-rapido")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hoy.ingresos").value(80000.00))
+                .andExpect(jsonPath("$.hoy.gastos").value(30000.00))
+                .andExpect(jsonPath("$.hoy.neto").value(50000.00))
+                .andExpect(jsonPath("$.semana.neto").value(50000.00))
+                .andExpect(jsonPath("$.mes.neto").value(50000.00));
+    }
+
     // ------------------------------------------------ RN-005
 
     @Test
@@ -338,6 +360,7 @@ class PresupuestosYReportesTest {
         mockMvc.perform(get("/api/v1/presupuestos")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/v1/reportes/balance")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/v1/reportes/panel")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/reportes/resumen-rapido")).andExpect(status().isUnauthorized());
     }
 
     // ------------------------------------------------ apoyo
