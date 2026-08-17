@@ -120,7 +120,24 @@ export const api = {
 
   // --- Reportes (RF-021, RF-022) ---
   panel: (anio, mes) => peticion(`/reportes/panel?anio=${anio}&mes=${mes}`),
+  resumenRapido: () => peticion('/reportes/resumen-rapido'),
+
+  // --- Metas de ahorro (RF-032 a RF-034) ---
+  metas: (estado) => peticion(`/metas${estado ? `?estado=${estado}` : ''}`),
+  crearMeta: (datos) => peticion('/metas', { metodo: 'POST', cuerpo: datos }),
+  editarMeta: (id, datos) => peticion(`/metas/${id}`, { metodo: 'PUT', cuerpo: datos }),
+  abonarMeta: (id, datos) => peticion(`/metas/${id}/abonos`, { metodo: 'POST', cuerpo: datos }),
+  cancelarMeta: (id) => peticion(`/metas/${id}/cancelar`, { metodo: 'PATCH' }),
+
+  // --- Administracion (RF-023, RF-024). Solo para rol administrador ---
+  adminUsuarios: () => peticion('/admin/usuarios'),
+  adminResumen: () => peticion('/admin/resumen'),
+  adminAuditoria: () => peticion('/admin/auditoria'),
+  adminDesactivar: (id) => peticion(`/admin/usuarios/${id}/desactivar`, { metodo: 'PATCH' }),
+  adminActivar: (id) => peticion(`/admin/usuarios/${id}/activar`, { metodo: 'PATCH' }),
 }
+
+export const ES_ADMIN = (usuario) => usuario?.rol === 'ROLE_ADMIN'
 
 /** Tipos de obligacion. Los valores los fija el backend. */
 export const TIPOS_DE_OBLIGACION = [

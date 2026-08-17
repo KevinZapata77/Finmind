@@ -597,3 +597,142 @@ a { color: var(--color-primary-600); font-weight: 600; }
   background: var(--color-surface);
   cursor: pointer;
 }
+
+/* Administración — UI-009 */
+.pestanas { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); border-bottom: 1px solid var(--color-neutral-200); }
+
+.pestana {
+  padding: var(--space-3) var(--space-4);
+  background: none; border: 0;
+  border-bottom: 2px solid transparent;
+  font: var(--font-cuerpo); color: var(--color-neutral-500);
+  cursor: pointer;
+}
+
+.pestana:hover { color: var(--color-neutral-900); }
+.pestana--activa { color: var(--color-primary-600); border-bottom-color: var(--color-primary-600); font-weight: 600; }
+
+.tabla-envoltura { overflow-x: auto; border: 1px solid var(--color-neutral-200); border-radius: var(--radio-lg); background: var(--color-surface); }
+.tabla { width: 100%; border-collapse: collapse; font: var(--font-cuerpo); }
+.tabla__titulo { text-align: left; padding: var(--space-4); font: var(--font-seccion); color: var(--color-neutral-900); }
+
+.tabla th {
+  text-align: left; padding: var(--space-3) var(--space-4);
+  font: var(--font-etiqueta); color: var(--color-neutral-700);
+  background: var(--color-neutral-100); white-space: nowrap;
+}
+
+.tabla td { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--color-neutral-200); color: var(--color-neutral-900); }
+.tabla tbody tr:hover { background: var(--color-neutral-100); }
+.fila--inactiva { background: var(--color-neutral-100); color: var(--color-neutral-700); }
+
+/* ---------------------------------------------------------------
+   Registro rápido compacto — RF-040
+   --------------------------------------------------------------- */
+
+.rapido {
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary-600);
+  border-radius: var(--radio-lg);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+/* Todo en una fila: anotar no debería empujar el resumen fuera de la pantalla. */
+.rapido__barra {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.rapido__tipos { display: flex; gap: 2px; }
+
+.rapido__tipo {
+  padding: var(--space-2) var(--space-3);
+  font: var(--font-ayuda); font-weight: 600;
+  color: var(--color-neutral-700);
+  background: var(--color-neutral-100);
+  border: 2px solid var(--color-neutral-200);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* El estado activo se marca con fondo Y borde, no solo con el color del texto. */
+.rapido__tipo--ingreso {
+  color: var(--color-success-600); background: var(--color-success-100);
+  border-color: var(--color-success-600);
+}
+
+.rapido__tipo--gasto {
+  color: var(--color-error-600); background: var(--color-error-100);
+  border-color: var(--color-error-600);
+}
+
+.rapido__monto, .rapido__categoria {
+  padding: var(--space-2) var(--space-3);
+  font: var(--font-cuerpo);
+  color: var(--color-neutral-900);
+  background: var(--color-surface);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radio-md);
+  width: 100%;
+}
+
+.rapido__monto { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.rapido__monto:focus, .rapido__categoria:focus {
+  outline: none; border-color: var(--color-primary-600);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.rapido__anotar { padding: var(--space-2) var(--space-4); white-space: nowrap; }
+
+.rapido__pie {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--space-2); margin-top: var(--space-2);
+}
+
+.rapido__crear { margin-left: auto; }
+.rapido__nueva { display: flex; gap: var(--space-2); align-items: center; margin-left: auto; }
+.rapido__nueva input { min-width: 220px; }
+
+.rapido__exito {
+  font: var(--font-ayuda); font-weight: 600;
+  color: var(--color-success-600); background: var(--color-success-100);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radio-sm);
+  margin: 0 0 var(--space-2);
+}
+
+.atajo {
+  padding: 4px var(--space-2);
+  font: var(--font-etiqueta);
+  color: var(--color-primary-600); background: var(--color-primary-100);
+  border: 0; border-radius: var(--radio-sm); cursor: pointer;
+}
+
+.atajo:hover { background: var(--color-primary-500); color: var(--color-surface); }
+
+/* Tira de resumen: tres datos en una linea, no tres tarjetas altas. */
+.tira {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-neutral-100);
+  border-radius: var(--radio-md);
+  margin-bottom: var(--space-6);
+}
+
+.tira__dato { display: flex; flex-direction: column; gap: 2px; }
+.tira__rotulo { font: var(--font-etiqueta); color: var(--color-neutral-700); }
+.tira__valor { font: var(--font-seccion); color: var(--color-neutral-900); font-variant-numeric: tabular-nums; }
+.tira__detalle { font: var(--font-etiqueta); color: var(--color-neutral-500); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  .rapido__barra { grid-template-columns: 1fr 1fr; }
+  .rapido__tipos, .rapido__anotar { grid-column: span 2; }
+  .rapido__tipo { flex: 1; }
+}

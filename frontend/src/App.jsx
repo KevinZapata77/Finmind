@@ -13,6 +13,8 @@ import Movimientos from './paginas/Movimientos'
 import Presupuestos from './paginas/Presupuestos'
 import Obligaciones from './paginas/Obligaciones'
 import Categorias from './paginas/Categorias'
+import Metas from './paginas/Metas'
+import Administracion from './paginas/Administracion'
 
 export default function App() {
   return (
@@ -31,6 +33,8 @@ export default function App() {
         <Route path="/presupuestos" element={<RutaProtegida><Presupuestos /></RutaProtegida>} />
         <Route path="/obligaciones" element={<RutaProtegida><Obligaciones /></RutaProtegida>} />
         <Route path="/categorias" element={<RutaProtegida><Categorias /></RutaProtegida>} />
+        <Route path="/metas" element={<RutaProtegida><Metas /></RutaProtegida>} />
+        <Route path="/administracion" element={<RutaProtegida><Administracion /></RutaProtegida>} />
         <Route path="*" element={<Navigate to="/panel" replace />} />
       </Routes>
     </AuthProvider>
