@@ -109,8 +109,10 @@ def aviso(x, y, w, titulo, cuerpo, tono="info"):
     return "".join(o)
 
 
+# Refleja la navegacion real de Layout.jsx. Si alli cambia, aqui tambien.
 NAV = [("Panel", "UI-003"), ("Movimientos", "UI-004"), ("Presupuestos", "UI-006"),
-       ("Metas", "UI-007"), ("Cuentas", "UI-008"), ("Reportes", "UI-009")]
+       ("Cuentas", "UI-008"), ("Categorias", "UI-015"), ("Obligaciones", "UI-014"),
+       ("Metas", "UI-007")]
 
 
 def shell(titulo, activo, ancho=1280, alto=800):
