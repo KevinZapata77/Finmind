@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, formatearDinero, MESES } from '../api/cliente'
 import Layout from '../componentes/Layout'
+import RegistroRapido from '../componentes/RegistroRapido'
 import SelectorDeMes from '../componentes/SelectorDeMes'
 import Alerta from '../componentes/Alerta'
 
@@ -11,14 +12,16 @@ export default function Panel() {
   const [anio, setAnio] = useState(hoy.getFullYear())
   const [mes, setMes] = useState(hoy.getMonth() + 1)
   const [datos, setDatos] = useState(null)
+  const [rapido, setRapido] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
 
   const cargar = useCallback(async () => {
     setCargando(true); setError(null)
     try {
-      // Una sola llamada: el backend arma balance, composición, patrimonio y alertas.
-      setDatos(await api.panel(anio, mes))
+      // Dos llamadas: el resumen de hoy/semana y el panel del periodo elegido.
+      const [p, r] = await Promise.all([api.panel(anio, mes), api.resumenRapido()])
+      setDatos(p); setRapido(r)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -30,11 +33,11 @@ export default function Panel() {
 
   const cambiar = (a, m) => { setAnio(a); setMes(m) }
 
-  if (cargando) return <Layout titulo="Panel"><p className="estado-carga">Cargando tu panel…</p></Layout>
+  if (cargando) return <Layout titulo="Inicio"><p className="estado-carga">Cargando…</p></Layout>
 
   if (error) {
     return (
-      <Layout titulo="Panel">
+      <Layout titulo="Inicio">
         <Alerta tipo="error" titulo="No pudimos cargar el panel">{error}</Alerta>
       </Layout>
     )
@@ -44,8 +47,33 @@ export default function Panel() {
   const sinDatos = balance.ingresos === 0 && balance.gastos === 0
 
   return (
-    <Layout titulo="Panel" acciones={<SelectorDeMes anio={anio} mes={mes} onCambiar={cambiar} />}>
-      <p className="contenido__bajada">{MESES[mes - 1]} de {anio}</p>
+    <Layout titulo="Inicio">
+      {/* RF-040: lo primero es anotar, no consultar. */}
+      <RegistroRapido onRegistrado={cargar} />
+
+      {/* Una tira compacta, no tres tarjetas: el resumen del mes tiene que
+          quedar a la vista sin desplazarse. */}
+      {rapido && (
+        <section className="tira" aria-label="Lo que llevas">
+          {[['Hoy', rapido.hoy], ['Esta semana', rapido.semana], ['Este mes', rapido.mes]]
+            .map(([rot, p]) => (
+              <div key={rot} className="tira__dato">
+                <span className="tira__rotulo">{rot}</span>
+                <strong className={`tira__valor ${p.neto < 0 ? 'negativo' : p.neto > 0 ? 'positivo' : ''}`}>
+                  {formatearDinero(p.neto)}
+                </strong>
+                <span className="tira__detalle">
+                  +{formatearDinero(p.ingresos)} · −{formatearDinero(p.gastos)}
+                </span>
+              </div>
+            ))}
+        </section>
+      )}
+
+      <div className="contenido__encabezado">
+        <h2 className="bloque__titulo">Cómo vas en {MESES[mes - 1]}</h2>
+        <SelectorDeMes anio={anio} mes={mes} onCambiar={cambiar} />
+      </div>
 
       {/* Balance del período (RF-021) */}
       <section className="tarjetas" aria-label="Balance del período">

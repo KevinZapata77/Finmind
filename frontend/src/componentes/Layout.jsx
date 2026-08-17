@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { ES_ADMIN } from '../api/cliente'
 
 /**
  * Estructura común de las pantallas con sesión: barra lateral y contenido.
@@ -8,12 +9,17 @@ import { useAuth } from '../auth/AuthContext'
  * escrita dentro del Panel, con enlaces muertos, y cada pantalla nueva habría
  * tenido que copiarla.
  */
+// El orden importa: primero lo que se usa a diario, despues lo que se configura
+// una vez. Cuentas y Categorias estaban arriba y eran el primer tramite que veia
+// alguien recien registrado, antes de poder anotar un solo peso.
 const SECCIONES = [
-  { a: '/panel', texto: 'Panel' },
+  { a: '/panel', texto: 'Inicio' },
   { a: '/movimientos', texto: 'Movimientos' },
   { a: '/presupuestos', texto: 'Presupuestos' },
-  { a: '/cuentas', texto: 'Cuentas' },
   { a: '/obligaciones', texto: 'Obligaciones' },
+  { a: '/metas', texto: 'Metas' },
+  { a: '/cuentas', texto: 'Cuentas' },
+  { a: '/categorias', texto: 'Categorías' },
 ]
 
 export default function Layout({ titulo, acciones, children }) {
@@ -26,7 +32,9 @@ export default function Layout({ titulo, acciones, children }) {
         <div className="marca marca--clara"><span className="marca__logo">F</span> FinMind</div>
 
         <nav className="navegacion" aria-label="Secciones de la aplicación">
-          {SECCIONES.map((s) => (
+          {/* Administración solo aparece con el rol. Ocultarla no es la seguridad:
+              el backend responde 403 igual. Es para no mostrar una puerta cerrada. */}
+          {[...SECCIONES, ...(ES_ADMIN(usuario) ? [{ a: '/administracion', texto: 'Administración' }] : [])].map((s) => (
             <NavLink
               key={s.a}
               to={s.a}
