@@ -3,6 +3,7 @@ import { api, ErrorApi, TIPOS_DE_CUENTA, etiquetaDeTipo, formatearDinero, ES_PAS
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
+import Layout from '../componentes/Layout'
 
 const VACIO = { nombre: '', tipo: 'AHORROS', saldoInicial: '' }
 
@@ -89,10 +90,9 @@ export default function Cuentas() {
     .reduce((suma, c) => suma + Number(c.saldoActual ?? 0), 0)
 
   return (
-    <section className="pagina">
-      <header className="pagina__encabezado">
+    <Layout titulo="Mis cuentas" acciones={<Boton onClick={abrirCreacion}>Nueva cuenta</Boton>}>
+      <div className="pagina__resumen">
         <div>
-          <h1 className="pagina__titulo">Mis cuentas</h1>
           <p className="pagina__bajada">
             Dinero disponible: <strong>{formatearDinero(disponible)}</strong>
           </p>
@@ -103,8 +103,7 @@ export default function Cuentas() {
             </p>
           )}
         </div>
-        <Boton onClick={abrirCreacion}>Nueva cuenta</Boton>
-      </header>
+      </div>
 
       {error && <Alerta tipo="error" titulo="No pudimos cargar tus cuentas">{error}</Alerta>}
 
@@ -210,6 +209,6 @@ export default function Cuentas() {
           ))}
         </ul>
       )}
-    </section>
+    </Layout>
   )
 }

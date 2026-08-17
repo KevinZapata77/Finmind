@@ -360,3 +360,213 @@ a { color: var(--color-primary-600); font-weight: 600; }
 }
 
 .cuenta__deuda { color: var(--color-error-600); }
+
+/* ---------------------------------------------------------------
+   Pantallas del núcleo — UI-003, UI-004, UI-006, UI-014
+   --------------------------------------------------------------- */
+
+.contenido__encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.contenido__bajada { font: var(--font-ayuda); color: var(--color-neutral-500); margin: 0 0 var(--space-6); }
+
+.pagina__resumen { margin-bottom: var(--space-4); }
+
+/* Navegación lateral */
+.navegacion { display: flex; flex-direction: column; gap: 2px; }
+
+.navegacion__item {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radio-md);
+  color: var(--color-neutral-300);
+  font: var(--font-cuerpo);
+  text-decoration: none;
+}
+
+.navegacion__item:hover { background: var(--color-neutral-700); color: var(--color-surface); }
+
+.navegacion__item--activo {
+  background: var(--color-primary-700);
+  color: var(--color-surface);
+  font-weight: 600;
+}
+
+.usuario { display: flex; align-items: center; gap: var(--space-3); }
+
+.usuario__avatar {
+  width: 32px; height: 32px; border-radius: 16px;
+  background: var(--color-primary-500); color: var(--color-surface);
+  display: flex; align-items: center; justify-content: center;
+  font: var(--font-etiqueta); font-weight: 700;
+}
+
+.usuario__nombre { font: var(--font-ayuda); color: var(--color-surface); margin: 0; font-weight: 600; }
+
+/* Tarjetas de dato */
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.tarjeta-dato {
+  background: var(--color-surface);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radio-lg);
+  padding: var(--space-4);
+}
+
+.tarjeta-dato__rotulo { font: var(--font-etiqueta); color: var(--color-neutral-700); margin: 0 0 var(--space-2); }
+
+.tarjeta-dato__valor {
+  font: var(--font-titulo);
+  color: var(--color-neutral-900);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.tarjeta-dato__valor--positivo { color: var(--color-success-600); }
+.tarjeta-dato__valor--negativo { color: var(--color-error-600); }
+.tarjeta-dato__nota { font: var(--font-etiqueta); color: var(--color-neutral-500); margin: var(--space-2) 0 0; }
+
+.bloque { margin-bottom: var(--space-6); }
+.bloque__titulo { font: var(--font-seccion); color: var(--color-neutral-900); margin: 0 0 var(--space-4); }
+
+/* Barras de composición y progreso */
+.barras { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+.barra { list-style: none; }
+
+.barra__fila { display: flex; justify-content: space-between; margin-bottom: var(--space-2); }
+.barra__nombre { font: var(--font-cuerpo); color: var(--color-neutral-900); }
+.barra__monto { font: var(--font-cuerpo); color: var(--color-neutral-900); font-variant-numeric: tabular-nums; }
+.barra__pct { color: var(--color-neutral-500); font: var(--font-ayuda); }
+
+.barra__pista {
+  height: 10px;
+  background: var(--color-neutral-200);
+  border-radius: 5px;
+  overflow: hidden;
+  margin: var(--space-2) 0;
+}
+
+.barra__relleno { height: 100%; border-radius: 5px; transition: width .25s ease; }
+
+/* Período y filtros */
+.periodo, .filtros {
+  display: flex; flex-wrap: wrap; gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.periodo__campo, .filtros__campo { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+
+.totales {
+  display: flex; flex-wrap: wrap; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-neutral-100);
+  border-radius: var(--radio-md);
+  font: var(--font-ayuda);
+  color: var(--color-neutral-700);
+  margin-bottom: var(--space-4);
+}
+
+.totales__nota { margin-left: auto; color: var(--color-neutral-500); }
+.positivo { color: var(--color-success-600); }
+.negativo { color: var(--color-error-600); }
+
+/* Movimientos */
+.lista-movimientos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+
+.movimiento {
+  display: grid;
+  grid-template-columns: 10px 1fr auto auto;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radio-md);
+}
+
+.movimiento__punto { width: 10px; height: 10px; border-radius: 5px; }
+.movimiento__datos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.movimiento__descripcion { font: var(--font-cuerpo); color: var(--color-neutral-900); }
+.movimiento__meta { font: var(--font-etiqueta); color: var(--color-neutral-500); margin: 0; }
+.movimiento__monto { font: var(--font-seccion); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.movimiento__acciones { display: flex; gap: var(--space-3); }
+
+.paginacion {
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--space-4); margin-top: var(--space-4);
+  font: var(--font-ayuda); color: var(--color-neutral-700);
+}
+
+.paginacion button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Presupuestos y obligaciones */
+.lista-presupuestos, .lista-obligaciones {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3);
+}
+
+.presupuesto, .obligacion {
+  background: var(--color-surface);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radio-lg);
+  padding: var(--space-4);
+}
+
+.presupuesto--excedido { border-color: var(--color-error-600); }
+.presupuesto--en_alerta { border-color: var(--color-warning-600); }
+.obligacion--cerrada { background: var(--color-neutral-100); }
+
+.presupuesto__fila { display: flex; flex-wrap: wrap; gap: var(--space-3); justify-content: space-between; align-items: baseline; }
+.presupuesto__nombre { font: var(--font-seccion); color: var(--color-neutral-900); display: flex; align-items: center; gap: var(--space-2); }
+.presupuesto__cifras { font: var(--font-ayuda); color: var(--color-neutral-700); font-variant-numeric: tabular-nums; }
+.presupuesto__acciones { display: flex; gap: var(--space-3); margin-top: var(--space-3); }
+
+.insignia { font: var(--font-etiqueta); padding: 2px var(--space-2); border-radius: var(--radio-sm); }
+.insignia--en_curso { background: var(--color-success-100); color: var(--color-success-600); }
+.insignia--en_alerta { background: var(--color-warning-100); color: var(--color-warning-600); }
+.insignia--excedido { background: var(--color-error-100); color: var(--color-error-600); }
+
+.obligacion__saldo { font: var(--font-seccion); color: var(--color-error-600); font-variant-numeric: tabular-nums; }
+.obligacion__interes { font: var(--font-etiqueta); color: var(--color-warning-600); }
+
+.obligacion__aviso {
+  font: var(--font-ayuda); color: var(--color-warning-600);
+  background: var(--color-warning-100);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radio-sm);
+  margin: var(--space-3) 0 0;
+}
+
+.pago {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
+.boton-enlace {
+  display: inline-block;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-primary-600);
+  color: var(--color-surface);
+  border-radius: var(--radio-md);
+  font: var(--font-cuerpo);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.campo__ayuda { font: var(--font-etiqueta); color: var(--color-neutral-500); margin: 4px 0 0; }
+
+@media (max-width: 720px) {
+  .movimiento { grid-template-columns: 10px 1fr; }
+  .movimiento__monto, .movimiento__acciones { grid-column: 2; }
+}
