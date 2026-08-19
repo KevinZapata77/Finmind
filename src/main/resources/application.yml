@@ -68,6 +68,22 @@ finmind:
   codigo:
     vigencia-minutos: 15
     intentos-maximos: 5
+    # SEG-04: el tope de 5 intentos por codigo no servia de nada mientras se
+    # pudiera pedir un codigo nuevo sin freno. Limitando la EMISION quedan
+    # 25 combinaciones por hora de un millon posibles.
+    max-envios: ${CODIGO_MAX_ENVIOS:5}
+    ventana-envios-minutos: ${CODIGO_VENTANA_ENVIOS:60}
+    # SEG-05: dos envios seguidos tienen que estar separados. Sin esto, los
+    # cinco de la hora se gastan en un segundo y se puede llenar de correos
+    # la bandeja de cualquiera.
+    intervalo-minimo-segundos: ${CODIGO_INTERVALO_MINIMO:60}
+  # SEG-03: tope de intentos de inicio de sesion. Por correo frena probar mil
+  # contrasenas contra una cuenta; por IP frena probar una contrasena contra
+  # mil cuentas. Solo se cuentan los fallos y al entrar bien se borra la cuenta.
+  login:
+    max-por-correo: ${LOGIN_MAX_POR_CORREO:5}
+    max-por-ip: ${LOGIN_MAX_POR_IP:20}
+    ventana-minutos: ${LOGIN_VENTANA_MINUTOS:15}
   jwt:
     secret: ${JWT_SECRET:clave_de_desarrollo_solo_local_minimo_32_caracteres}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}

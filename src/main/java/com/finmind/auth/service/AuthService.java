@@ -6,6 +6,7 @@ import com.finmind.auth.dto.RegistroRequest;
 import com.finmind.auth.dto.UsuarioResponse;
 import com.finmind.common.exception.CorreoYaRegistradoException;
 import com.finmind.common.security.JwtService;
+import com.finmind.common.security.LimitadorDeIntentos;
 import com.finmind.common.security.UsuarioPrincipal;
 import com.finmind.cuentas.entity.Cuenta;
 import com.finmind.cuentas.repository.CuentaRepository;
@@ -18,9 +19,12 @@ import com.finmind.usuarios.repository.UsuarioRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
 
 @Service
 public class AuthService {
@@ -33,6 +37,10 @@ public class AuthService {
     private final ServicioIdentidad servicioIdentidad;
     private final ServicioCaptcha servicioCaptcha;
     private final CuentaRepository cuentas;
+    private final LimitadorDeIntentos limitador;
+    private final int maxPorCorreo;
+    private final int maxPorIp;
+    private final Duration ventana;
 
     public AuthService(UsuarioRepository usuarioRepository,
                        RolRepository rolRepository,
@@ -41,7 +49,11 @@ public class AuthService {
                        JwtService jwtService,
                        ServicioIdentidad servicioIdentidad,
                        ServicioCaptcha servicioCaptcha,
-                       CuentaRepository cuentas) {
+                       CuentaRepository cuentas,
+                       LimitadorDeIntentos limitador,
+                       @Value("${finmind.login.max-por-correo:5}") int maxPorCorreo,
+                       @Value("${finmind.login.max-por-ip:20}") int maxPorIp,
+                       @Value("${finmind.login.ventana-minutos:15}") int ventanaMinutos) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.passwordEncoder = passwordEncoder;
@@ -50,6 +62,10 @@ public class AuthService {
         this.servicioIdentidad = servicioIdentidad;
         this.servicioCaptcha = servicioCaptcha;
         this.cuentas = cuentas;
+        this.limitador = limitador;
+        this.maxPorCorreo = maxPorCorreo;
+        this.maxPorIp = maxPorIp;
+        this.ventana = Duration.ofMinutes(ventanaMinutos);
     }
 
     /**
@@ -106,11 +122,38 @@ public class AuthService {
      * Si fallan, AuthenticationManager lanza BadCredentialsException y el
      * GlobalExceptionHandler responde 401 con un mensaje generico: nunca se
      * distingue entre "el correo no existe" y "la contrasena esta mal".
+     *
+     * SEG-03: hay un tope de intentos fallidos. Se cuenta por dos claves a la vez:
+     *
+     *   por correo  frena probar mil contrasenas contra UNA cuenta
+     *   por IP      frena probar una contrasena contra MIL cuentas, que es lo
+     *               que hace quien reutiliza una lista de credenciales filtradas
+     *
+     * Cada intento se cuenta antes de comprobar la contrasena, y al entrar bien
+     * el contador se borra. El efecto practico es que solo pesan los fallos:
+     * quien se equivoco dos veces y despues acerto no arrastra nada.
+     *
+     * Se cuenta ANTES a proposito. Contar solo despues de saber que fallo
+     * obligaria a distinguir "credencial mala" de "cuenta inexistente" para
+     * decidir si contar, y esa distincion es justo lo que no debe existir.
+     *
+     * @param ip direccion de quien pide. La resuelve el controlador, porque el
+     *           servicio no debe conocer HttpServletRequest.
      */
     @Transactional
-    public AuthResponse autenticar(LoginRequest peticion) {
+    public AuthResponse autenticar(LoginRequest peticion, String ip) {
         String correo = peticion.correo().trim().toLowerCase();
+        String clavePorCorreo = "login:" + correo;
+        String clavePorIp = "login-ip:" + ip;
 
+        // El mensaje es el mismo en los dos casos y no dice si la cuenta existe.
+        String aviso = "Demasiados intentos fallidos. Espera unos minutos antes de volver a intentar.";
+        limitador.comprobar(clavePorIp, maxPorIp, ventana, aviso);
+        limitador.comprobar(clavePorCorreo, maxPorCorreo, ventana, aviso);
+
+        // El intento ya quedo contado. Si las credenciales fallan, la excepcion
+        // sube tal cual y el manejador responde 401 como siempre: el limitador
+        // no cambia ninguna respuesta que ya estuviera probada.
         Authentication autenticacion = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(correo, peticion.contrasena()));
 
@@ -119,6 +162,10 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findByCorreo(principal.getUsername())
                 .orElseThrow(() -> new IllegalStateException("Usuario autenticado no encontrado"));
         usuario.registrarAcceso();
+
+        // Entro bien: se olvidan los fallos previos de esa cuenta y esa IP.
+        limitador.olvidar(clavePorCorreo);
+        limitador.olvidar(clavePorIp);
 
         return AuthResponse.de(
                 jwtService.generarToken(principal),

@@ -3,15 +3,18 @@ package com.finmind.identidad.service;
 import com.finmind.auth.dto.AuthResponse;
 import com.finmind.auth.dto.UsuarioResponse;
 import com.finmind.common.security.JwtService;
+import com.finmind.common.security.LimitadorDeIntentos;
 import com.finmind.common.security.UsuarioPrincipal;
 import com.finmind.identidad.entity.CodigoVerificacion;
 import com.finmind.identidad.repository.CodigoVerificacionRepository;
 import com.finmind.usuarios.entity.Usuario;
 import com.finmind.usuarios.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.Optional;
 
 /**
@@ -30,19 +33,56 @@ public class ServicioIdentidad {
     private final ServicioCorreo correo;
     private final PasswordEncoder encoder;
     private final JwtService jwtService;
+    private final LimitadorDeIntentos limitador;
+    private final int maxEnvios;
+    private final Duration ventanaEnvios;
+    private final Duration intervaloMinimo;
 
     public ServicioIdentidad(UsuarioRepository usuarios,
                              CodigoVerificacionRepository codigos,
                              ServicioCodigos servicioCodigos,
                              ServicioCorreo correo,
                              PasswordEncoder encoder,
-                             JwtService jwtService) {
+                             JwtService jwtService,
+                             LimitadorDeIntentos limitador,
+                             @Value("${finmind.codigo.max-envios:5}") int maxEnvios,
+                             @Value("${finmind.codigo.ventana-envios-minutos:60}") int ventanaMinutos,
+                             @Value("${finmind.codigo.intervalo-minimo-segundos:60}") int intervaloSegundos) {
         this.usuarios = usuarios;
         this.codigos = codigos;
         this.servicioCodigos = servicioCodigos;
         this.correo = correo;
         this.encoder = encoder;
         this.jwtService = jwtService;
+        this.limitador = limitador;
+        this.maxEnvios = maxEnvios;
+        this.ventanaEnvios = Duration.ofMinutes(ventanaMinutos);
+        this.intervaloMinimo = Duration.ofSeconds(intervaloSegundos);
+    }
+
+    /**
+     * Tope de emision de codigos (SEG-04 y SEG-05).
+     *
+     * Se aplica ANTES de buscar el usuario y con el correo tal como llego, para
+     * no romper RN-014: si el limite se comprobara despues de saber si la cuenta
+     * existe, la diferencia de respuesta delataria cuales estan registradas.
+     *
+     * Dos controles a la vez:
+     *   intervalo  dos envios seguidos tienen que estar separados
+     *   tope       cuantos se admiten por hora
+     *
+     * Es lo que le devuelve sentido al limite de cinco intentos por codigo: con
+     * cinco codigos por hora quedan 25 combinaciones de un millon, en lugar de
+     * las infinitas que habia cuando el reenvio no tenia freno.
+     */
+    private void comprobarLimiteDeEnvios(String correoNormalizado) {
+        // El aviso no dice si la cuenta existe. Sirve igual para el dueno que
+        // pide otro codigo demasiado rapido que para quien esta abusando.
+        String aviso = "Ya se envio un codigo hace poco. Revisa tu correo y espera un momento "
+                + "antes de pedir otro.";
+        limitador.comprobarIntervalo("codigo:" + correoNormalizado, intervaloMinimo, aviso);
+        limitador.comprobar("codigo-hora:" + correoNormalizado, maxEnvios, ventanaEnvios,
+                "Se alcanzo el maximo de codigos por hora para este correo. Intenta mas tarde.");
     }
 
     /** Emite y envia el codigo de verificacion. Se llama al registrarse. */
@@ -81,7 +121,10 @@ public class ServicioIdentidad {
     /** RF-026. Responde igual exista o no el correo, y este o no verificado. */
     @Transactional
     public void reenviarCodigo(String correoRecibido) {
-        usuarios.findByCorreo(correoRecibido.trim().toLowerCase())
+        String correoNormalizado = correoRecibido.trim().toLowerCase();
+        comprobarLimiteDeEnvios(correoNormalizado);
+
+        usuarios.findByCorreo(correoNormalizado)
                 .filter(u -> !u.estaVerificado())
                 .ifPresent(this::enviarCodigoVerificacion);
     }
@@ -89,7 +132,10 @@ public class ServicioIdentidad {
     /** RF-027. RN-014: respuesta uniforme, exista o no el correo. */
     @Transactional
     public void solicitarRecuperacion(String correoRecibido) {
-        Optional<Usuario> encontrado = usuarios.findByCorreo(correoRecibido.trim().toLowerCase());
+        String correoNormalizado = correoRecibido.trim().toLowerCase();
+        comprobarLimiteDeEnvios(correoNormalizado);
+
+        Optional<Usuario> encontrado = usuarios.findByCorreo(correoNormalizado);
         if (encontrado.isEmpty()) return;
 
         Usuario usuario = encontrado.get();

@@ -9,6 +9,7 @@ import com.finmind.movimientos.repository.TransaccionRepository;
 import com.finmind.presupuestos.repository.PresupuestoRepository;
 import com.finmind.obligaciones.repository.ObligacionRepository;
 import com.finmind.obligaciones.repository.PagoObligacionRepository;
+import com.finmind.common.security.LimitadorDeIntentos;
 import com.finmind.identidad.repository.CodigoVerificacionRepository;
 import com.finmind.usuarios.entity.Rol;
 import com.finmind.usuarios.repository.RolRepository;
@@ -49,6 +50,7 @@ public class LimpiadorDeDatos {
     private final CodigoVerificacionRepository codigos;
     private final UsuarioRepository usuarios;
     private final RolRepository roles;
+    private final LimitadorDeIntentos limitador;
 
     public LimpiadorDeDatos(TransaccionRepository movimientos,
                             MetaAhorroRepository metas,
@@ -60,7 +62,8 @@ public class LimpiadorDeDatos {
                             PagoObligacionRepository pagos,
                             CodigoVerificacionRepository codigos,
                             UsuarioRepository usuarios,
-                            RolRepository roles) {
+                            RolRepository roles,
+                            LimitadorDeIntentos limitador) {
         this.movimientos = movimientos;
         this.metas = metas;
         this.auditoria = auditoria;
@@ -72,10 +75,18 @@ public class LimpiadorDeDatos {
         this.codigos = codigos;
         this.usuarios = usuarios;
         this.roles = roles;
+        this.limitador = limitador;
     }
 
     @Transactional
     public void limpiar() {
+        // El limitador de intentos guarda su cuenta en memoria, no en la base.
+        // Sin reiniciarlo, una clase que inicia sesion mas de cinco veces
+        // empezaria a recibir 429 y fallaria por el limite en lugar de por lo
+        // que estaba probando. Es el mismo error de antes con otra cara: un
+        // estado compartido que nadie reinicia.
+        limitador.reiniciar();
+
         // --- hijos primero -------------------------------------------------
         // Los movimientos apuntan a cuentas y categorias: van de primeros.
         movimientos.deleteAllInBatch();

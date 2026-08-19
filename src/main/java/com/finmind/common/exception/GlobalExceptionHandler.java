@@ -56,6 +56,28 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), req, null);
     }
 
+    /**
+     * 429: se supero el limite de intentos (SEG-03, SEG-04, SEG-05).
+     *
+     * Lleva el encabezado Retry-After con los segundos que faltan, que es lo
+     * que la norma define para este codigo y lo que permite al cliente mostrar
+     * una cuenta atras en lugar de un error seco.
+     */
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    public ResponseEntity<ApiError> demasiadosIntentos(DemasiadosIntentosException ex,
+                                                       HttpServletRequest req) {
+        ApiError cuerpo = new ApiError(
+                OffsetDateTime.now(),
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(),
+                ex.getMessage(),
+                req.getRequestURI(),
+                null);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.getSegundosDeEspera()))
+                .body(cuerpo);
+    }
+
     @ExceptionHandler(CorreoYaRegistradoException.class)
     public ResponseEntity<ApiError> correoDuplicado(CorreoYaRegistradoException ex, HttpServletRequest req) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
