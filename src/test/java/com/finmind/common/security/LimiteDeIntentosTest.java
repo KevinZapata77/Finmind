@@ -177,10 +177,12 @@ class LimiteDeIntentosTest {
     void elReenvioRespetaElIntervaloMinimo() throws Exception {
         registrarSinVerificar(CORREO);
 
+        // 202 y no 200: el envio es asincrono desde el punto de vista del cliente,
+        // que es lo que estos endpoints ya devolvian antes de este cambio.
         mockMvc.perform(post("/api/v1/auth/reenviar-codigo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(cuerpoCorreo(CORREO)))
-                .andExpect(status().isOk());
+                .andExpect(status().isAccepted());
 
         // Antes esto se podia repetir en bucle: llenaba de correos la bandeja
         // de la victima y agotaba la cuota del proveedor.
@@ -213,7 +215,7 @@ class LimiteDeIntentosTest {
         mockMvc.perform(post("/api/v1/auth/reenviar-codigo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(cuerpoCorreo(CORREO)))
-                .andExpect(status().isOk());
+                .andExpect(status().isAccepted());
 
         // Lo que ya NO se puede es encadenarlos. Antes bastaba repetir esto para
         // tener cinco intentos mas cada vez, y asi sin fin: el tope de intentos
@@ -242,11 +244,12 @@ class LimiteDeIntentosTest {
     void laRecuperacionRespetaElLimiteYLaRespuestaUniforme() throws Exception {
         String inexistente = "tampoco.existe@finmind.test";
 
-        // RN-014: la primera responde 200 aunque el correo no exista.
+        // RN-014: la primera responde 202 aunque el correo no exista. Ese 202
+        // es exactamente el mismo que recibe una cuenta que si existe.
         mockMvc.perform(post("/api/v1/auth/recuperar")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(cuerpoCorreo(inexistente)))
-                .andExpect(status().isOk());
+                .andExpect(status().isAccepted());
 
         // Y la segunda seguida da 429, exista o no. El limite se aplica ANTES de
         // buscar al usuario: si se aplicara despues, la diferencia entre 429 y
