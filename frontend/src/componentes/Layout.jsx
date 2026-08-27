@@ -16,6 +16,8 @@ const SECCIONES = [
   { a: '/panel', texto: 'Inicio' },
   { a: '/movimientos', texto: 'Movimientos' },
   { a: '/presupuestos', texto: 'Presupuestos' },
+  // Va pegado a Presupuestos: los dos responden a "cuanto puedo gastar".
+  { a: '/gastos-fijos', texto: 'Gastos fijos' },
   { a: '/obligaciones', texto: 'Créditos y préstamos' },
   { a: '/metas', texto: 'Metas' },
   { a: '/cuentas', texto: 'Cuentas' },

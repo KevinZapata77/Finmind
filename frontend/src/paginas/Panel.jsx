@@ -5,6 +5,9 @@ import Layout from '../componentes/Layout'
 import RegistroRapido from '../componentes/RegistroRapido'
 import SelectorDeMes from '../componentes/SelectorDeMes'
 import Alerta from '../componentes/Alerta'
+import Alertas from '../componentes/Alertas'
+import Dona from '../componentes/Dona'
+import CurvaDelMes from '../componentes/CurvaDelMes'
 
 /** UI-003 — Panel. Implementa HU-018, HU-019 / RF-021, RF-022, RF-038. */
 export default function Panel() {
@@ -23,20 +26,43 @@ export default function Panel() {
     : `Cómo te fue en ${nombreDelMes}${anio === hoy.getFullYear() ? '' : ` de ${anio}`}`
   const [datos, setDatos] = useState(null)
   const [rapido, setRapido] = useState(null)
+  const [curva, setCurva] = useState(null)
+  const [alertas, setAlertas] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
 
   const cargar = useCallback(async () => {
     setCargando(true); setError(null)
     try {
-      // Dos llamadas: el resumen de hoy/semana y el panel del periodo elegido.
-      const [p, r] = await Promise.all([api.panel(anio, mes), api.resumenRapido()])
-      setDatos(p); setRapido(r)
+      // El panel, el resumen de hoy/semana y la curva del mes elegido.
+      const [p, r, c] = await Promise.all([
+        api.panel(anio, mes), api.resumenRapido(), api.ritmo(anio, mes),
+      ])
+      setDatos(p); setRapido(r); setCurva(c)
+
+      /*
+        Las alertas van en una llamada aparte y con su propio catch a propósito.
+        Siempre son del mes en curso —no tiene sentido avisar "no te alcanza"
+        sobre un mes que ya cerró—, así que no dependen del selector. Y si
+        fallaran, el panel entero se caería por un bloque secundario: el usuario
+        perdería su balance por no poder calcular un aviso.
+      */
+      if (esMesActual) {
+        try {
+          setAlertas(await api.alertas())
+        } catch {
+          setAlertas(null)
+        }
+      } else {
+        setAlertas(null)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
       setCargando(false)
     }
+    // esMesActual se deriva de anio y mes, que ya están en las dependencias.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anio, mes])
 
   useEffect(() => { cargar() }, [cargar])
@@ -79,6 +105,14 @@ export default function Panel() {
             ))}
         </section>
       )}
+
+      {/*
+        Los avisos van arriba, antes del balance. El balance dice qué pasó; los
+        avisos dicen qué va a pasar, y eso es lo que todavía se puede cambiar.
+        Solo aparecen en el mes en curso: sobre un mes cerrado, "no te alcanza"
+        no sirve de nada.
+      */}
+      {esMesActual && <Alertas resumen={alertas} />}
 
       <div className="contenido__encabezado">
         <h2 className="bloque__titulo">{tituloDelPeriodo}</h2>
@@ -144,6 +178,22 @@ export default function Panel() {
         </section>
       )}
 
+      {/*
+        La curva del mes (RF-048). Va antes de la composición porque responde
+        una pregunta más urgente: no "en qué gasté" sino "voy bien o voy mal".
+      */}
+      <section className="bloque" aria-label="Cómo se acumuló el mes">
+        <div className="bloque__cabecera">
+          <h2 className="bloque__titulo">Cómo se acumuló {esMesActual ? 'este mes' : nombreDelMes}</h2>
+          {curva?.proyeccionGasto != null && (
+            <span className="bloque__meta">
+              Proyección al día {curva.diasTranscurridos} de {curva.diasDelMes}
+            </span>
+          )}
+        </div>
+        <CurvaDelMes ritmo={curva} nombreDelMes={nombreDelMes} />
+      </section>
+
       {/* Composición del gasto (RF-022) */}
       <section className="bloque" aria-label="Composición del gasto">
         <h2 className="bloque__titulo">En qué se fue tu dinero</h2>
@@ -162,7 +212,17 @@ export default function Panel() {
             <Link className="boton-enlace" to="/movimientos">Registrar un movimiento</Link>
           </div>
         ) : (
-          <ul className="barras">
+          <div className="composicion">
+            {/*
+              La dona y las barras muestran lo mismo, y eso es intencional. La
+              dona responde de un vistazo "¿hay una categoría que se está
+              comiendo el mes?"; las barras dan la cifra exacta de cada una.
+              Quitar las barras dejaría el dato solo en un gráfico, y un gráfico
+              no se puede leer con un lector de pantalla.
+            */}
+            <Dona porciones={gastoPorCategoria.porciones} total={gastoPorCategoria.total} />
+
+            <ul className="barras">
             {gastoPorCategoria.porciones.map((p) => (
               <li key={p.categoriaId} className="barra">
                 <div className="barra__fila">
@@ -178,7 +238,8 @@ export default function Panel() {
                 </div>
               </li>
             ))}
-          </ul>
+            </ul>
+          </div>
         )}
       </section>
     </Layout>
