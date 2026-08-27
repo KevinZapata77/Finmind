@@ -193,18 +193,28 @@ class ObligacionesFlujoTest {
     // ------------------------------------------------- RN-020 y RF-038
 
     @Test
-    @DisplayName("RN-020: la tarjeta de credito no cuenta como activo")
-    void tarjetaNoEsActivo() throws Exception {
+    @DisplayName("RN-020 y RN-021: la tarjeta no es activo, y su deuda si resta del patrimonio")
+    void tarjetaNoEsActivoPeroSiEsDeuda() throws Exception {
         String token = usuarioListo("ana@finmind.test");
         crearCuenta(token, "Ahorros", "AHORROS", "1000000.00");
         crearCuenta(token, "Visa", "TARJETA_CREDITO", "800000.00");
 
-        // El activo es solo la cuenta de ahorros, no la tarjeta.
+        // El activo es solo la cuenta de ahorros: la tarjeta no es dinero que
+        // se tenga (RN-020, esto no cambio).
+        //
+        // Lo que SI cambio es el resto: antes esta prueba esperaba
+        // obligaciones=0 y patrimonio=1.000.000, porque la deuda de una tarjeta
+        // registrada como cuenta no se contaba en ningun lado y quedaba
+        // invisible. Ese era el defecto DEF-14. Ahora se resta.
         mockMvc.perform(get("/api/v1/obligaciones/patrimonio").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.activos").value(1000000.00))
+                // Prestamos: ninguno.
                 .andExpect(jsonPath("$.obligaciones").value(0.00))
-                .andExpect(jsonPath("$.patrimonioNeto").value(1000000.00));
+                // Tarjetas: los 800.000 que antes no aparecian.
+                .andExpect(jsonPath("$.deudaEnTarjetas").value(800000.00))
+                .andExpect(jsonPath("$.deudaTotal").value(800000.00))
+                .andExpect(jsonPath("$.patrimonioNeto").value(200000.00));
     }
 
     @Test

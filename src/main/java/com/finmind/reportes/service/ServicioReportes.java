@@ -69,7 +69,9 @@ public class ServicioReportes {
         return new PanelResponse(
                 balance(usuarioId, anio, mes),
                 gastoPorCategoria(usuarioId, anio, mes),
-                obligaciones.patrimonio(usuarioId, cuentas.totalActivos(usuarioId)),
+                obligaciones.patrimonio(usuarioId,
+                        cuentas.totalActivos(usuarioId),
+                        cuentas.totalDeudaEnTarjetas(usuarioId)),
                 enAlerta);
     }
 

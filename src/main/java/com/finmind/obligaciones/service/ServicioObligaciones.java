@@ -134,11 +134,14 @@ public class ServicioObligaciones {
 
     /**
      * RN-020. El activo suma solo dinero propio; el pasivo, lo que se debe.
-     * Las cuentas de tipo TARJETA_CREDITO las excluye ya el modulo de cuentas.
+     * Los activos excluyen las tarjetas de credito, y su deuda entra aparte:
+     * antes no entraba por ningun lado y quedaba invisible en el patrimonio.
      */
     @Transactional(readOnly = true)
-    public PatrimonioResponse patrimonio(Long usuarioId, BigDecimal activos) {
-        return PatrimonioResponse.de(activos, obligaciones.totalAdeudado(usuarioId));
+    public PatrimonioResponse patrimonio(Long usuarioId, BigDecimal activos,
+                                         BigDecimal deudaEnTarjetas) {
+        return PatrimonioResponse.de(
+                activos, obligaciones.totalAdeudado(usuarioId), deudaEnTarjetas);
     }
 
     // ------------------------------------------------------------ apoyo

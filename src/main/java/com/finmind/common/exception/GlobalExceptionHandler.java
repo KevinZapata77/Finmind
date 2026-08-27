@@ -13,6 +13,7 @@ import com.finmind.identidad.service.ServicioCaptcha.CaptchaInvalidoException;
 import com.finmind.identidad.service.ServicioUsuarioGoogle.CuentaGoogleException;
 import com.finmind.cuentas.service.ServicioCuentas.NombreDeCuentaRepetidoException;
 import com.finmind.cuentas.service.ServicioCuentas.TipoDeCuentaInvalidoException;
+import com.finmind.cuentas.service.ServicioCuentas.CupoSoloEnTarjetasException;
 import com.finmind.obligaciones.service.ServicioObligaciones.NombreDeObligacionRepetidoException;
 import com.finmind.obligaciones.service.ServicioObligaciones.TipoDeObligacionInvalidoException;
 import com.finmind.obligaciones.service.ServicioObligaciones.ObligacionCerradaException;
@@ -133,6 +134,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TipoDeCuentaInvalidoException.class)
     public ResponseEntity<ApiError> tipoDeCuentaInvalido(TipoDeCuentaInvalidoException ex,
                                                          HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** 400: RN-021, se envio cupo en una cuenta que no es tarjeta de credito. */
+    @ExceptionHandler(CupoSoloEnTarjetasException.class)
+    public ResponseEntity<ApiError> cupoSoloEnTarjetas(CupoSoloEnTarjetasException ex,
+                                                       HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
     }
 
