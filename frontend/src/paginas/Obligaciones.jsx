@@ -6,7 +6,7 @@ import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
 
 const NUEVA = {
-  nombre: '', acreedor: '', tipo: 'TARJETA_CREDITO', montoOriginal: '',
+  nombre: '', acreedor: '', tipo: 'PRESTAMO_BANCARIO', montoOriginal: '',
   tasaAnual: '', cuotaMensual: '', diaPago: '5', fechaInicio: hoyISO(),
 }
 
@@ -95,11 +95,11 @@ export default function Obligaciones() {
   const proximas = lista.filter((o) => o.venceEnSieteDias)
 
   return (
-    <Layout titulo="Obligaciones" acciones={<Boton onClick={() => setAbierto(true)}>Nueva obligación</Boton>}>
-      {error && <Alerta tipo="error" titulo="No pudimos cargar tus obligaciones">{error}</Alerta>}
+    <Layout titulo="Créditos y préstamos" acciones={<Boton onClick={() => setAbierto(true)}>Nuevo crédito</Boton>}>
+      {error && <Alerta tipo="error" titulo="No pudimos cargar tus créditos">{error}</Alerta>}
       {avisoPago && <Alerta tipo="aviso" titulo="Pago registrado">{avisoPago}</Alerta>}
 
-      <section className="tarjetas" aria-label="Resumen de deuda">
+      <section className="tarjetas" aria-label="Resumen de tus créditos y préstamos">
         <article className="tarjeta-dato">
           <p className="tarjeta-dato__rotulo">Debes en total</p>
           <p className="tarjeta-dato__valor tarjeta-dato__valor--negativo">{formatearDinero(totalDeuda)}</p>
@@ -127,7 +127,7 @@ export default function Obligaciones() {
 
       {abierto && (
         <form className="tarjeta tarjeta--formulario" onSubmit={crear} noValidate>
-          <h2 className="tarjeta__titulo">Nueva obligación</h2>
+          <h2 className="tarjeta__titulo">Nuevo crédito</h2>
           {errorForm && <Alerta tipo="error">{errorForm}</Alerta>}
 
           <div className="fila-doble">
@@ -149,7 +149,7 @@ export default function Obligaciones() {
 
           <div className="fila-doble">
             <Campo id="montoOriginal" type="number" min="0.01" step="0.01" inputMode="decimal"
-              etiqueta="Monto total de la deuda" placeholder="2400000" required
+              etiqueta="Monto total del crédito" placeholder="2400000" required
               value={datos.montoOriginal} error={errores.montoOriginal}
               onChange={(e) => setDatos({ ...datos, montoOriginal: e.target.value })} />
             <Campo id="tasaAnual" type="number" min="0" max="200" step="0.0001" inputMode="decimal"
@@ -175,7 +175,7 @@ export default function Obligaciones() {
             onChange={(e) => setDatos({ ...datos, fechaInicio: e.target.value })} />
 
           <div className="acciones">
-            <Boton type="submit" cargando={guardando}>Registrar obligación</Boton>
+            <Boton type="submit" cargando={guardando}>Registrar crédito</Boton>
             <button type="button" className="boton boton--secundario" onClick={() => setAbierto(false)}>
               Cancelar
             </button>
@@ -193,12 +193,12 @@ export default function Obligaciones() {
         <p className="estado-carga">Cargando…</p>
       ) : lista.length === 0 ? (
         <div className="vacio">
-          <h2 className="vacio__titulo">No tienes obligaciones registradas</h2>
+          <h2 className="vacio__titulo">No tienes créditos ni préstamos registrados</h2>
           <p className="vacio__texto">
             Registra tus deudas para saber cuánto debes en total y cuánto de cada cuota
             se va en intereses.
           </p>
-          <Boton onClick={() => setAbierto(true)}>Registrar una obligación</Boton>
+          <Boton onClick={() => setAbierto(true)}>Registrar un crédito</Boton>
         </div>
       ) : (
         <ul className="lista-obligaciones">

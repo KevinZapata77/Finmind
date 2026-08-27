@@ -16,7 +16,7 @@ const SECCIONES = [
   { a: '/panel', texto: 'Inicio' },
   { a: '/movimientos', texto: 'Movimientos' },
   { a: '/presupuestos', texto: 'Presupuestos' },
-  { a: '/obligaciones', texto: 'Obligaciones' },
+  { a: '/obligaciones', texto: 'Créditos y préstamos' },
   { a: '/metas', texto: 'Metas' },
   { a: '/cuentas', texto: 'Cuentas' },
   { a: '/categorias', texto: 'Categorías' },
