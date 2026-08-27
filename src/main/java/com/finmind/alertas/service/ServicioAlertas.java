@@ -187,7 +187,10 @@ public class ServicioAlertas {
                         "Vas a pasarte en " + p.categoriaNombre(),
                         "Llevas " + pesos(p.consumo()) + " de " + pesos(p.montoLimite())
                                 + ". A este ritmo terminarias en " + pesos(proyeccion) + ".",
-                        proyeccion.subtract(p.montoLimite()), "/presupuestos"));
+                        proyeccion.subtract(p.montoLimite()), "/presupuestos",
+                        // RF-051. Se referencia la categoria y no el presupuesto:
+                        // lo que hay que mirar para reaccionar son los gastos.
+                        "CATEGORIA", p.categoriaId()));
             }
         }
     }
@@ -199,7 +202,7 @@ public class ServicioAlertas {
             alertas.add(AlertaResponse.de("CUOTA_PROXIMA", MEDIA,
                     "Se acerca la cuota de " + o.nombre(),
                     "Tienes que pagar " + pesos(o.cuotaMensual()) + " el " + o.proximoPago() + ".",
-                    o.cuotaMensual(), "/obligaciones"));
+                    o.cuotaMensual(), "/obligaciones", "OBLIGACION", o.id()));
         }
     }
 
@@ -218,7 +221,7 @@ public class ServicioAlertas {
                     pasado
                         ? "Debes " + pesos(c.saldoActual()) + " y tu cupo es " + pesos(c.cupo()) + "."
                         : "Te quedan " + pesos(c.cupoDisponible()) + " de " + pesos(c.cupo()) + ".",
-                    c.cupoDisponible(), "/cuentas"));
+                    c.cupoDisponible(), "/cuentas", "CUENTA", c.id()));
         }
     }
 

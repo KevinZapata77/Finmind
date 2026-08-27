@@ -55,6 +55,18 @@ public class ReporteController {
         return ResponseEntity.ok(servicio.panel(principal.getId(), anio, mes));
     }
 
+    @GetMapping("/historico")
+    @Operation(summary = "Ingresos y gastos mes por mes",
+            description = "RF-050. Serie de los ultimos meses, del mas antiguo al mas "
+                    + "reciente, con la variacion del gasto respecto al mes anterior. Es lo "
+                    + "que permite ver una tendencia: los demas reportes solo saben hablar "
+                    + "de un mes suelto. Por defecto 6 meses, maximo 24")
+    public ResponseEntity<HistoricoResponse> historico(
+            @AuthenticationPrincipal UsuarioPrincipal principal,
+            @RequestParam(required = false) Integer meses) {
+        return ResponseEntity.ok(servicio.historico(principal.getId(), meses));
+    }
+
     @GetMapping("/ritmo")
     @Operation(summary = "Acumulado dia por dia del mes",
             description = "RF-048. Un punto por cada dia transcurrido, con el ingreso y el "

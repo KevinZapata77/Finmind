@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +35,27 @@ public class ServicioReportes {
      * dirian cosas distintas sobre el mismo mes.
      */
     private static final int DIAS_MINIMOS_PARA_PROYECTAR = 5;
+
+    /**
+     * RF-050. Seis meses por defecto: es el minimo para que se vea una
+     * tendencia y no un zigzag. Con tres, un mes atipico —diciembre, unas
+     * vacaciones— parece la nueva normalidad.
+     */
+    private static final int MESES_DE_HISTORICO = 6;
+
+    /**
+     * Tope duro. El parametro llega de la URL y sin limite alguien puede pedir
+     * mil meses, que son ochenta y tres anios de filas por una sola peticion.
+     */
+    private static final int MAXIMO_MESES_DE_HISTORICO = 24;
+
+    /**
+     * Los nombres se escriben aqui y no se sacan de un Locale del sistema: el
+     * servidor puede estar configurado en ingles y el usuario leeria "August".
+     */
+    private static final String[] NOMBRES_DE_MES = {
+            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
 
     private final TransaccionRepository movimientos;
     private final ServicioPresupuestos presupuestos;
@@ -59,12 +81,125 @@ public class ServicioReportes {
         return BalanceResponse.de(rango[0], rango[1], ingresos, gastos);
     }
 
-    /** RF-022. */
+    /**
+     * RF-022 y RF-050. La composicion del gasto, comparada con el mes anterior.
+     *
+     * La comparacion se agrega aqui porque es la cifra que mas mueve a la gente:
+     * "gastaste 80.000 mas en Alimentacion que en julio" dice mas que cualquier
+     * total, porque senala una causa y algo que se puede cambiar. Cuesta una
+     * segunda consulta del mismo tipo, ya agrupada por la base.
+     */
     @Transactional(readOnly = true)
     public ComposicionResponse gastoPorCategoria(Long usuarioId, Short anio, Short mes) {
-        LocalDate[] rango = rangoDelMes(anio, mes);
+        YearMonth periodo = mesPedido(anio, mes);
+        YearMonth previo = periodo.minusMonths(1);
+
         return ComposicionResponse.de(
-                movimientos.agruparPorCategoria(usuarioId, Transaccion.GASTO, rango[0], rango[1]));
+                movimientos.agruparPorCategoria(usuarioId, Transaccion.GASTO,
+                        periodo.atDay(1), periodo.atEndOfMonth()),
+                movimientos.agruparPorCategoria(usuarioId, Transaccion.GASTO,
+                        previo.atDay(1), finDelTramoAComparar(periodo, previo)));
+    }
+
+    /**
+     * RN-032. Hasta que dia del mes anterior se mide, para que la comparacion
+     * sea justa.
+     *
+     * Si se esta mirando el mes EN CURSO, el mes anterior se recorta al dia de
+     * hoy: comparar nueve dias contra treinta diria siempre que el usuario
+     * gasta menos, y lo diria todos los meses. Si se esta mirando un mes ya
+     * cerrado, los dos meses estan completos y se comparan enteros.
+     */
+    private LocalDate finDelTramoAComparar(YearMonth periodo, YearMonth previo) {
+        LocalDate hoy = LocalDate.now();
+        if (!periodo.equals(YearMonth.from(hoy))) {
+            return previo.atEndOfMonth();
+        }
+        // atDay falla con un dia que el mes no tiene: hoy 31, mes anterior de 30.
+        return previo.atDay(Math.min(hoy.getDayOfMonth(), previo.lengthOfMonth()));
+    }
+
+    /**
+     * RF-050. Ingresos y gastos de los ultimos `meses` meses, incluido el actual.
+     *
+     * POR QUE SE REUSA agruparPorDia Y NO SE ESCRIBE UN GROUP BY POR MES
+     * Agrupar por anio/mes en JPQL obliga a usar funciones de fecha, y ahi H2
+     * (las pruebas) y PostgreSQL (produccion) no se escriben igual: seria una
+     * consulta que pasa las pruebas y falla en el servidor, que es el peor tipo
+     * de consulta. Se pide el rango completo ya sumado por dia —una sola
+     * consulta— y se reparte por mes en Java, que se comporta igual en los dos
+     * lados. Son como maximo 180 filas: agrupar eso en memoria no es un costo.
+     */
+    @Transactional(readOnly = true)
+    public HistoricoResponse historico(Long usuarioId, Integer meses) {
+        int cuantos = (meses == null || meses < 1) ? MESES_DE_HISTORICO
+                : Math.min(meses, MAXIMO_MESES_DE_HISTORICO);
+
+        YearMonth actual = YearMonth.now();
+        YearMonth primero = actual.minusMonths(cuantos - 1L);
+
+        // Acumuladores por mes, ya inicializados en cero: un mes sin ningun
+        // movimiento tiene que aparecer en la serie como un mes en cero, no
+        // desaparecer. Si desapareciera, la linea uniria dos meses no
+        // consecutivos y mentiria sobre la tendencia.
+        Map<YearMonth, BigDecimal[]> porMes = new LinkedHashMap<>();
+        for (int i = 0; i < cuantos; i++) {
+            porMes.put(primero.plusMonths(i), new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
+        }
+
+        for (Object[] fila : movimientos.agruparPorDia(
+                usuarioId, primero.atDay(1), actual.atEndOfMonth())) {
+            YearMonth delDia = YearMonth.from((LocalDate) fila[0]);
+            BigDecimal[] acumulado = porMes.get(delDia);
+            if (acumulado == null) continue;  // fuera del rango pedido
+            int posicion = Transaccion.INGRESO.equals(fila[1]) ? 0 : 1;
+            acumulado[posicion] = acumulado[posicion].add((BigDecimal) fila[2]);
+        }
+
+        List<HistoricoResponse.Mes> serie = porMes.entrySet().stream()
+                .map(e -> new HistoricoResponse.Mes(
+                        e.getKey().getYear(), e.getKey().getMonthValue(),
+                        NOMBRES_DE_MES[e.getKey().getMonthValue() - 1],
+                        e.getValue()[0], e.getValue()[1],
+                        e.getValue()[0].subtract(e.getValue()[1])))
+                .toList();
+
+        return new HistoricoResponse(serie, comparacionConElMesAnterior(usuarioId));
+    }
+
+    /**
+     * RN-032. El mes en curso contra el anterior, midiendo los mismos dias.
+     *
+     * Comparar el total del mes en curso contra el total del mes anterior seria
+     * la version obvia y estaria mal: el dia 5 la cuenta diria siempre que el
+     * usuario gasta muchisimo menos, porque compara cinco dias contra treinta.
+     * Un numero que siempre tranquiliza es un numero roto.
+     */
+    private HistoricoResponse.Comparacion comparacionConElMesAnterior(Long usuarioId) {
+        LocalDate hoy = LocalDate.now();
+        YearMonth actual = YearMonth.from(hoy);
+        YearMonth previo = actual.minusMonths(1);
+        int corte = hoy.getDayOfMonth();
+
+        // Si hoy es 31 y el mes anterior tuvo 30 dias, el tramo previo se corta
+        // en 30: pedir el 31 de un mes que no lo tiene es una fecha inexistente.
+        LocalDate finDelTramoPrevio = previo.atDay(Math.min(corte, previo.lengthOfMonth()));
+
+        BigDecimal esteMes = movimientos.totalPorTipo(
+                usuarioId, Transaccion.GASTO, actual.atDay(1), hoy);
+        BigDecimal mesAnterior = movimientos.totalPorTipo(
+                usuarioId, Transaccion.GASTO, previo.atDay(1), finDelTramoPrevio);
+
+        BigDecimal variacion = esteMes.subtract(mesAnterior);
+
+        // Sin gasto en el tramo previo no hay porcentaje posible. La cifra
+        // absoluta si, y es la que de verdad se muestra.
+        BigDecimal porcentaje = mesAnterior.signum() == 0 ? null
+                : variacion.multiply(new BigDecimal("100"))
+                        .divide(mesAnterior, 1, RoundingMode.HALF_UP);
+
+        return new HistoricoResponse.Comparacion(
+                corte, esteMes, mesAnterior, variacion, porcentaje);
     }
 
     /** El panel completo en una sola llamada. */
