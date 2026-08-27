@@ -21,7 +21,15 @@ public record CrearCuentaRequest(
         BigDecimal saldoInicial,
 
         @Pattern(regexp = "^[A-Z]{3}$", message = "La moneda debe ser un codigo de 3 letras, como COP")
-        String moneda
+        String moneda,
+
+        /**
+         * Cupo total, solo para tarjetas de credito (RF-043). Opcional: una
+         * tarjeta se puede registrar sin conocerlo todavia.
+         */
+        @DecimalMin(value = "0.01", message = "El cupo debe ser mayor que cero")
+        @Digits(integer = 13, fraction = 2, message = "El cupo admite maximo 2 decimales")
+        BigDecimal cupo
 ) {
     /** Valores por defecto: el contrato permite omitir saldo y moneda. */
     public BigDecimal saldoInicialOCero() {

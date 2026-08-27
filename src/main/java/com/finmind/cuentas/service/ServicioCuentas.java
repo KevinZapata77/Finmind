@@ -51,6 +51,7 @@ public class ServicioCuentas {
 
         Cuenta cuenta = new Cuenta(dueno, nombre, tipo,
                 peticion.saldoInicialOCero(), peticion.monedaOPorDefecto());
+        cuenta.cambiarCupo(cupoValidado(tipo, peticion.cupo()));
 
         return aRespuesta(cuentas.save(cuenta));
     }
@@ -78,7 +79,10 @@ public class ServicioCuentas {
             throw new NombreDeCuentaRepetidoException("Ya tienes otra cuenta con ese nombre");
         }
 
-        cuenta.editar(nombre, normalizarTipo(peticion.tipo()));
+        String tipo = normalizarTipo(peticion.tipo());
+        cuenta.editar(nombre, tipo);
+        // Si la cuenta deja de ser tarjeta, el cupo se va con ella.
+        cuenta.cambiarCupo(cupoValidado(tipo, peticion.cupo()));
         return aRespuesta(cuenta);
     }
 
@@ -106,8 +110,27 @@ public class ServicioCuentas {
     @Transactional(readOnly = true)
     public BigDecimal totalActivos(Long usuarioId) {
         return cuentas.findByUsuarioIdAndActivaTrueOrderByNombreAsc(usuarioId).stream()
-                .filter(c -> !Cuenta.TARJETA_CREDITO.equals(c.getTipo()))
-                .map(c -> c.getSaldoInicial().add(calculadora.movimientoNetoDe(c.getId())))
+                .filter(c -> !c.esPasivo())
+                .map(this::saldoDe)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
+     * RN-021. Lo que se debe en tarjetas de credito.
+     *
+     * Existe porque antes esta deuda no aparecia en ningun lado: totalActivos
+     * la excluye, y lo adeudado solo miraba el modulo de obligaciones. Una
+     * tarjeta registrada como cuenta quedaba invisible en el patrimonio, ni
+     * sumaba ni restaba. Ahora el patrimonio la resta (DEF-14).
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal totalDeudaEnTarjetas(Long usuarioId) {
+        return cuentas.findByUsuarioIdAndActivaTrueOrderByNombreAsc(usuarioId).stream()
+                .filter(Cuenta::esPasivo)
+                .map(this::saldoDe)
+                // Una tarjeta pagada de mas quedaria en negativo. Eso es saldo a
+                // favor, no deuda, asi que no se resta de lo que se debe.
+                .map(saldo -> saldo.max(BigDecimal.ZERO))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -129,10 +152,38 @@ public class ServicioCuentas {
         return limpio;
     }
 
+    /**
+     * El signo lo decide la entidad, no este servicio (RN-021).
+     *
+     * Antes aqui se sumaba el neto siempre, lo que en una tarjeta de credito
+     * hacia que comprar bajara la deuda (DEF-13). Ahora Cuenta.saldoCon()
+     * resuelve el signo segun el tipo, y es el unico sitio donde se decide.
+     */
     private CuentaResponse aRespuesta(Cuenta cuenta) {
-        BigDecimal saldoActual = cuenta.getSaldoInicial()
-                .add(calculadora.movimientoNetoDe(cuenta.getId()));
+        BigDecimal saldoActual = cuenta.saldoCon(calculadora.movimientoNetoDe(cuenta.getId()));
         return CuentaResponse.de(cuenta, saldoActual);
+    }
+
+    /** El saldo de una cuenta, con el signo que le corresponda por su tipo. */
+    private BigDecimal saldoDe(Cuenta cuenta) {
+        return cuenta.saldoCon(calculadora.movimientoNetoDe(cuenta.getId()));
+    }
+
+    /**
+     * RN-021. Solo las tarjetas de credito llevan cupo.
+     *
+     * Aceptar un cupo en una cuenta de ahorros lo dejaria guardado sin que
+     * signifique nada, y despues nadie sabria si fue intencional o un descuido.
+     * La base tambien lo impide, pero el error del motor no le dice nada util
+     * a quien esta llenando el formulario.
+     */
+    private BigDecimal cupoValidado(String tipo, BigDecimal cupo) {
+        if (cupo == null) return null;
+        if (!Cuenta.TARJETA_CREDITO.equals(tipo)) {
+            throw new CupoSoloEnTarjetasException(
+                    "El cupo solo aplica a las tarjetas de credito");
+        }
+        return cupo;
     }
 
     /** 409: el nombre ya lo usa otra cuenta del mismo usuario. */
@@ -143,5 +194,10 @@ public class ServicioCuentas {
     /** 400: el tipo no esta entre los seis permitidos. */
     public static class TipoDeCuentaInvalidoException extends RuntimeException {
         public TipoDeCuentaInvalidoException(String mensaje) { super(mensaje); }
+    }
+
+    /** 400: se envio cupo en una cuenta que no es tarjeta de credito. */
+    public static class CupoSoloEnTarjetasException extends RuntimeException {
+        public CupoSoloEnTarjetasException(String mensaje) { super(mensaje); }
     }
 }

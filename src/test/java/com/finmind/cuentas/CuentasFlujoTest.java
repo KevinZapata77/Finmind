@@ -296,6 +296,125 @@ class CuentasFlujoTest {
                 .andExpect(status().isNotFound());
     }
 
+
+    // ------------------------------------- RN-021: tarjetas de credito (DEF-13)
+
+    @Test
+    @DisplayName("RN-021: comprar con la tarjeta SUBE la deuda, no la baja")
+    void comprarConTarjetaAumentaLaDeuda() throws Exception {
+        String token = usuarioListo("tarjeta@finmind.test");
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "1850000.00", null);
+        long gasto = idCategoria(token, "Alimentacion");
+
+        // Antes de este arreglo, este gasto BAJABA el saldo a 1.640.000, y con
+        // suficientes compras la deuda llegaba a negativa: la aplicacion decia
+        // que el banco le debia al usuario.
+        registrarMovimiento(token, tarjeta, gasto, "210000.00");
+
+        mockMvc.perform(get("/api/v1/cuentas/" + tarjeta)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.saldoActual").value(2060000.00))
+                .andExpect(jsonPath("$.esPasivo").value(true));
+    }
+
+    @Test
+    @DisplayName("RN-021: un ingreso a la tarjeta es un pago y BAJA la deuda")
+    void pagarLaTarjetaReduceLaDeuda() throws Exception {
+        String token = usuarioListo("tarjeta@finmind.test");
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "1000000.00", null);
+
+        registrarMovimiento(token, tarjeta, idCategoria(token, "Alimentacion"), "200000.00");
+        // Registrar un ingreso sobre la tarjeta es como se abona a ella.
+        registrarMovimiento(token, tarjeta, idCategoria(token, "Salario"), "500000.00");
+
+        // 1.000.000 + 200.000 de compra - 500.000 de pago
+        mockMvc.perform(get("/api/v1/cuentas/" + tarjeta)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.saldoActual").value(700000.00));
+    }
+
+    @Test
+    @DisplayName("RN-021: en una cuenta normal el signo NO cambia")
+    void enCuentaNormalElGastoSigueRestando() throws Exception {
+        String token = usuarioListo("normal@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "1000000.00", null);
+
+        registrarMovimiento(token, ahorros, idCategoria(token, "Alimentacion"), "200000.00");
+
+        // La correccion de las tarjetas no debe haber tocado el resto.
+        mockMvc.perform(get("/api/v1/cuentas/" + ahorros)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.saldoActual").value(800000.00))
+                .andExpect(jsonPath("$.esPasivo").value(false));
+    }
+
+    @Test
+    @DisplayName("RF-043: el cupo disponible es el cupo menos lo que se debe")
+    void elCupoDisponibleSeCalcula() throws Exception {
+        String token = usuarioListo("cupo@finmind.test");
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO",
+                "500000.00", "3000000.00");
+
+        registrarMovimiento(token, tarjeta, idCategoria(token, "Alimentacion"), "250000.00");
+
+        mockMvc.perform(get("/api/v1/cuentas/" + tarjeta)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cupo").value(3000000.00))
+                .andExpect(jsonPath("$.saldoActual").value(750000.00))
+                .andExpect(jsonPath("$.cupoDisponible").value(2250000.00));
+    }
+
+    @Test
+    @DisplayName("RF-043: pasarse del cupo se muestra en negativo, no se bloquea")
+    void pasarseDelCupoNoBloquea() throws Exception {
+        String token = usuarioListo("cupo@finmind.test");
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO",
+                "900000.00", "1000000.00");
+
+        // La aplicacion registra lo que paso, no lo que deberia haber pasado.
+        // Bloquear el gasto obligaria al usuario a mentirle a su propio registro.
+        registrarMovimiento(token, tarjeta, idCategoria(token, "Alimentacion"), "300000.00");
+
+        mockMvc.perform(get("/api/v1/cuentas/" + tarjeta)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.saldoActual").value(1200000.00))
+                .andExpect(jsonPath("$.cupoDisponible").value(-200000.00));
+    }
+
+    @Test
+    @DisplayName("RN-021: una cuenta que no es tarjeta no admite cupo")
+    void soloLasTarjetasLlevanCupo() throws Exception {
+        String token = usuarioListo("cupo@finmind.test");
+
+        mockMvc.perform(post("/api/v1/cuentas")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nombre":"Ahorros","tipo":"AHORROS","saldoInicial":100000.00,"cupo":500000.00}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("El cupo solo aplica a las tarjetas de credito"));
+    }
+
+    @Test
+    @DisplayName("RF-043: una tarjeta sin cupo registrado no reporta cupo disponible")
+    void tarjetaSinCupoNoReportaDisponible() throws Exception {
+        String token = usuarioListo("cupo@finmind.test");
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "100000.00", null);
+
+        mockMvc.perform(get("/api/v1/cuentas/" + tarjeta)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cupo").doesNotExist())
+                .andExpect(jsonPath("$.cupoDisponible").doesNotExist());
+    }
+
     // ------------------------------------------------- apoyo
 
     /** Registra, verifica el correo y devuelve el token listo para usar. */
@@ -333,5 +452,48 @@ class CuentasFlujoTest {
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(respuesta).get("id").asLong();
+    }
+
+    /** Crea una cuenta con saldo inicial y, si aplica, cupo. */
+    private long crearCuentaConSaldo(String token, String nombre, String tipo,
+                                     String saldo, String cupo) throws Exception {
+        String cuerpo = cupo == null
+                ? """
+                  {"nombre":"%s","tipo":"%s","saldoInicial":%s}
+                  """.formatted(nombre, tipo, saldo)
+                : """
+                  {"nombre":"%s","tipo":"%s","saldoInicial":%s,"cupo":%s}
+                  """.formatted(nombre, tipo, saldo, cupo);
+
+        String respuesta = mockMvc.perform(post("/api/v1/cuentas")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(cuerpo))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(respuesta).get("id").asLong();
+    }
+
+    /** Identificador de una categoria del sistema por su nombre. */
+    private long idCategoria(String token, String nombre) throws Exception {
+        String respuesta = mockMvc.perform(get("/api/v1/categorias")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        for (var c : objectMapper.readTree(respuesta)) {
+            if (nombre.equals(c.get("nombre").asText())) return c.get("id").asLong();
+        }
+        throw new IllegalStateException("No existe la categoria " + nombre);
+    }
+
+    private void registrarMovimiento(String token, long cuentaId, long categoriaId,
+                                     String monto) throws Exception {
+        mockMvc.perform(post("/api/v1/transacciones")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"cuentaId":%d,"categoriaId":%d,"monto":%s,"fecha":"%s"}
+                                """.formatted(cuentaId, categoriaId, monto,
+                                java.time.LocalDate.now())))
+                .andExpect(status().isCreated());
     }
 }

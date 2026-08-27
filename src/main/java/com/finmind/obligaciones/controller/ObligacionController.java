@@ -53,8 +53,9 @@ public class ObligacionController {
     @Operation(summary = "Activos, obligaciones y patrimonio neto", description = "RF-038, RN-020")
     public ResponseEntity<PatrimonioResponse> patrimonio(
             @AuthenticationPrincipal UsuarioPrincipal principal) {
+        Long id = principal.getId();
         return ResponseEntity.ok(servicio.patrimonio(
-                principal.getId(), cuentas.totalActivos(principal.getId())));
+                id, cuentas.totalActivos(id), cuentas.totalDeudaEnTarjetas(id)));
     }
 
     @GetMapping("/{id}")
