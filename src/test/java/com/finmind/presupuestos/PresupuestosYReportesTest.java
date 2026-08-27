@@ -365,6 +365,82 @@ class PresupuestosYReportesTest {
 
     // ------------------------------------------------ apoyo
 
+    // ------------------------------------ RN-024: el periodo se respeta (DEF-17)
+
+    @Test
+    @DisplayName("DEF-17: un presupuesto semanal se mide contra la semana, no contra el mes")
+    void elPresupuestoSemanalNoMideElMesEntero() throws Exception {
+        String token = usuarioListo("periodo@finmind.test");
+        long cuenta = crearCuenta(token);
+        long cat = categoria(token, "GASTO");
+
+        // Un gasto de hoy: cae dentro de la semana en curso.
+        gastar(token, cuenta, cat, "40000.00");
+        // Y uno de hace 20 dias: mismo mes, pero otra semana. Puede caer en el
+        // mes anterior si hoy es dia 1 a 20, y entonces no cuenta igual: por eso
+        // la comprobacion de abajo mira el rango que devuelve el servidor.
+        gastarEnFecha(token, cuenta, cat, "500000.00", LocalDate.now().minusDays(20));
+
+        String r = mockMvc.perform(post("/api/v1/presupuestos")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"categoriaId":%d,"montoLimite":100000.00,"periodo":"SEMANAL",
+                                 "anio":%d,"mes":%d}""".formatted(cat, ANIO, MES)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.periodo").value("SEMANAL"))
+                // Antes, este presupuesto de 100.000 se comparaba contra los
+                // 540.000 del mes y decia 540%. Ahora solo cuenta la semana.
+                .andExpect(jsonPath("$.consumo").value(40000.00))
+                .andExpect(jsonPath("$.porcentajeConsumido").value(40.0))
+                .andReturn().getResponse().getContentAsString();
+
+        // Y la respuesta dice contra que fechas midio, que es lo que permite al
+        // usuario entender el porcentaje.
+        var nodo = objectMapper.readTree(r);
+        LocalDate desde = LocalDate.parse(nodo.get("desde").asText());
+        LocalDate hasta = LocalDate.parse(nodo.get("hasta").asText());
+        org.assertj.core.api.Assertions.assertThat(desde).isBeforeOrEqualTo(LocalDate.now());
+        org.assertj.core.api.Assertions.assertThat(hasta).isAfterOrEqualTo(LocalDate.now());
+        org.assertj.core.api.Assertions.assertThat(
+                java.time.temporal.ChronoUnit.DAYS.between(desde, hasta)).isLessThan(7);
+    }
+
+    @Test
+    @DisplayName("RN-024: un presupuesto mensual sigue midiendo el mes completo")
+    void elPresupuestoMensualNoCambia() throws Exception {
+        String token = usuarioListo("periodo@finmind.test");
+        long cuenta = crearCuenta(token);
+        long cat = categoria(token, "GASTO");
+
+        gastar(token, cuenta, cat, "40000.00");
+        gastarEnFecha(token, cuenta, cat, "60000.00", primerDiaDelMes());
+
+        // El arreglo del periodo no debe haber tocado el comportamiento anterior.
+        mockMvc.perform(post("/api/v1/presupuestos")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"categoriaId":%d,"montoLimite":500000.00,"periodo":"MENSUAL",
+                                 "anio":%d,"mes":%d}""".formatted(cat, ANIO, MES)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.consumo").value(100000.00))
+                .andExpect(jsonPath("$.desde").value(primerDiaDelMes().toString()));
+    }
+
+    @Test
+    @DisplayName("RN-024: sin periodo explicito se asume mensual")
+    void sinPeriodoSeAsumeMensual() throws Exception {
+        String token = usuarioListo("periodo@finmind.test");
+        long cat = categoria(token, "GASTO");
+
+        mockMvc.perform(post("/api/v1/presupuestos")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"categoriaId":%d,"montoLimite":300000.00,"anio":%d,"mes":%d}"""
+                                .formatted(cat, ANIO, MES)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.periodo").value("MENSUAL"));
+    }
+
     private String usuarioListo(String correo) throws Exception {
         mockMvc.perform(post("/api/v1/auth/registro").contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -426,5 +502,19 @@ class PresupuestosYReportesTest {
                                 {"cuentaId":%d,"categoriaId":%d,"monto":%s,"fecha":"%s"}"""
                                 .formatted(cuenta, categoria, monto, LocalDate.now())))
                 .andExpect(status().isCreated());
+    }
+
+    /** Registra un gasto en una fecha concreta, para probar ventanas de tiempo. */
+    private void gastarEnFecha(String token, long cuenta, long categoria, String monto,
+                               LocalDate fecha) throws Exception {
+        mockMvc.perform(post("/api/v1/transacciones").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"cuentaId":%d,"categoriaId":%d,"monto":%s,"fecha":"%s"}"""
+                                .formatted(cuenta, categoria, monto, fecha)))
+                .andExpect(status().isCreated());
+    }
+
+    private LocalDate primerDiaDelMes() {
+        return LocalDate.now().withDayOfMonth(1);
     }
 }

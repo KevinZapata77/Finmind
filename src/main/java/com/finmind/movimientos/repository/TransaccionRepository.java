@@ -41,26 +41,53 @@ public interface TransaccionRepository extends JpaRepository<Transaccion, Long> 
 
     /**
      * DT-09 resuelta: movimiento neto de una cuenta.
+     *
+     * El ELSE cubre TRANSFERENCIA y resta, porque una fila de transferencia
+     * pertenece a la cuenta de ORIGEN: desde aqui el dinero sale. Lo que la
+     * cuenta de destino recibe se suma aparte, en recibidoPorTransferencia.
+     *
+     * El motivo va en este javadoc y no dentro de la consulta: JPQL no admite
+     * comentarios con --, y ponerlo ahi rompia la creacion del repositorio y con
+     * ella el arranque de todo el contexto de Spring.
      * Se suma en la base porque traer miles de movimientos para sumarlos en
      * memoria funciona con datos de prueba y se cae con un usuario real.
      */
     @Query("""
-           SELECT COALESCE(SUM(CASE WHEN t.tipo = 'INGRESO' THEN t.monto ELSE -t.monto END), 0)
+           SELECT COALESCE(SUM(CASE
+                    WHEN t.tipo = 'INGRESO' THEN t.monto
+                    WHEN t.tipo = 'GASTO'   THEN -t.monto
+                    ELSE -t.monto
+                  END), 0)
            FROM Transaccion t WHERE t.cuenta.id = :cuentaId
            """)
-    BigDecimal netoDeLaCuenta(@Param("cuentaId") Long cuentaId);
+    BigDecimal salidasYEntradasPropias(@Param("cuentaId") Long cuentaId);
+
+    /**
+     * RN-022. Lo que ESTA cuenta recibio por transferencias de otras.
+     *
+     * Va aparte porque una transferencia se guarda en una sola fila, y esa fila
+     * pertenece a la cuenta de origen. Para la cuenta de destino la unica forma
+     * de verla es buscando por cuenta_destino_id.
+     */
+    @Query("""
+           SELECT COALESCE(SUM(t.monto), 0) FROM Transaccion t
+           WHERE t.cuentaDestino.id = :cuentaId AND t.tipo = 'TRANSFERENCIA'
+           """)
+    BigDecimal recibidoPorTransferencia(@Param("cuentaId") Long cuentaId);
 
     /**
      * RF-044. Cuanto se ha abonado a una cuenta, sumando solo los ingresos.
      *
-     * Se usa en las tarjetas de credito: un ingreso registrado sobre la tarjeta
-     * es un pago que le hiciste, asi que la suma de los ingresos es el total
-     * abonado. No hace falta una tabla de pagos aparte, porque cada pago ya
-     * quedo registrado como movimiento cuando el usuario lo anoto.
+     * Suma las transferencias que llegaron a esta cuenta. En una tarjeta de
+     * credito eso es exactamente lo que le has pagado.
+     *
+     * Antes se sumaban los INGRESO registrados sobre la tarjeta, que era como
+     * se abonaba a falta de transferencias. Eso inflaba los ingresos del mes y
+     * no descontaba el dinero de la cuenta de origen (DEF-16).
      */
     @Query("""
            SELECT COALESCE(SUM(t.monto), 0) FROM Transaccion t
-           WHERE t.cuenta.id = :cuentaId AND t.tipo = 'INGRESO'
+           WHERE t.cuentaDestino.id = :cuentaId AND t.tipo = 'TRANSFERENCIA'
            """)
     BigDecimal totalAbonadoALaCuenta(@Param("cuentaId") Long cuentaId);
 

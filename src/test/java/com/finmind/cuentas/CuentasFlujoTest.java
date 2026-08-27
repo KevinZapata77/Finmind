@@ -319,20 +319,41 @@ class CuentasFlujoTest {
     }
 
     @Test
-    @DisplayName("RN-021: un ingreso a la tarjeta es un pago y BAJA la deuda")
+    @DisplayName("RN-021: abonar a la tarjeta BAJA la deuda")
     void pagarLaTarjetaReduceLaDeuda() throws Exception {
         String token = usuarioListo("tarjeta@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "2000000.00", null);
         long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "1000000.00", null);
 
         registrarMovimiento(token, tarjeta, idCategoria(token, "Alimentacion"), "200000.00");
-        // Registrar un ingreso sobre la tarjeta es como se abona a ella.
-        registrarMovimiento(token, tarjeta, idCategoria(token, "Salario"), "500000.00");
+        // Antes esta prueba pagaba registrando un ingreso sobre la tarjeta,
+        // porque era la unica forma. Eso inflaba los ingresos del mes y no
+        // descontaba el dinero de ningun lado (DEF-16). Ahora se abona.
+        abonar(token, tarjeta, ahorros, "500000.00");
 
-        // 1.000.000 + 200.000 de compra - 500.000 de pago
+        // 1.000.000 + 200.000 de compra - 500.000 de abono
         mockMvc.perform(get("/api/v1/cuentas/" + tarjeta)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.saldoActual").value(700000.00));
+    }
+
+    @Test
+    @DisplayName("RN-023: un ingreso sobre una tarjeta ya no se admite")
+    void noSePuedeRegistrarUnIngresoSobreLaTarjeta() throws Exception {
+        String token = usuarioListo("tarjeta@finmind.test");
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "1000000.00", null);
+
+        // Era la via antigua para pagar y hacia mentir al balance. Con el abono
+        // ya disponible, dejarla abierta seria mantener dos caminos y que el
+        // incorrecto fuera el mas facil de encontrar por descuido.
+        mockMvc.perform(post("/api/v1/transacciones")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"cuentaId":%d,"categoriaId":%d,"monto":500000.00,"fecha":"%s"}
+                                """.formatted(tarjeta, idCategoria(token, "Salario"),
+                                java.time.LocalDate.now())))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -421,18 +442,19 @@ class CuentasFlujoTest {
         String token = usuarioListo("historial@finmind.test");
         long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "1000000.00", null);
 
-        // Dos compras y dos pagos. El total abonado debe contar solo los pagos.
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "2000000.00", null);
+
+        // Dos compras y dos abonos. El total abonado cuenta solo los abonos.
         registrarMovimiento(token, tarjeta, idCategoria(token, "Alimentacion"), "150000.00");
-        registrarMovimiento(token, tarjeta, idCategoria(token, "Salario"), "300000.00");
+        abonar(token, tarjeta, ahorros, "300000.00");
         registrarMovimiento(token, tarjeta, idCategoria(token, "Transporte"), "50000.00");
-        registrarMovimiento(token, tarjeta, idCategoria(token, "Salario"), "200000.00");
+        abonar(token, tarjeta, ahorros, "200000.00");
 
         mockMvc.perform(get("/api/v1/cuentas/" + tarjeta)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                // 1.000.000 + 200.000 de compras - 500.000 de pagos
+                // 1.000.000 + 200.000 de compras - 500.000 de abonos
                 .andExpect(jsonPath("$.saldoActual").value(700000.00))
-                // Solo los ingresos: 300.000 + 200.000
                 .andExpect(jsonPath("$.totalPagado").value(500000.00));
     }
 
@@ -452,7 +474,145 @@ class CuentasFlujoTest {
                 .andExpect(jsonPath("$.totalPagado").doesNotExist());
     }
 
+    // ------------------------------------ RF-045: abonos a la tarjeta (DEF-16)
+
+    @Test
+    @DisplayName("RF-045: el abono baja la deuda de la tarjeta y el saldo de origen")
+    void elAbonoMueveElDineroEnLasDosCuentas() throws Exception {
+        String token = usuarioListo("abono@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "1000000.00", null);
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "500000.00", null);
+
+        abonar(token, tarjeta, ahorros, "200000.00");
+
+        // La deuda baja...
+        mockMvc.perform(get("/api/v1/cuentas/" + tarjeta)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.saldoActual").value(300000.00))
+                .andExpect(jsonPath("$.totalPagado").value(200000.00));
+
+        // ...y el dinero sale de verdad de la cuenta de origen. Antes de este
+        // arreglo la deuda bajaba pero el dinero aparecia de la nada.
+        mockMvc.perform(get("/api/v1/cuentas/" + ahorros)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.saldoActual").value(800000.00));
+    }
+
+    @Test
+    @DisplayName("DEF-16: el abono NO cuenta como ingreso ni gasto del mes")
+    void elAbonoNoInflaElBalance() throws Exception {
+        String token = usuarioListo("abono@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "3000000.00", null);
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "500000.00", null);
+
+        registrarMovimiento(token, ahorros, idCategoria(token, "Salario"), "2600000.00");
+        abonar(token, tarjeta, ahorros, "200000.00");
+
+        // Este es el nucleo del defecto: registrar el abono como INGRESO hacia
+        // que el balance reportara 2.800.000 de ingresos cuando el usuario habia
+        // ganado 2.600.000. Pagar una deuda no es ganar dinero.
+        mockMvc.perform(get("/api/v1/reportes/balance")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ingresos").value(2600000.00))
+                .andExpect(jsonPath("$.gastos").value(0.00));
+    }
+
+    @Test
+    @DisplayName("RN-022: el abono tampoco aparece en la composicion del gasto")
+    void elAbonoNoAparecePorCategoria() throws Exception {
+        String token = usuarioListo("abono@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "1000000.00", null);
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "500000.00", null);
+
+        registrarMovimiento(token, ahorros, idCategoria(token, "Alimentacion"), "150000.00");
+        abonar(token, tarjeta, ahorros, "200000.00");
+
+        // Una transferencia no tiene categoria: el dinero no se consumio, cambio
+        // de sitio. Solo debe salir el gasto real de Alimentacion.
+        mockMvc.perform(get("/api/v1/reportes/gasto-por-categoria")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(150000.00))
+                .andExpect(jsonPath("$.porciones.length()").value(1));
+    }
+
+    @Test
+    @DisplayName("RF-045: el abono queda listado como movimiento de tipo TRANSFERENCIA")
+    void elAbonoSeVeEnLosMovimientos() throws Exception {
+        String token = usuarioListo("abono@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "1000000.00", null);
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "500000.00", null);
+
+        abonar(token, tarjeta, ahorros, "200000.00");
+
+        // Y sin categoria: listarlo reventaba con NullPointerException antes de
+        // permitir que los tres campos de categoria viajen nulos.
+        mockMvc.perform(get("/api/v1/transacciones?cuentaId=" + ahorros)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido[0].tipo").value("TRANSFERENCIA"))
+                .andExpect(jsonPath("$.contenido[0].categoriaId").doesNotExist())
+                .andExpect(jsonPath("$.contenido[0].cuentaDestinoNombre").value("Visa"));
+    }
+
+    @Test
+    @DisplayName("RF-045: no se puede abonar a una cuenta que no es tarjeta")
+    void soloSeAbonaATarjetas() throws Exception {
+        String token = usuarioListo("abono@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "1000000.00", null);
+        long otra = crearCuentaConSaldo(token, "Nequi", "BILLETERA_DIGITAL", "50000.00", null);
+
+        mockMvc.perform(post("/api/v1/cuentas/" + otra + "/abonos")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"cuentaOrigenId":%d,"monto":10000.00,"fecha":"%s"}
+                                """.formatted(ahorros, java.time.LocalDate.now())))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("RF-045: el abono no puede salir de otra tarjeta")
+    void elOrigenNoPuedeSerOtraTarjeta() throws Exception {
+        String token = usuarioListo("abono@finmind.test");
+        long visa = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "500000.00", null);
+        long master = crearCuentaConSaldo(token, "Master", "TARJETA_CREDITO", "300000.00", null);
+
+        // Pagar una tarjeta con otra no reduce la deuda, la traslada.
+        mockMvc.perform(post("/api/v1/cuentas/" + visa + "/abonos")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"cuentaOrigenId":%d,"monto":10000.00,"fecha":"%s"}
+                                """.formatted(master, java.time.LocalDate.now())))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("RN-022: un abono no se edita como movimiento normal")
+    void elAbonoNoSeEdita() throws Exception {
+        String token = usuarioListo("abono@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "1000000.00", null);
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "500000.00", null);
+        abonar(token, tarjeta, ahorros, "200000.00");
+
+        String lista = mockMvc.perform(get("/api/v1/transacciones?cuentaId=" + ahorros)
+                        .header("Authorization", "Bearer " + token))
+                .andReturn().getResponse().getContentAsString();
+        long idAbono = objectMapper.readTree(lista).get("contenido").get(0).get("id").asLong();
+
+        // Editarlo le pondria una categoria y cambiaria el tipo, pero dejaria la
+        // cuenta de destino puesta: una fila que ninguna consulta sabe leer.
+        mockMvc.perform(put("/api/v1/transacciones/" + idAbono)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"cuentaId":%d,"categoriaId":%d,"monto":50000.00,"fecha":"%s"}
+                                """.formatted(ahorros, idCategoria(token, "Alimentacion"),
+                                java.time.LocalDate.now())))
+                .andExpect(status().isConflict());
+    }
+
     // ------------------------------------------------- apoyo
+
 
     /** Registra, verifica el correo y devuelve el token listo para usar. */
     private String usuarioListo(String correo) throws Exception {
@@ -531,6 +691,17 @@ class CuentasFlujoTest {
                                 {"cuentaId":%d,"categoriaId":%d,"monto":%s,"fecha":"%s"}
                                 """.formatted(cuentaId, categoriaId, monto,
                                 java.time.LocalDate.now())))
+                .andExpect(status().isCreated());
+    }
+
+    /** Abona a una tarjeta desde otra cuenta (RF-045). */
+    private void abonar(String token, long tarjetaId, long origenId, String monto)
+            throws Exception {
+        mockMvc.perform(post("/api/v1/cuentas/" + tarjetaId + "/abonos")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"cuentaOrigenId":%d,"monto":%s,"fecha":"%s"}
+                                """.formatted(origenId, monto, java.time.LocalDate.now())))
                 .andExpect(status().isCreated());
     }
 }

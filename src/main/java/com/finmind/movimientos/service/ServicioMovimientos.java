@@ -51,6 +51,8 @@ public class ServicioMovimientos {
         Usuario dueno = usuarios.findById(usuarioId)
                 .orElseThrow(() -> new IllegalStateException("El token es valido pero el usuario ya no existe"));
 
+        exigirQueNoSeaIngresoEnTarjeta(cuenta, categoria);
+
         Transaccion t = new Transaccion(dueno, cuenta, categoria, p.monto(), p.fecha(), p.descripcion());
         return MovimientoResponse.de(movimientos.save(t));
     }
@@ -83,8 +85,21 @@ public class ServicioMovimientos {
     @Transactional
     public MovimientoResponse actualizar(Long usuarioId, Long id, MovimientoRequest p) {
         Transaccion t = exigirPropio(usuarioId, id);
+
+        // RN-022. Una transferencia no se edita por aqui. Este metodo le asigna
+        // una categoria y deduce el tipo de ella, lo que convertiria la
+        // transferencia en un ingreso o un gasto pero dejaria puesta la cuenta
+        // de destino: una fila que ninguna consulta sabria interpretar, y que la
+        // base rechazaria con un error tecnico incomprensible para el usuario.
+        // Para corregir un abono equivocado se borra y se registra de nuevo.
+        if (t.esTransferencia()) {
+            throw new TransferenciaNoEditableException(
+                    "Un abono no se edita. Si te equivocaste, borralo y registralo de nuevo");
+        }
+
         Cuenta cuenta = exigirCuenta(usuarioId, p.cuentaId());
         Categoria categoria = categorias.exigirUsable(usuarioId, p.categoriaId());
+        exigirQueNoSeaIngresoEnTarjeta(cuenta, categoria);
         t.editar(cuenta, categoria, p.monto(), p.fecha(), p.descripcion());
         return MovimientoResponse.de(t);
     }
@@ -98,6 +113,32 @@ public class ServicioMovimientos {
     @Transactional
     public void eliminar(Long usuarioId, Long id) {
         movimientos.delete(exigirPropio(usuarioId, id));
+    }
+
+    /**
+     * RN-023. Un ingreso sobre una tarjeta de credito no se admite.
+     *
+     * Registrarlo bajaba la deuda, y por eso era la unica forma de "pagar" la
+     * tarjeta antes de que existieran las transferencias. Pero tenia dos
+     * consecuencias que hacian mentir a la aplicacion:
+     *
+     *   - Inflaba los ingresos del mes: el balance suma los INGRESO sin mirar
+     *     la cuenta, asi que un abono de 200.000 aparecia como si el usuario
+     *     hubiera ganado 200.000 mas.
+     *   - El dinero no salia de ninguna parte: la deuda bajaba sin descontarse
+     *     de la cuenta de donde salio el pago.
+     *
+     * Ahora existe el abono (RF-045), que hace las dos cosas bien. Dejar
+     * abierta la via antigua significaria mantener las dos, y la incorrecta
+     * seria la mas facil de encontrar por descuido.
+     */
+    private void exigirQueNoSeaIngresoEnTarjeta(Cuenta cuenta, Categoria categoria) {
+        if (cuenta.esPasivo() && Transaccion.INGRESO.equals(categoria.getTipo())) {
+            throw new IngresoEnTarjetaException(
+                    "Para pagar una tarjeta usa el boton Abonar en la pantalla de Cuentas: "
+                            + "asi el dinero se descuenta de la cuenta de donde sale y no se "
+                            + "cuenta como un ingreso del mes");
+        }
     }
 
     private Transaccion exigirPropio(Long usuarioId, Long id) {
@@ -118,5 +159,15 @@ public class ServicioMovimientos {
     /** 409: se intento mover plata en una cuenta desactivada. */
     public static class CuentaInactivaException extends RuntimeException {
         public CuentaInactivaException(String m) { super(m); }
+    }
+
+    /** 409: se intento editar una transferencia desde el modulo de movimientos. */
+    public static class TransferenciaNoEditableException extends RuntimeException {
+        public TransferenciaNoEditableException(String mensaje) { super(mensaje); }
+    }
+
+    /** 400: RN-023, se intento registrar un ingreso sobre una tarjeta de credito. */
+    public static class IngresoEnTarjetaException extends RuntimeException {
+        public IngresoEnTarjetaException(String mensaje) { super(mensaje); }
     }
 }

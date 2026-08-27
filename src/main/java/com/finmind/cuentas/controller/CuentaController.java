@@ -1,6 +1,7 @@
 package com.finmind.cuentas.controller;
 
 import com.finmind.common.security.UsuarioPrincipal;
+import com.finmind.cuentas.dto.AbonoTarjetaRequest;
 import com.finmind.cuentas.dto.ActualizarCuentaRequest;
 import com.finmind.cuentas.dto.CrearCuentaRequest;
 import com.finmind.cuentas.dto.CuentaResponse;
@@ -56,6 +57,25 @@ public class CuentaController {
             @AuthenticationPrincipal UsuarioPrincipal principal,
             @PathVariable Long id) {
         return ResponseEntity.ok(servicio.consultar(principal.getId(), id));
+    }
+
+    /**
+     * RF-045. Abonar a una tarjeta de credito.
+     *
+     * Va antes de PUT /{id} por costumbre de este controlador, aunque aqui no
+     * hay ambiguedad: la ruta lleva un segmento fijo despues del identificador.
+     */
+    @PostMapping("/{id}/abonos")
+    @Operation(summary = "Abonar a una tarjeta de credito",
+            description = "RF-045, RN-022. Se registra como transferencia desde la cuenta de "
+                    + "origen, asi que baja la deuda y descuenta el dinero, pero no cuenta "
+                    + "como ingreso ni como gasto del mes")
+    public ResponseEntity<CuentaResponse> abonar(
+            @AuthenticationPrincipal UsuarioPrincipal principal,
+            @PathVariable Long id,
+            @Valid @RequestBody AbonoTarjetaRequest peticion) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(servicio.abonar(principal.getId(), id, peticion));
     }
 
     @PutMapping("/{id}")

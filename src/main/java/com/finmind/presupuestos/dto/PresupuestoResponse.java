@@ -3,6 +3,7 @@ package com.finmind.presupuestos.dto;
 import com.finmind.presupuestos.entity.Presupuesto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * RF-018 y RF-019.
@@ -14,9 +15,17 @@ public record PresupuestoResponse(
         Long id, Long categoriaId, String categoriaNombre, String categoriaColor,
         BigDecimal montoLimite, BigDecimal consumo, BigDecimal disponible,
         BigDecimal porcentajeConsumido, Short anio, Short mes, String periodo,
+        /**
+         * Fechas exactas contra las que se midio el consumo (RN-024). Viajan en
+         * la respuesta porque en un presupuesto quincenal o semanal el usuario
+         * no puede adivinar que ventana esta viendo, y sin eso el porcentaje no
+         * significa nada.
+         */
+        LocalDate desde, LocalDate hasta,
         Boolean activo, String estado, String aviso
 ) {
-    public static PresupuestoResponse de(Presupuesto p, BigDecimal consumo) {
+    public static PresupuestoResponse de(Presupuesto p, BigDecimal consumo,
+                                         LocalDate desde, LocalDate hasta) {
         BigDecimal pct = p.porcentajeConsumido(consumo);
         BigDecimal disponible = p.disponible(consumo);
 
@@ -36,6 +45,7 @@ public record PresupuestoResponse(
         return new PresupuestoResponse(p.getId(), p.getCategoria().getId(),
                 p.getCategoria().getNombre(), p.getCategoria().getColorHex(),
                 p.getMontoLimite(), consumo, disponible, pct,
-                p.getAnio(), p.getMes(), p.getPeriodo(), p.getActivo(), estado, aviso);
+                p.getAnio(), p.getMes(), p.getPeriodo(), desde, hasta,
+                p.getActivo(), estado, aviso);
     }
 }
