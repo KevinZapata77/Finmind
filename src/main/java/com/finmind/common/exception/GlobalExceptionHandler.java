@@ -14,6 +14,8 @@ import com.finmind.identidad.service.ServicioUsuarioGoogle.CuentaGoogleException
 import com.finmind.cuentas.service.ServicioCuentas.NombreDeCuentaRepetidoException;
 import com.finmind.cuentas.service.ServicioCuentas.TipoDeCuentaInvalidoException;
 import com.finmind.cuentas.service.ServicioCuentas.CupoSoloEnTarjetasException;
+import com.finmind.cuentas.service.ServicioCuentas.AbonoInvalidoException;
+import com.finmind.cuentas.service.ServicioCuentas.CuentaDesactivadaException;
 import com.finmind.obligaciones.service.ServicioObligaciones.NombreDeObligacionRepetidoException;
 import com.finmind.obligaciones.service.ServicioObligaciones.TipoDeObligacionInvalidoException;
 import com.finmind.obligaciones.service.ServicioObligaciones.ObligacionCerradaException;
@@ -22,6 +24,8 @@ import com.finmind.categorias.service.ServicioCategorias.CategoriaRepetidaExcept
 import com.finmind.categorias.service.ServicioCategorias.TipoDeCategoriaInvalidoException;
 import com.finmind.categorias.service.ServicioCategorias.CategoriaInactivaException;
 import com.finmind.movimientos.service.ServicioMovimientos.CuentaInactivaException;
+import com.finmind.movimientos.service.ServicioMovimientos.TransferenciaNoEditableException;
+import com.finmind.movimientos.service.ServicioMovimientos.IngresoEnTarjetaException;
 import com.finmind.presupuestos.service.ServicioPresupuestos.PresupuestoRepetidoException;
 import com.finmind.presupuestos.service.ServicioPresupuestos.PresupuestoSoloDeGastoException;
 import com.finmind.presupuestos.service.ServicioPresupuestos.PeriodoInvalidoException;
@@ -135,6 +139,34 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> tipoDeCuentaInvalido(TipoDeCuentaInvalidoException ex,
                                                          HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** 400: RN-023, un ingreso sobre una tarjeta se hace con el abono. */
+    @ExceptionHandler(IngresoEnTarjetaException.class)
+    public ResponseEntity<ApiError> ingresoEnTarjeta(IngresoEnTarjetaException ex,
+                                                     HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** 409: RN-022, una transferencia no se edita, se borra y se rehace. */
+    @ExceptionHandler(TransferenciaNoEditableException.class)
+    public ResponseEntity<ApiError> transferenciaNoEditable(TransferenciaNoEditableException ex,
+                                                            HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /** 400: RF-045, el abono no cumple las reglas de origen y destino. */
+    @ExceptionHandler(AbonoInvalidoException.class)
+    public ResponseEntity<ApiError> abonoInvalido(AbonoInvalidoException ex,
+                                                  HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** 409: se intento operar con una cuenta desactivada. */
+    @ExceptionHandler(CuentaDesactivadaException.class)
+    public ResponseEntity<ApiError> cuentaDesactivada(CuentaDesactivadaException ex,
+                                                      HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
     }
 
     /** 400: RN-021, se envio cupo en una cuenta que no es tarjeta de credito. */

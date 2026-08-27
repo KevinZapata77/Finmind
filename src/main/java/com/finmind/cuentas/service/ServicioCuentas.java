@@ -1,11 +1,14 @@
 package com.finmind.cuentas.service;
 
 import com.finmind.common.exception.RecursoNoEncontradoException;
+import com.finmind.cuentas.dto.AbonoTarjetaRequest;
 import com.finmind.cuentas.dto.ActualizarCuentaRequest;
 import com.finmind.cuentas.dto.CrearCuentaRequest;
 import com.finmind.cuentas.dto.CuentaResponse;
 import com.finmind.cuentas.entity.Cuenta;
 import com.finmind.cuentas.repository.CuentaRepository;
+import com.finmind.movimientos.entity.Transaccion;
+import com.finmind.movimientos.repository.TransaccionRepository;
 import com.finmind.usuarios.entity.Usuario;
 import com.finmind.usuarios.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
@@ -26,13 +29,69 @@ public class ServicioCuentas {
     private final CuentaRepository cuentas;
     private final UsuarioRepository usuarios;
     private final CalculadoraDeSaldo calculadora;
+    private final TransaccionRepository movimientos;
 
     public ServicioCuentas(CuentaRepository cuentas,
                            UsuarioRepository usuarios,
-                           CalculadoraDeSaldo calculadora) {
+                           CalculadoraDeSaldo calculadora,
+                           TransaccionRepository movimientos) {
         this.cuentas = cuentas;
         this.usuarios = usuarios;
         this.calculadora = calculadora;
+        this.movimientos = movimientos;
+    }
+
+    /**
+     * RF-045. Abona a una tarjeta de credito desde otra cuenta.
+     *
+     * Se guarda como una TRANSFERENCIA, no como un ingreso. La diferencia
+     * importa: el balance del mes suma los movimientos de tipo INGRESO sin
+     * mirar la cuenta, asi que registrar el abono como ingreso hacia que la
+     * aplicacion reportara mas ingresos de los que el usuario tuvo. Pagar una
+     * deuda no es ganar dinero (DEF-16).
+     *
+     * Una sola fila deja las dos puntas resueltas: sale de la cuenta de origen
+     * y entra a la tarjeta.
+     */
+    @Transactional
+    public CuentaResponse abonar(Long usuarioId, Long tarjetaId, AbonoTarjetaRequest peticion) {
+        Cuenta tarjeta = buscarPropia(usuarioId, tarjetaId);
+        Cuenta origen = buscarPropia(usuarioId, peticion.cuentaOrigenId());
+
+        if (!tarjeta.esPasivo()) {
+            throw new AbonoInvalidoException(
+                    "Solo se abona a tarjetas de credito. Para mover dinero entre otras cuentas, "
+                            + "registra el movimiento desde Movimientos");
+        }
+        if (origen.getId().equals(tarjeta.getId())) {
+            throw new AbonoInvalidoException("La tarjeta no puede pagarse a si misma");
+        }
+        // Pagar una tarjeta con otra tarjeta no reduce la deuda, la traslada. Es
+        // una operacion real de la banca, pero modelarla bien exige mas de lo que
+        // aporta aqui, y admitirla a medias daria numeros que no cuadran.
+        if (origen.esPasivo()) {
+            throw new AbonoInvalidoException(
+                    "El abono tiene que salir de una cuenta de dinero, no de otra tarjeta");
+        }
+        if (!tarjeta.estaActiva() || !origen.estaActiva()) {
+            throw new CuentaDesactivadaException(
+                    "No se puede abonar con una cuenta desactivada");
+        }
+
+        Usuario dueno = usuarios.findById(usuarioId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "El token es valido pero el usuario ya no existe"));
+
+        movimientos.save(Transaccion.transferencia(
+                dueno, origen, tarjeta,
+                peticion.monto(), peticion.fecha(),
+                peticion.descripcion() == null || peticion.descripcion().isBlank()
+                        ? "Abono a " + tarjeta.getNombre()
+                        : peticion.descripcion().trim()));
+
+        // Se devuelve la tarjeta ya recalculada: el cliente necesita ver la
+        // deuda nueva sin tener que volver a pedirla.
+        return aRespuesta(tarjeta);
     }
 
     @Transactional
@@ -207,5 +266,15 @@ public class ServicioCuentas {
     /** 400: se envio cupo en una cuenta que no es tarjeta de credito. */
     public static class CupoSoloEnTarjetasException extends RuntimeException {
         public CupoSoloEnTarjetasException(String mensaje) { super(mensaje); }
+    }
+
+    /** 400: el abono no cumple las reglas de origen y destino (RF-045). */
+    public static class AbonoInvalidoException extends RuntimeException {
+        public AbonoInvalidoException(String mensaje) { super(mensaje); }
+    }
+
+    /** 409: se intento operar con una cuenta desactivada. */
+    public static class CuentaDesactivadaException extends RuntimeException {
+        public CuentaDesactivadaException(String mensaje) { super(mensaje); }
     }
 }

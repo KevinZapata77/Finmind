@@ -26,9 +26,20 @@ public class CalculadoraDeSaldo {
         this.movimientos = movimientos;
     }
 
+    /**
+     * Movimiento neto de la cuenta: lo que entro menos lo que salio.
+     *
+     * Son dos consultas porque una transferencia se guarda en UNA sola fila, y
+     * esa fila pertenece a la cuenta de origen. Desde la cuenta de destino solo
+     * se ve buscando por cuenta_destino_id, asi que hay que sumarla aparte.
+     *
+     *   ingresos - gastos - transferencias que salieron     (primera consulta)
+     *   + transferencias que entraron                       (segunda)
+     */
     public BigDecimal movimientoNetoDe(Long cuentaId) {
         if (cuentaId == null) return BigDecimal.ZERO;
-        return movimientos.netoDeLaCuenta(cuentaId);
+        return movimientos.salidasYEntradasPropias(cuentaId)
+                .add(movimientos.recibidoPorTransferencia(cuentaId));
     }
 
     /**
