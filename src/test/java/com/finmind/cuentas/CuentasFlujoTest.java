@@ -556,6 +556,53 @@ class CuentasFlujoTest {
                 .andExpect(jsonPath("$.contenido[0].cuentaDestinoNombre").value("Visa"));
     }
 
+    /**
+     * DEF-18. El abono tiene que verse tambien desde la tarjeta.
+     *
+     * La fila de la transferencia pertenece a la cuenta de origen, asi que el
+     * filtro por cuenta la encontraba desde Ahorros pero no desde la Visa. El
+     * pago existia, bajaba la deuda y salia en el saldo, pero no aparecia en
+     * ninguna lista de la tarjeta: la pantalla de pagos habria quedado siempre
+     * vacia y el usuario habria concluido que su abono no se guardo.
+     */
+    @Test
+    @DisplayName("DEF-18: el abono aparece al filtrar por la tarjeta, no solo por el origen")
+    void elAbonoSeVeDesdeLaTarjeta() throws Exception {
+        String token = usuarioListo("abono@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "1000000.00", null);
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "500000.00", null);
+
+        abonar(token, tarjeta, ahorros, "200000.00");
+
+        mockMvc.perform(get("/api/v1/transacciones?cuentaId=" + tarjeta + "&tipo=TRANSFERENCIA")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido.length()").value(1))
+                .andExpect(jsonPath("$.contenido[0].monto").value(200000.00))
+                .andExpect(jsonPath("$.contenido[0].cuentaDestinoNombre").value("Visa"));
+    }
+
+    /**
+     * Y el filtro sigue distinguiendo las cuentas: si devolviera todo, el
+     * arreglo de arriba habria cambiado un problema por otro peor.
+     */
+    @Test
+    @DisplayName("DEF-18: el filtro por cuenta no se convierte en un colador")
+    void elFiltroSigueDistinguiendoCuentas() throws Exception {
+        String token = usuarioListo("abono@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "1000000.00", null);
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "500000.00", null);
+        long nequi = crearCuentaConSaldo(token, "Nequi", "BILLETERA_DIGITAL", "80000.00", null);
+
+        abonar(token, tarjeta, ahorros, "200000.00");
+
+        // Nequi no participo en la transferencia: no debe verla.
+        mockMvc.perform(get("/api/v1/transacciones?cuentaId=" + nequi)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido.length()").value(0));
+    }
+
     @Test
     @DisplayName("RF-045: no se puede abonar a una cuenta que no es tarjeta")
     void soloSeAbonaATarjetas() throws Exception {

@@ -20,13 +20,26 @@ public interface TransaccionRepository extends JpaRepository<Transaccion, Long> 
     /**
      * Listado con filtros opcionales (RF-014). Los nulos se ignoran, asi que una
      * sola consulta cubre todas las combinaciones sin construir SQL a mano.
+     *
+     * DEF-18. El filtro por cuenta mira TAMBIEN la cuenta de destino.
+     *
+     * Una transferencia se guarda en una sola fila, y esa fila pertenece a la
+     * cuenta de origen. Con el filtro anterior, pedir los movimientos de una
+     * tarjeta no devolvia sus abonos: el pago existia, bajaba la deuda y se veia
+     * en el saldo, pero no aparecia en ninguna lista. El usuario habria
+     * concluido que no se guardo.
+     *
+     * "Los movimientos de esta cuenta" incluye lo que salio y lo que entro.
+     * Filtrar solo por origen respondia a como esta guardado el dato, no a lo
+     * que la pregunta significa.
      */
     @Query("""
            SELECT t FROM Transaccion t
            WHERE t.usuario.id = :usuarioId
              AND (:desde       IS NULL OR t.fecha >= :desde)
              AND (:hasta       IS NULL OR t.fecha <= :hasta)
-             AND (:cuentaId    IS NULL OR t.cuenta.id = :cuentaId)
+             AND (:cuentaId    IS NULL OR t.cuenta.id = :cuentaId
+                                       OR t.cuentaDestino.id = :cuentaId)
              AND (:categoriaId IS NULL OR t.categoria.id = :categoriaId)
              AND (:tipo        IS NULL OR t.tipo = :tipo)
            ORDER BY t.fecha DESC, t.id DESC
