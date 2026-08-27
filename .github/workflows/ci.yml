@@ -5,7 +5,7 @@ name: CI
 # Antes solo se disparaba al abrir la peticion de incorporacion, asi que para
 # saber si un cambio rompia algo habia que compilar y probar en local: cinco
 # minutos por intento, y el contenedor volvia a descargar las dependencias cada
-# vez. Con esto, cada push devuelve el resultado de las 136 pruebas sin ocupar
+# vez. Con esto, cada push devuelve el resultado de todas las pruebas sin ocupar
 # la maquina de nadie, y el error aparece en el commit que lo causo en lugar de
 # aparecer todo junto al final.
 on:

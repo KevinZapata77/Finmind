@@ -155,7 +155,7 @@ class RitmoDelMesTest {
         long cuenta = crearCuenta(token);
         gastarEnFecha(token, cuenta, categoria(token, "GASTO"), "100000.00", MES_PASADO.atDay(2));
 
-        assertThat(ritmo(token, MES_PASADO).get("proyeccionGasto").isNull()).isTrue();
+        assertThat(seProyecto(ritmo(token, MES_PASADO))).isFalse();
     }
 
     /**
@@ -176,11 +176,7 @@ class RitmoDelMesTest {
         assertThat(r.get("diasDelMes").asInt()).isEqualTo(mes.lengthOfMonth());
 
         // La proyeccion sigue la misma regla que las alertas: no antes del dia 5.
-        if (hoy.getDayOfMonth() < 5) {
-            assertThat(r.get("proyeccionGasto").isNull()).isTrue();
-        } else {
-            assertThat(r.get("proyeccionGasto").isNull()).isFalse();
-        }
+        assertThat(seProyecto(r)).isEqualTo(hoy.getDayOfMonth() >= 5);
     }
 
     @Test
@@ -216,6 +212,23 @@ class RitmoDelMesTest {
     }
 
     // ------------------------------------------------------------------ apoyo
+
+    /**
+     * Si la respuesta trae proyeccion.
+     *
+     * POR QUE NO BASTA CON .isNull()
+     * La aplicacion esta configurada con default-property-inclusion: non_null,
+     * asi que un campo nulo NO viaja como null en el JSON: no viaja. El campo
+     * queda ausente y Jackson devuelve null de Java, no un NullNode, con lo que
+     * llamar .isNull() sobre el resultado lanza NullPointerException.
+     *
+     * Se comprueban las dos formas para que la prueba siga siendo valida si algun
+     * dia se cambiara esa configuracion.
+     */
+    private boolean seProyecto(JsonNode resumen) {
+        JsonNode p = resumen.get("proyeccionGasto");
+        return p != null && !p.isNull();
+    }
 
     /** Gasto acumulado del dia n, buscandolo por su numero y no por su posicion. */
     private double acumulado(JsonNode dias, int dia) {
