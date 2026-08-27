@@ -29,6 +29,9 @@ import com.finmind.movimientos.service.ServicioMovimientos.IngresoEnTarjetaExcep
 import com.finmind.presupuestos.service.ServicioPresupuestos.PresupuestoRepetidoException;
 import com.finmind.presupuestos.service.ServicioPresupuestos.PresupuestoSoloDeGastoException;
 import com.finmind.presupuestos.service.ServicioPresupuestos.PeriodoInvalidoException;
+import com.finmind.fijos.service.ServicioGastosFijos.GastoFijoRepetidoException;
+import com.finmind.fijos.service.ServicioGastosFijos.PeriodicidadInvalidaException;
+import com.finmind.fijos.service.ServicioGastosFijos.CategoriaDeGastoRequeridaException;
 import com.finmind.metas.service.ServicioMetas.MetaRepetidaException;
 import com.finmind.metas.service.ServicioMetas.MetaCerradaException;
 import com.finmind.metas.service.ServicioMetas.AbonoExcesivoException;
@@ -138,6 +141,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TipoDeCuentaInvalidoException.class)
     public ResponseEntity<ApiError> tipoDeCuentaInvalido(TipoDeCuentaInvalidoException ex,
                                                          HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
+    }
+
+    /** 409: RF-046, ya existe otro gasto fijo con ese nombre. */
+    @ExceptionHandler(GastoFijoRepetidoException.class)
+    public ResponseEntity<ApiError> gastoFijoRepetido(GastoFijoRepetidoException ex,
+                                                      HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    /** 400: RF-046, periodicidad o categoria no validas en un gasto fijo. */
+    @ExceptionHandler({PeriodicidadInvalidaException.class,
+                       CategoriaDeGastoRequeridaException.class})
+    public ResponseEntity<ApiError> gastoFijoInvalido(RuntimeException ex,
+                                                      HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
     }
 

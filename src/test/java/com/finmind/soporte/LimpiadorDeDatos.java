@@ -3,6 +3,7 @@ package com.finmind.soporte;
 import com.finmind.categorias.entity.Categoria;
 import com.finmind.categorias.repository.CategoriaRepository;
 import com.finmind.cuentas.repository.CuentaRepository;
+import com.finmind.fijos.repository.GastoFijoRepository;
 import com.finmind.administracion.repository.AuditoriaAdminRepository;
 import com.finmind.metas.repository.MetaAhorroRepository;
 import com.finmind.movimientos.repository.TransaccionRepository;
@@ -47,6 +48,7 @@ public class LimpiadorDeDatos {
     private final CuentaRepository cuentas;
     private final ObligacionRepository obligaciones;
     private final PagoObligacionRepository pagos;
+    private final GastoFijoRepository fijos;
     private final CodigoVerificacionRepository codigos;
     private final UsuarioRepository usuarios;
     private final RolRepository roles;
@@ -60,6 +62,7 @@ public class LimpiadorDeDatos {
                             CuentaRepository cuentas,
                             ObligacionRepository obligaciones,
                             PagoObligacionRepository pagos,
+                            GastoFijoRepository fijos,
                             CodigoVerificacionRepository codigos,
                             UsuarioRepository usuarios,
                             RolRepository roles,
@@ -72,6 +75,7 @@ public class LimpiadorDeDatos {
         this.cuentas = cuentas;
         this.obligaciones = obligaciones;
         this.pagos = pagos;
+        this.fijos = fijos;
         this.codigos = codigos;
         this.usuarios = usuarios;
         this.roles = roles;
@@ -95,6 +99,8 @@ public class LimpiadorDeDatos {
         auditoria.deleteAllInBatch();
         // Los presupuestos apuntan a categorias: tambien van antes que ellas.
         presupuestos.deleteAllInBatch();
+        // Los gastos fijos apuntan a categorias: van antes que ellas.
+        fijos.deleteAllInBatch();
         // Solo las de usuarios: las del sistema son catalogo, igual que los roles.
         categorias.borrarLasDeUsuarios();
         // Los pagos apuntan a obligaciones: van antes que ellas.
