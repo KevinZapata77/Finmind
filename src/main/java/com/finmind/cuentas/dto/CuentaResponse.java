@@ -26,11 +26,17 @@ public record CuentaResponse(
         BigDecimal cupo,
         /** Cupo menos deuda. Nulo si no aplica; negativo si se paso del cupo. */
         BigDecimal cupoDisponible,
+        /**
+         * RF-044. Total que se le ha abonado a la tarjeta. Nulo en los demas
+         * tipos, donde un ingreso no significa un pago sino dinero que entra.
+         */
+        BigDecimal totalPagado,
         String moneda,
         Boolean activa,
         LocalDateTime fechaCreacion
 ) {
-    public static CuentaResponse de(Cuenta cuenta, BigDecimal saldoActual) {
+    public static CuentaResponse de(Cuenta cuenta, BigDecimal saldoActual,
+                                   BigDecimal totalPagado) {
         return new CuentaResponse(
                 cuenta.getId(),
                 cuenta.getNombre(),
@@ -40,6 +46,7 @@ public record CuentaResponse(
                 cuenta.esPasivo(),
                 cuenta.getCupo(),
                 cuenta.cupoDisponibleCon(saldoActual),
+                cuenta.esPasivo() ? totalPagado : null,
                 cuenta.getMoneda(),
                 cuenta.getActiva(),
                 cuenta.getFechaCreacion());

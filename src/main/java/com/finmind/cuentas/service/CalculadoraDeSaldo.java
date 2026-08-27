@@ -30,4 +30,16 @@ public class CalculadoraDeSaldo {
         if (cuentaId == null) return BigDecimal.ZERO;
         return movimientos.netoDeLaCuenta(cuentaId);
     }
+
+    /**
+     * RF-044. Total abonado a la cuenta, o sea la suma de sus ingresos.
+     *
+     * En una tarjeta de credito eso es lo que le has pagado. Se consulta
+     * aparte y no dentro del neto porque el neto ya combina ingresos y gastos
+     * en un solo numero, y aqui hace falta el ingreso por separado.
+     */
+    public BigDecimal totalAbonadoA(Long cuentaId) {
+        if (cuentaId == null) return BigDecimal.ZERO;
+        return movimientos.totalAbonadoALaCuenta(cuentaId);
+    }
 }

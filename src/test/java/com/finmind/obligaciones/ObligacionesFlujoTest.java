@@ -56,7 +56,7 @@ class ObligacionesFlujoTest {
 
         mockMvc.perform(post("/api/v1/obligaciones").header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"nombre":"Tarjeta Visa","acreedor":"Bancolombia","tipo":"TARJETA_CREDITO",
+                                {"nombre":"Credito de consumo","acreedor":"Bancolombia","tipo":"PRESTAMO_BANCARIO",
                                  "montoOriginal":2400000.00,"tasaAnual":24.0000,"cuotaMensual":300000.00,
                                  "diaPago":15,"fechaInicio":"2026-01-15"}"""))
                 .andExpect(status().isCreated())
@@ -187,6 +187,22 @@ class ObligacionesFlujoTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON).content("""
                                 {"monto":150000.00,"fecha":"%s"}""".formatted(LocalDate.now())))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("DEF-15: no se admite una tarjeta de credito como credito o prestamo")
+    void laTarjetaNoEsUnCreditoAqui() throws Exception {
+        String token = usuarioListo("ana@finmind.test");
+
+        // Estaba permitido y causaba doble conteo: la misma tarjeta registrada
+        // como cuenta y como obligacion restaba su deuda dos veces del
+        // patrimonio. Las tarjetas viven solo en cuentas (V6, V7).
+        mockMvc.perform(post("/api/v1/obligaciones").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"nombre":"Visa","acreedor":"Bancolombia","tipo":"TARJETA_CREDITO",
+                                 "montoOriginal":1000000.00,"tasaAnual":24.0000,"cuotaMensual":100000.00,
+                                 "diaPago":15,"fechaInicio":"2026-01-15"}"""))
                 .andExpect(status().isBadRequest());
     }
 

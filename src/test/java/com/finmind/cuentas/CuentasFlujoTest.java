@@ -415,6 +415,43 @@ class CuentasFlujoTest {
                 .andExpect(jsonPath("$.cupoDisponible").doesNotExist());
     }
 
+    @Test
+    @DisplayName("RF-044: el total abonado a la tarjeta suma solo los pagos")
+    void elTotalAbonadoSumaSoloLosPagos() throws Exception {
+        String token = usuarioListo("historial@finmind.test");
+        long tarjeta = crearCuentaConSaldo(token, "Visa", "TARJETA_CREDITO", "1000000.00", null);
+
+        // Dos compras y dos pagos. El total abonado debe contar solo los pagos.
+        registrarMovimiento(token, tarjeta, idCategoria(token, "Alimentacion"), "150000.00");
+        registrarMovimiento(token, tarjeta, idCategoria(token, "Salario"), "300000.00");
+        registrarMovimiento(token, tarjeta, idCategoria(token, "Transporte"), "50000.00");
+        registrarMovimiento(token, tarjeta, idCategoria(token, "Salario"), "200000.00");
+
+        mockMvc.perform(get("/api/v1/cuentas/" + tarjeta)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                // 1.000.000 + 200.000 de compras - 500.000 de pagos
+                .andExpect(jsonPath("$.saldoActual").value(700000.00))
+                // Solo los ingresos: 300.000 + 200.000
+                .andExpect(jsonPath("$.totalPagado").value(500000.00));
+    }
+
+    @Test
+    @DisplayName("RF-044: una cuenta normal no reporta total abonado")
+    void enCuentaNormalNoAplicaElTotalAbonado() throws Exception {
+        String token = usuarioListo("historial@finmind.test");
+        long ahorros = crearCuentaConSaldo(token, "Ahorros", "AHORROS", "500000.00", null);
+
+        registrarMovimiento(token, ahorros, idCategoria(token, "Salario"), "300000.00");
+
+        // En una cuenta de ahorros un ingreso es dinero que entra, no un pago:
+        // el dato no significaria nada y por eso no se calcula.
+        mockMvc.perform(get("/api/v1/cuentas/" + ahorros)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPagado").doesNotExist());
+    }
+
     // ------------------------------------------------- apoyo
 
     /** Registra, verifica el correo y devuelve el token listo para usar. */
