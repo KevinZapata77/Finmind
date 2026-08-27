@@ -18,12 +18,32 @@
   --color-error-100:   #FEE2E2;
   --color-neutral-900: #111827;  /* 17.74:1 */
   --color-neutral-700: #374151;  /* 10.31:1 */
-  --color-neutral-500: #6B7280;  /* 4.83:1 */
+  /*
+    Se oscurecio de #6B7280 a #626976 al pasar las tarjetas a fondo gris.
+    Sobre blanco daba 4.83:1, pero sobre el gris de la tarjeta caia a 4.35:1
+    y dejaba de cumplir el minimo AA de 4.5:1. Con este valor cumple sobre
+    los tres fondos: tarjeta 4.97:1, pagina 5.20:1 y campo blanco 5.52:1.
+  */
+  --color-neutral-500: #626976;  /* 5.52:1 sobre blanco */
+  --color-neutral-400: #C3C8D0;  /* borde de las tarjetas */
   --color-neutral-300: #D1D5DB;
   --color-neutral-200: #E5E7EB;
   --color-neutral-100: #F3F4F6;
+
+  /*
+    Tres niveles de superficie, de mas claro a mas oscuro:
+
+      --color-surface    blanco, para los campos de formulario
+      --color-canvas     el fondo de la pagina
+      --color-tarjeta    las tarjetas, un gris apenas mas oscuro que el fondo
+
+    Antes las tarjetas eran blancas sobre un fondo casi blanco y no se
+    distinguian del papel. Ahora la tarjeta es lo mas oscuro de los tres y los
+    campos, que siguen blancos, resaltan dentro de ella.
+  */
   --color-surface:     #FFFFFF;
   --color-canvas:      #F7F8FA;
+  --color-tarjeta:     #F1F3F7;
 
   /* Tipografía */
   --font-familia: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;

@@ -104,8 +104,19 @@ export default function Panel() {
           </p>
           <p className="tarjeta-dato__nota">
             {formatearDinero(patrimonio.activos)} en cuentas −{' '}
-            {formatearDinero(patrimonio.obligaciones)} en deudas
+            {formatearDinero(patrimonio.deudaTotal ?? patrimonio.obligaciones)} en deudas
           </p>
+          {/*
+            Se desglosa cuando hay deuda de tarjetas. Antes esa deuda no
+            aparecía en ningún lado del patrimonio, y al empezar a restarla
+            el número cambia: conviene que se vea de dónde sale.
+          */}
+          {Number(patrimonio.deudaEnTarjetas ?? 0) > 0 && (
+            <p className="tarjeta-dato__nota">
+              De la deuda, {formatearDinero(patrimonio.deudaEnTarjetas)} son tarjetas
+              de crédito y {formatearDinero(patrimonio.obligaciones)} son préstamos.
+            </p>
+          )}
         </article>
       </section>
 
