@@ -898,6 +898,11 @@ a { color: var(--color-primary-600); font-weight: 600; }
 }
 .fijo__acciones { display: flex; gap: var(--space-3); }
 
+/* El formulario de "Abonar a este pago" ocupa la fila completa: al ser un
+   tercer hijo de .fijo (flex-wrap), sin esto quedaría apretado al lado de
+   los botones en vez de caer en su propia línea. */
+.fijo__pago { flex-basis: 100%; margin-top: var(--space-2); }
+
 /* --- Formulario de abono, dentro de la tarjeta a la que se abona --- */
 .cuenta__abono {
   grid-column: 1 / -1; margin-top: var(--space-2);

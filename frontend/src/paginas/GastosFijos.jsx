@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api, formatearDinero, PERIODICIDAD_CORTA, PERIODICIDADES } from '../api/cliente'
+import { api, DIAS_SEMANA, formatearDinero, hoyISO, PERIODICIDAD_CORTA, PERIODICIDADES } from '../api/cliente'
 import Layout from '../componentes/Layout'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
@@ -24,6 +24,7 @@ import Alerta from '../componentes/Alerta'
 export default function GastosFijos() {
   const [lista, setLista] = useState([])
   const [categorias, setCategorias] = useState([])
+  const [cuentas, setCuentas] = useState([])
   const [verInactivos, setVerInactivos] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
@@ -34,6 +35,12 @@ export default function GastosFijos() {
   const [errores, setErrores] = useState({})
   const [errorForm, setErrorForm] = useState(null)
   const [guardando, setGuardando] = useState(false)
+
+  // "Abonar a este pago": registra el movimiento real sin salir de la pantalla.
+  const [pagando, setPagando] = useState(null)
+  const [pagoDatos, setPagoDatos] = useState(null)
+  const [pagoError, setPagoError] = useState(null)
+  const [guardandoPago, setGuardandoPago] = useState(false)
 
   const cargar = useCallback(async () => {
     setCargando(true); setError(null)
@@ -52,6 +59,8 @@ export default function GastosFijos() {
     // Solo categorías de gasto: un compromiso recurrente de tipo ingreso no
     // significa nada, y el backend lo rechaza con 400.
     api.categorias('GASTO').then(setCategorias).catch(() => setCategorias([]))
+    // Para "Abonar a este pago": de qué cuenta sale la plata.
+    api.cuentas().then(setCuentas).catch(() => setCuentas([]))
   }, [])
 
   /**
@@ -123,6 +132,43 @@ export default function GastosFijos() {
     }
   }
 
+  /**
+   * "Abonar a este pago": lo que faltaba conectar. Un gasto fijo es solo la
+   * intención de un pago; esto es lo que de verdad lo registra como movimiento
+   * en la cuenta elegida, con la misma categoría del compromiso — así
+   * cubiertoEsteMes pasa a true sin que el usuario tenga que ir a Movimientos
+   * y volver a escribir todo.
+   */
+  function abrirPago(g) {
+    setPagando(g.id)
+    setPagoDatos({ cuentaId: cuentas[0] ? String(cuentas[0].id) : '', monto: String(g.monto), fecha: hoyISO() })
+    setPagoError(null)
+  }
+
+  function cerrarPago() {
+    setPagando(null); setPagoDatos(null); setPagoError(null)
+  }
+
+  async function guardarPago(e, g) {
+    e.preventDefault()
+    setGuardandoPago(true); setPagoError(null)
+    try {
+      await api.crearMovimiento({
+        cuentaId: Number(pagoDatos.cuentaId),
+        categoriaId: g.categoriaId,
+        monto: Number(pagoDatos.monto),
+        fecha: pagoDatos.fecha,
+        descripcion: g.nombre,
+      })
+      cerrarPago()
+      await cargar()
+    } catch (err) {
+      setPagoError(err.message)
+    } finally {
+      setGuardandoPago(false)
+    }
+  }
+
   return (
     <Layout
       titulo="Gastos fijos"
@@ -178,7 +224,13 @@ export default function GastosFijos() {
             <div className="campo">
               <label className="campo__etiqueta" htmlFor="periodicidad">Cada cuánto</label>
               <select id="periodicidad" className="campo__control" value={datos.periodicidad}
-                onChange={(e) => setDatos({ ...datos, periodicidad: e.target.value })}>
+                onChange={(e) => {
+                  // DEF-19: el rango del día depende de la periodicidad (1-7
+                  // en semanal, 1-28 en las otras dos). Se resetea para no
+                  // dejar, por ejemplo, un día 20 al pasar a "cada semana".
+                  const periodicidad = e.target.value
+                  setDatos({ ...datos, periodicidad, diaPago: '1' })
+                }}>
                 {PERIODICIDADES.map((p) => (
                   <option key={p.valor} value={p.valor}>{p.etiqueta}</option>
                 ))}
@@ -192,11 +244,29 @@ export default function GastosFijos() {
               )}
             </div>
 
-            <Campo id="diaPago" name="diaPago" type="number" inputMode="numeric"
-              etiqueta="Día de pago" placeholder="1" min="1" max="28" step="1" required
-              value={datos.diaPago} error={errores.diaPago}
-              ayuda="Del 1 al 28. No se admiten 29, 30 ni 31: en febrero no existen."
-              onChange={(e) => setDatos({ ...datos, diaPago: e.target.value })} />
+            {/* DEF-19: en semanal se elige el día de la semana, no el día del
+                mes — antes aparecía el mismo campo 1-28 para las tres
+                periodicidades y "cada viernes" no se podía expresar. */}
+            {datos.periodicidad === 'SEMANAL' ? (
+              <div className="campo">
+                <label className="campo__etiqueta" htmlFor="diaPago">Día de la semana</label>
+                <select id="diaPago" className={`campo__control${errores.diaPago ? ' campo__control--error' : ''}`}
+                  value={datos.diaPago} aria-invalid={errores.diaPago ? 'true' : undefined}
+                  onChange={(e) => setDatos({ ...datos, diaPago: e.target.value })} required>
+                  {DIAS_SEMANA.map((d) => (
+                    <option key={d.valor} value={d.valor}>{d.etiqueta}</option>
+                  ))}
+                </select>
+                <p className="campo__ayuda">Cada cuál día de la semana se paga.</p>
+                {errores.diaPago && <p className="campo__error" role="alert">! {errores.diaPago}</p>}
+              </div>
+            ) : (
+              <Campo id="diaPago" name="diaPago" type="number" inputMode="numeric"
+                etiqueta="Día de pago" placeholder="1" min="1" max="28" step="1" required
+                value={datos.diaPago} error={errores.diaPago}
+                ayuda="Del 1 al 28. No se admiten 29, 30 ni 31: en febrero no existen."
+                onChange={(e) => setDatos({ ...datos, diaPago: e.target.value })} />
+            )}
           </div>
 
           <div className="acciones">
@@ -286,6 +356,14 @@ export default function GastosFijos() {
               </div>
 
               <div className="fijo__acciones">
+                {/* RF-046 + RF-012: conecta el compromiso con el movimiento real.
+                    Solo tiene sentido si está activo y aún no cubierto — un
+                    compromiso ya pagado no necesita otro abono. */}
+                {g.activo && !g.cubiertoEsteMes && (
+                  <Boton type="button" tipo="secundario" onClick={() => abrirPago(g)}>
+                    Abonar a este pago
+                  </Boton>
+                )}
                 {g.activo && (
                   <button type="button" className="enlace-boton" onClick={() => abrirEdicion(g)}>
                     Editar
@@ -295,6 +373,40 @@ export default function GastosFijos() {
                   {g.activo ? 'Ya no lo pago' : 'Volver a activarlo'}
                 </button>
               </div>
+
+              {pagando === g.id && (
+                <form className="tarjeta tarjeta--formulario fijo__pago" onSubmit={(e) => guardarPago(e, g)}>
+                  {pagoError && <Alerta tipo="error" titulo="No se pudo registrar el pago">{pagoError}</Alerta>}
+                  <div className="fila-doble">
+                    <div className="campo">
+                      <label className="campo__etiqueta" htmlFor={`cuenta-${g.id}`}>Desde qué cuenta</label>
+                      <select id={`cuenta-${g.id}`} className="campo__control" required
+                        value={pagoDatos.cuentaId}
+                        onChange={(e) => setPagoDatos({ ...pagoDatos, cuentaId: e.target.value })}>
+                        <option value="">Elige una…</option>
+                        {cuentas.map((c) => (
+                          <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Campo id={`monto-${g.id}`} type="number" inputMode="decimal"
+                      etiqueta="Monto pagado" min="0.01" step="0.01" required
+                      value={pagoDatos.monto}
+                      onChange={(e) => setPagoDatos({ ...pagoDatos, monto: e.target.value })} />
+                  </div>
+                  <Campo id={`fecha-${g.id}`} type="date" etiqueta="Fecha" required
+                    value={pagoDatos.fecha} max={hoyISO()}
+                    onChange={(e) => setPagoDatos({ ...pagoDatos, fecha: e.target.value })} />
+                  <p className="campo__ayuda">
+                    Se registra como movimiento en {g.categoriaNombre}, igual que si lo
+                    anotaras en Movimientos. Así {g.nombre} pasa a "Pagado este mes".
+                  </p>
+                  <div className="acciones">
+                    <Boton type="submit" cargando={guardandoPago}>Confirmar pago</Boton>
+                    <button type="button" className="enlace-boton" onClick={cerrarPago}>Cancelar</button>
+                  </div>
+                </form>
+              )}
             </li>
           ))}
         </ul>

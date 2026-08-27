@@ -194,6 +194,22 @@ export const PERIODICIDAD_CORTA = {
 }
 
 /**
+ * RF-046 (DEF-19). Solo aplica cuando periodicidad es SEMANAL: ahí diaPago no
+ * es un día del mes sino un día de la semana, 1 lunes a 7 domingo (ISO-8601,
+ * igual que el backend). Antes el formulario mostraba el mismo campo numérico
+ * 1-28 para las tres periodicidades, así que "cada viernes" no se podía decir.
+ */
+export const DIAS_SEMANA = [
+  { valor: 1, etiqueta: 'Lunes' },
+  { valor: 2, etiqueta: 'Martes' },
+  { valor: 3, etiqueta: 'Miércoles' },
+  { valor: 4, etiqueta: 'Jueves' },
+  { valor: 5, etiqueta: 'Viernes' },
+  { valor: 6, etiqueta: 'Sábado' },
+  { valor: 7, etiqueta: 'Domingo' },
+]
+
+/**
  * RF-047. Cómo se pinta cada severidad. El texto acompaña siempre al color:
  * un usuario que no distingue rojo de ámbar tiene que poder saber qué es grave
  * (RNF-008).
