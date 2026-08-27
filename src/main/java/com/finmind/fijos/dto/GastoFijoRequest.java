@@ -22,10 +22,16 @@ public record GastoFijoRequest(
         @NotBlank(message = "Indica cada cuanto se paga")
         String periodicidad,
 
-        // Hasta 28 para que el dia exista en cualquier mes, febrero incluido.
+        /**
+         * En MENSUAL y QUINCENAL es el dia del mes (1-28, para que exista en
+         * cualquier mes). En SEMANAL es el dia de la semana (1 lunes, ..., 7
+         * domingo). La anotacion solo puede exigir un rango fijo; el limite
+         * real de 1 a 7 en el caso semanal lo revisa el servicio, que ya sabe
+         * la periodicidad (DEF-19).
+         */
         @NotNull(message = "El dia de pago es obligatorio")
-        @Min(value = 1, message = "El dia va de 1 a 28")
-        @Max(value = 28, message = "El dia va de 1 a 28")
+        @Min(value = 1, message = "El dia debe ser al menos 1")
+        @Max(value = 28, message = "El dia no puede pasar de 28")
         Short diaPago
 ) {
 }

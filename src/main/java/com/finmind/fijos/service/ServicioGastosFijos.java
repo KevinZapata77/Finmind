@@ -53,8 +53,10 @@ public class ServicioGastosFijos {
                 .orElseThrow(() -> new IllegalStateException(
                         "El token es valido pero el usuario ya no existe"));
 
-        GastoFijo g = new GastoFijo(dueno, categoria, nombre, p.monto(),
-                periodicidadValida(p.periodicidad()), p.diaPago());
+        String periodicidad = periodicidadValida(p.periodicidad());
+        Short diaPago = diaPagoValido(periodicidad, p.diaPago());
+
+        GastoFijo g = new GastoFijo(dueno, categoria, nombre, p.monto(), periodicidad, diaPago);
 
         return aRespuesta(usuarioId, fijos.save(g));
     }
@@ -77,8 +79,10 @@ public class ServicioGastosFijos {
             throw new GastoFijoRepetidoException("Ya tienes otro gasto fijo con ese nombre");
         }
 
+        String periodicidad = periodicidadValida(p.periodicidad());
+        Short diaPago = diaPagoValido(periodicidad, p.diaPago());
         g.editar(exigirCategoriaDeGasto(usuarioId, p.categoriaId()), nombre, p.monto(),
-                periodicidadValida(p.periodicidad()), p.diaPago());
+                periodicidad, diaPago);
         return aRespuesta(usuarioId, g);
     }
 
@@ -179,6 +183,28 @@ public class ServicioGastosFijos {
         return limpio;
     }
 
+    /**
+     * DEF-19. El rango del dia depende de la periodicidad: un dia de la
+     * semana va de 1 a 7, un dia del mes va de 1 a 28. La anotacion del DTO
+     * solo puede exigir un rango fijo (1-28), asi que el caso semanal se
+     * revisa aqui, con la periodicidad ya normalizada.
+     */
+    private Short diaPagoValido(String periodicidad, Short diaPago) {
+        if (diaPago == null) {
+            throw new DiaDePagoInvalidoException("El dia de pago es obligatorio");
+        }
+        if ("SEMANAL".equals(periodicidad)) {
+            if (diaPago < 1 || diaPago > 7) {
+                throw new DiaDePagoInvalidoException(
+                        "En un compromiso semanal el dia va de 1 (lunes) a 7 (domingo)");
+            }
+        } else if (diaPago < 1 || diaPago > 28) {
+            throw new DiaDePagoInvalidoException(
+                    "El dia del mes va de 1 a 28, para que exista en cualquier mes");
+        }
+        return diaPago;
+    }
+
     /** 409: ya existe otro compromiso con ese nombre. */
     public static class GastoFijoRepetidoException extends RuntimeException {
         public GastoFijoRepetidoException(String m) { super(m); }
@@ -187,6 +213,11 @@ public class ServicioGastosFijos {
     /** 400: la periodicidad no esta entre las permitidas. */
     public static class PeriodicidadInvalidaException extends RuntimeException {
         public PeriodicidadInvalidaException(String m) { super(m); }
+    }
+
+    /** 400: DEF-19, el dia de pago no es coherente con la periodicidad. */
+    public static class DiaDePagoInvalidoException extends RuntimeException {
+        public DiaDePagoInvalidoException(String m) { super(m); }
     }
 
     /** 400: se apunto a una categoria de ingreso. */

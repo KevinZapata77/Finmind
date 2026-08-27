@@ -32,6 +32,7 @@ import com.finmind.presupuestos.service.ServicioPresupuestos.PeriodoInvalidoExce
 import com.finmind.fijos.service.ServicioGastosFijos.GastoFijoRepetidoException;
 import com.finmind.fijos.service.ServicioGastosFijos.PeriodicidadInvalidaException;
 import com.finmind.fijos.service.ServicioGastosFijos.CategoriaDeGastoRequeridaException;
+import com.finmind.fijos.service.ServicioGastosFijos.DiaDePagoInvalidoException;
 import com.finmind.metas.service.ServicioMetas.MetaRepetidaException;
 import com.finmind.metas.service.ServicioMetas.MetaCerradaException;
 import com.finmind.metas.service.ServicioMetas.AbonoExcesivoException;
@@ -151,9 +152,10 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
     }
 
-    /** 400: RF-046, periodicidad o categoria no validas en un gasto fijo. */
+    /** 400: RF-046, periodicidad, categoria o dia de pago no validos en un gasto fijo. */
     @ExceptionHandler({PeriodicidadInvalidaException.class,
-                       CategoriaDeGastoRequeridaException.class})
+                       CategoriaDeGastoRequeridaException.class,
+                       DiaDePagoInvalidoException.class})
     public ResponseEntity<ApiError> gastoFijoInvalido(RuntimeException ex,
                                                       HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
