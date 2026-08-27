@@ -437,27 +437,93 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .tarjeta-dato__valor--negativo { color: var(--color-error-600); }
 .tarjeta-dato__nota { font: var(--font-etiqueta); color: var(--color-neutral-500); margin: var(--space-2) 0 0; }
 
-/* ------------------------------------------- RF-049: profundización
-   Una tarjeta que además es enlace. La pista de que se puede pulsar aparece al
-   acercarse (borde y sombra), no de entrada: si cuatro tarjetas gritaran
-   "púlsame" a la vez, el panel se leería como un tablero de botones y no como
-   un resumen. El texto "Ver los movimientos" sí está siempre visible, porque
-   una pista que solo aparece con el ratón no existe en un teléfono. */
-.tarjeta-dato--enlace {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  transition: border-color .15s ease, box-shadow .15s ease;
+/* ==================================================================
+   Resumen del período, en jerarquía enfocada (ADSO-UXUI-02, opción B).
+
+   Reemplaza las cuatro tarjetas iguales que había antes. Cuatro cifras del
+   mismo tamaño en cuatro cajas idénticas equivalen a ninguna: el ojo las
+   recorre y no se queda con nada. Aquí hay una sola cifra grande y el resto
+   es contexto.
+   ================================================================== */
+.resumen {
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-neutral-400);
+  border-radius: var(--radio-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
 }
-.tarjeta-dato--enlace:hover {
-  border-color: var(--color-primary-600);
-  box-shadow: 0 2px 8px rgba(11, 107, 87, .12);
+.resumen__rotulo {
+  font: var(--font-etiqueta); color: var(--color-neutral-700);
+  margin: 0 0 2px;
 }
-.tarjeta-dato--enlace:focus-visible {
-  outline: 2px solid var(--color-primary-600);
-  outline-offset: 2px;
+/* 34px y no el token --font-display (28px): esta cifra tiene que ganarle a
+   todo lo demás de la pantalla, y a 28 competía con los títulos de sección. */
+.resumen__cifra {
+  font: 700 34px/1.1 var(--font-familia);
+  color: var(--color-neutral-900);
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 4px;
 }
-.tarjeta-dato__ver { color: var(--color-primary-600); font-weight: 600; }
+.resumen__cifra--negativa { color: var(--color-error-600); }
+.resumen__contexto {
+  font: var(--font-cuerpo); color: var(--color-neutral-700); margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.resumen__lectura {
+  font: var(--font-etiqueta); color: var(--color-neutral-500);
+  margin: 4px 0 0;
+}
+
+/* Los tres datos de apoyo, en fila y sin caja propia. Sin borde ni fondo se
+   leen como lo que son: contexto de la cifra de arriba, no cuatro cosas
+   compitiendo entre sí. */
+.resumen__secundarios {
+  display: flex; flex-wrap: wrap; gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-neutral-300);
+}
+.resumen__dato { display: flex; flex-direction: column; gap: 2px; }
+.resumen__dato-rotulo { font: var(--font-etiqueta); color: var(--color-neutral-700); }
+.resumen__dato-valor {
+  font: var(--font-seccion); color: var(--color-neutral-900);
+  font-variant-numeric: tabular-nums;
+}
+/* RF-049. La pista de que se puede pulsar aparece al acercarse: si los tres
+   datos gritaran "púlsame" de entrada, volveríamos al tablero de botones. El
+   subrayado en hover es lo que distingue el enlace del dato que no lo es. */
+.resumen__dato--enlace {
+  text-decoration: none; color: inherit;
+  border-radius: var(--radio-sm);
+  padding: 4px; margin: -4px;
+  transition: background .15s ease;
+}
+.resumen__dato--enlace:hover { background: var(--color-neutral-200); }
+.resumen__dato--enlace:hover .resumen__dato-rotulo {
+  color: var(--color-primary-700); text-decoration: underline;
+}
+/* Mismo caso que .barra__variacion: este valor queda sobre el gris del hover,
+   donde .positivo (success-600) cae a 4.05:1 y no cumple AA. Se pisa con el
+   700. Ver el comentario de --color-success-700 en tokens.css. */
+.resumen__dato-valor.positivo { color: var(--color-success-700); }
+.resumen__dato--enlace:focus-visible {
+  outline: 2px solid var(--color-primary-600); outline-offset: 1px;
+}
+
+/* El desglose del patrimonio: presente, pero replegado. La cifra importa; de
+   qué está hecha importa solo cuando alguien la cuestiona. */
+.resumen__desglose { margin: var(--space-2) 0 0; }
+.resumen__desglose summary {
+  font: var(--font-etiqueta); color: var(--color-primary-700);
+  cursor: pointer; padding: 4px 0;
+}
+.resumen__desglose summary:focus-visible {
+  outline: 2px solid var(--color-primary-600); outline-offset: 2px;
+}
+.resumen__desglose p {
+  font: var(--font-etiqueta); color: var(--color-neutral-700);
+  margin: 4px 0 0; font-variant-numeric: tabular-nums;
+}
 
 .bloque { margin-bottom: var(--space-6); }
 .bloque__titulo { font: var(--font-seccion); color: var(--color-neutral-900); margin: 0 0 var(--space-4); }

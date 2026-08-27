@@ -99,6 +99,12 @@ export default function Panel() {
   const { balance, gastoPorCategoria, patrimonio, presupuestosEnAlerta } = datos
   const sinDatos = balance.ingresos === 0 && balance.gastos === 0
 
+  // Días que le faltan al mes. Sale de la curva, que ya se pidió, así que no
+  // cuesta una llamada más. Null si no hay curva: no se inventa el dato.
+  const diasQueQuedan = curva?.diasDelMes != null && curva?.diasTranscurridos != null
+    ? curva.diasDelMes - curva.diasTranscurridos
+    : null
+
   return (
     <Layout titulo="Inicio">
       {/* RF-040: lo primero es anotar, no consultar. */}
@@ -145,57 +151,80 @@ export default function Panel() {
         <SelectorDeMes anio={anio} mes={mes} onCambiar={cambiar} />
       </div>
 
-      {/* Balance del período (RF-021).
-          RF-049: ingresos y gastos abren su propio detalle. Es la profundización
-          más obvia y la que más se pide: se ve la cifra, se quiere ver de qué
-          está hecha. Diferencia y patrimonio no enlazan porque son cifras
-          derivadas: no existe "la lista de movimientos de tu patrimonio". */}
-      <section className="tarjetas" aria-label="Balance del período">
-        <Link className="tarjeta-dato tarjeta-dato--enlace"
-          to={enlaceMovimientos({ tipo: 'INGRESO', ...rangoDelMes(anio, mes) })}>
-          <p className="tarjeta-dato__rotulo">Ingresos</p>
-          <p className="tarjeta-dato__valor tarjeta-dato__valor--positivo">
-            {formatearDinero(balance.ingresos)}
-          </p>
-          <p className="tarjeta-dato__nota tarjeta-dato__ver">Ver los movimientos</p>
-        </Link>
-        <Link className="tarjeta-dato tarjeta-dato--enlace"
-          to={enlaceMovimientos({ tipo: 'GASTO', ...rangoDelMes(anio, mes) })}>
-          <p className="tarjeta-dato__rotulo">Gastos</p>
-          <p className="tarjeta-dato__valor tarjeta-dato__valor--negativo">
-            {formatearDinero(balance.gastos)}
-          </p>
-          <p className="tarjeta-dato__nota tarjeta-dato__ver">Ver los movimientos</p>
-        </Link>
-        <article className="tarjeta-dato">
-          <p className="tarjeta-dato__rotulo">Diferencia</p>
-          <p className={`tarjeta-dato__valor ${balance.diferencia < 0 ? 'tarjeta-dato__valor--negativo' : ''}`}>
-            {formatearDinero(balance.diferencia)}
-          </p>
-          {/* El texto viene del servidor: el signo solo es fácil de pasar por alto. */}
-          <p className="tarjeta-dato__nota">{balance.lectura}</p>
-        </article>
-        <article className="tarjeta-dato">
-          <p className="tarjeta-dato__rotulo">Patrimonio neto</p>
-          <p className={`tarjeta-dato__valor ${patrimonio.patrimonioNeto < 0 ? 'tarjeta-dato__valor--negativo' : ''}`}>
-            {formatearDinero(patrimonio.patrimonioNeto)}
-          </p>
-          <p className="tarjeta-dato__nota">
-            {formatearDinero(patrimonio.activos)} en cuentas −{' '}
-            {formatearDinero(patrimonio.deudaTotal ?? patrimonio.obligaciones)} en deudas
-          </p>
-          {/*
-            Se desglosa cuando hay deuda de tarjetas. Antes esa deuda no
-            aparecía en ningún lado del patrimonio, y al empezar a restarla
-            el número cambia: conviene que se vea de dónde sale.
-          */}
-          {Number(patrimonio.deudaEnTarjetas ?? 0) > 0 && (
-            <p className="tarjeta-dato__nota">
-              De la deuda, {formatearDinero(patrimonio.deudaEnTarjetas)} son tarjetas
-              de crédito y {formatearDinero(patrimonio.obligaciones)} son préstamos.
-            </p>
+      {/*
+        Balance del período (RF-021), en jerarquía enfocada — opción B de
+        ADSO-UXUI-02.
+
+        POR QUÉ SE DEJARON DE USAR CUATRO TARJETAS IGUALES
+        Antes esto eran cuatro cifras del mismo tamaño en cuatro cajas idénticas:
+        ingresos, gastos, diferencia y patrimonio. Cuatro cosas con el mismo peso
+        visual equivalen a ninguna: el ojo las recorre y no se queda con nada, y
+        es exactamente lo que hacía que la pantalla se leyera como un formulario.
+
+        Ahora hay UNA cifra grande —lo que le queda— y el resto queda como
+        contexto. La diferencia es la que se destaca porque es la única que
+        responde la pregunta con la que la persona abre la aplicación: "¿me
+        alcanza?". Ingresos y gastos siguen ahí, más pequeños, y siguen abriendo
+        su detalle (RF-049).
+      */}
+      <section className="resumen" aria-label="Balance del período">
+        <p className="resumen__rotulo">
+          {esMesActual ? 'Te queda este mes' : `Te quedó en ${nombreDelMes}`}
+        </p>
+        <p className={`resumen__cifra${balance.diferencia < 0 ? ' resumen__cifra--negativa' : ''}`}>
+          {formatearDinero(balance.diferencia)}
+        </p>
+        <p className="resumen__contexto">
+          de {formatearDinero(balance.ingresos)} que entraron
+          {/* Los días que faltan salen de la curva, que ya se pidió. Solo tienen
+              sentido en el mes en curso: en uno cerrado no falta nada. El día 31
+              la resta da 0, y "quedan 0 días" se lee como un error. */}
+          {esMesActual && diasQueQuedan != null && (
+            <> · {diasQueQuedan === 0 ? 'hoy cierra el mes'
+              : `${diasQueQuedan === 1 ? 'queda 1 día' : `quedan ${diasQueQuedan} días`}`}</>
           )}
-        </article>
+        </p>
+        {/* El texto viene del servidor: el signo solo es fácil de pasar por alto. */}
+        <p className="resumen__lectura">{balance.lectura}</p>
+
+        <div className="resumen__secundarios">
+          <Link className="resumen__dato resumen__dato--enlace"
+            to={enlaceMovimientos({ tipo: 'INGRESO', ...rangoDelMes(anio, mes) })}>
+            <span className="resumen__dato-rotulo">Entró</span>
+            <span className="resumen__dato-valor positivo">{formatearDinero(balance.ingresos)}</span>
+          </Link>
+          <Link className="resumen__dato resumen__dato--enlace"
+            to={enlaceMovimientos({ tipo: 'GASTO', ...rangoDelMes(anio, mes) })}>
+            <span className="resumen__dato-rotulo">Salió</span>
+            <span className="resumen__dato-valor negativo">{formatearDinero(balance.gastos)}</span>
+          </Link>
+          {/* El patrimonio no enlaza: es una cifra derivada, no existe "la lista
+              de movimientos de tu patrimonio". */}
+          <div className="resumen__dato">
+            <span className="resumen__dato-rotulo">Patrimonio</span>
+            <span className={`resumen__dato-valor${patrimonio.patrimonioNeto < 0 ? ' negativo' : ''}`}>
+              {formatearDinero(patrimonio.patrimonioNeto)}
+            </span>
+          </div>
+        </div>
+
+        {/*
+          El desglose del patrimonio pasa a un detalle desplegable en vez de
+          ocupar una tarjeta entera. La cifra importa; de qué está hecha importa
+          solo cuando alguien la cuestiona — y entonces tiene que estar.
+        */}
+        <details className="resumen__desglose">
+          <summary>Cómo se calcula el patrimonio</summary>
+          <p>
+            {formatearDinero(patrimonio.activos)} en cuentas −{' '}
+            {formatearDinero(patrimonio.deudaTotal ?? patrimonio.obligaciones)} en deudas.
+            {Number(patrimonio.deudaEnTarjetas ?? 0) > 0 && (
+              <> De la deuda, {formatearDinero(patrimonio.deudaEnTarjetas)} son
+                tarjetas de crédito y {formatearDinero(patrimonio.obligaciones)} son
+                préstamos.</>
+            )}
+          </p>
+        </details>
       </section>
 
       {/* Presupuestos que piden atención (RF-019) */}

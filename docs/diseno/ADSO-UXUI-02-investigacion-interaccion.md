@@ -264,6 +264,33 @@ Estado al 27 de agosto de 2026. Fases A, B y C implementadas y verificadas.
 | C | `ComparacionConElMesPasado.jsx` | — |
 | C | Variación por categoría bajo cada barra | — |
 
+### Opción B aplicada al Panel (jerarquía enfocada)
+
+Elegida por el equipo entre tres propuestas. El motivo de la observación del
+asesor —*"parece un formulario"*— no era el color: era que el balance mostraba
+**cuatro cifras del mismo tamaño en cuatro cajas idénticas**. Cuatro cosas con el
+mismo peso visual equivalen a ninguna; el ojo las recorre y no se queda con
+ninguna.
+
+| Antes | Ahora |
+|---|---|
+| Ingresos, gastos, diferencia y patrimonio, 4 tarjetas iguales | Una cifra grande (34px): *lo que te queda* |
+| Sin indicación de qué mirar primero | Ingresos, gastos y patrimonio como contexto, en fila sin caja |
+| Desglose del patrimonio siempre visible, 2 líneas de nota | Replegado en un `<details>` |
+| Sin noción de tiempo restante | "quedan 4 días", con los casos 0 y 1 redactados aparte |
+
+No se introdujo **ningún color nuevo** ni se tocó un token: es el mismo sistema
+de diseño reordenado. Se eliminaron `.tarjeta-dato--enlace` y
+`.tarjeta-dato__ver`, que quedaron sin uso, para no dejar CSS muerto —
+`.tarjeta-dato` sigue vivo porque lo usan Metas, Créditos y Administración.
+
+Los 13 pares color/fondo del bloque nuevo quedan verificados en AA. **Uno falló
+en la primera pasada**: el valor de "Entró" usa la clase global `.positivo`
+(`success-600`), y sobre el gris del `:hover` de la fila caía a 4.05:1. Es la
+tercera aparición del mismo patrón en este proyecto, lo que confirma que
+`success-600` no sirve para texto pequeño sobre fondo tenido; se resolvió con
+`--color-success-700`, igual que en `.barra__variacion`.
+
 ### Dos decisiones que cambiaron sobre la marcha
 
 **1. La comparación ingenua estaba mal y se detectó antes de probarla.**
