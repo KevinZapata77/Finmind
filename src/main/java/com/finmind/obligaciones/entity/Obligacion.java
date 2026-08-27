@@ -20,8 +20,21 @@ import java.util.Set;
 @Table(name = "obligaciones")
 public class Obligacion {
 
+    /**
+     * Creditos y prestamos con cuota pactada.
+     *
+     * TARJETA_CREDITO salio de esta lista en la V7 (DEF-15). Estaba aqui y
+     * tambien en los tipos de cuenta, asi que quien registrara la misma tarjeta
+     * en los dos modulos veia su deuda restada dos veces del patrimonio.
+     *
+     * Ahora la tarjeta vive solo como cuenta, donde tiene cupo, la deuda sube al
+     * comprar y baja al pagar, y los gastos quedan categorizados. Ademas una
+     * tarjeta no tiene cuota fija ni un numero de cuotas: se paga lo que se
+     * debe, todo o una parte. Meterla aqui obligaba a inventar una cuota que no
+     * existe.
+     */
     public static final Set<String> TIPOS = Set.of(
-            "TARJETA_CREDITO", "PRESTAMO_BANCARIO", "PRESTAMO_PERSONAL",
+            "PRESTAMO_BANCARIO", "PRESTAMO_PERSONAL",
             "CREDITO_HIPOTECARIO", "CREDITO_VEHICULO", "OTRO");
 
     public static final String ACTIVA = "ACTIVA";

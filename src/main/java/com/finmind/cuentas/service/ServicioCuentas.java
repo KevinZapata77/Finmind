@@ -161,7 +161,15 @@ public class ServicioCuentas {
      */
     private CuentaResponse aRespuesta(Cuenta cuenta) {
         BigDecimal saldoActual = cuenta.saldoCon(calculadora.movimientoNetoDe(cuenta.getId()));
-        return CuentaResponse.de(cuenta, saldoActual);
+
+        // El total abonado solo se consulta en las tarjetas. En una cuenta
+        // normal un ingreso es dinero que entra, no un pago, asi que el dato no
+        // significaria nada y seria una consulta de mas en cada cuenta listada.
+        BigDecimal totalPagado = cuenta.esPasivo()
+                ? calculadora.totalAbonadoA(cuenta.getId())
+                : null;
+
+        return CuentaResponse.de(cuenta, saldoActual, totalPagado);
     }
 
     /** El saldo de una cuenta, con el signo que le corresponda por su tipo. */

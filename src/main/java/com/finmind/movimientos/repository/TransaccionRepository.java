@@ -50,6 +50,20 @@ public interface TransaccionRepository extends JpaRepository<Transaccion, Long> 
            """)
     BigDecimal netoDeLaCuenta(@Param("cuentaId") Long cuentaId);
 
+    /**
+     * RF-044. Cuanto se ha abonado a una cuenta, sumando solo los ingresos.
+     *
+     * Se usa en las tarjetas de credito: un ingreso registrado sobre la tarjeta
+     * es un pago que le hiciste, asi que la suma de los ingresos es el total
+     * abonado. No hace falta una tabla de pagos aparte, porque cada pago ya
+     * quedo registrado como movimiento cuando el usuario lo anoto.
+     */
+    @Query("""
+           SELECT COALESCE(SUM(t.monto), 0) FROM Transaccion t
+           WHERE t.cuenta.id = :cuentaId AND t.tipo = 'INGRESO'
+           """)
+    BigDecimal totalAbonadoALaCuenta(@Param("cuentaId") Long cuentaId);
+
     /** Para el balance del periodo (RF-021). */
     @Query("""
            SELECT COALESCE(SUM(t.monto), 0) FROM Transaccion t
