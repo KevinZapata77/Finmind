@@ -54,4 +54,16 @@ public class ReporteController {
             @RequestParam(required = false) Short mes) {
         return ResponseEntity.ok(servicio.panel(principal.getId(), anio, mes));
     }
+
+    @GetMapping("/ritmo")
+    @Operation(summary = "Acumulado dia por dia del mes",
+            description = "RF-048. Un punto por cada dia transcurrido, con el ingreso y el "
+                    + "gasto acumulados hasta ese dia. Es lo que permite trazar la curva del "
+                    + "mes: con solo el total no se puede dibujar una linea sin inventarla")
+    public ResponseEntity<RitmoResponse> ritmo(
+            @AuthenticationPrincipal UsuarioPrincipal principal,
+            @RequestParam(required = false) Short anio,
+            @RequestParam(required = false) Short mes) {
+        return ResponseEntity.ok(servicio.ritmo(principal.getId(), anio, mes));
+    }
 }
