@@ -22,6 +22,24 @@ export default function Cuentas() {
   // El formulario cambia según el tipo elegido: una tarjeta pide cupo y su
   // saldo inicial significa deuda, no dinero disponible.
   const esTarjeta = ES_PASIVO(datos.tipo)
+
+  // Historial de pagos de una tarjeta, por identificador de cuenta.
+  // No hay tabla de pagos: cada pago es un ingreso que el usuario ya registró
+  // sobre la tarjeta, así que se piden con el filtro que la API ya tenía.
+  const [pagos, setPagos] = useState({})
+  const [abierta, setAbierta] = useState(null)
+
+  async function alternarHistorial(c) {
+    if (abierta === c.id) { setAbierta(null); return }
+    setAbierta(c.id)
+    if (pagos[c.id]) return                    // ya se cargó antes
+    try {
+      const r = await api.movimientos({ cuentaId: c.id, tipo: 'INGRESO', size: 50 })
+      setPagos((p) => ({ ...p, [c.id]: r.contenido ?? r.movimientos ?? [] }))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
   const [errorForm, setErrorForm] = useState(null)
   const [guardando, setGuardando] = useState(false)
 
@@ -227,16 +245,51 @@ export default function Cuentas() {
                     {c.esPasivo ? 'Debía' : 'Inicial'}: {formatearDinero(c.saldoInicial, c.moneda)}
                   </span>
                 )}
+
+                {c.esPasivo && Number(c.totalPagado ?? 0) > 0 && (
+                  <span className="cuenta__inicial">
+                    Ya le has abonado {formatearDinero(c.totalPagado, c.moneda)}
+                  </span>
+                )}
               </div>
 
               <div className="cuenta__acciones">
                 <button type="button" className="enlace" onClick={() => abrirEdicion(c)}>
                   Editar
                 </button>
+                {c.esPasivo && (
+                  <button type="button" className="enlace"
+                    aria-expanded={abierta === c.id}
+                    onClick={() => alternarHistorial(c)}>
+                    {abierta === c.id ? 'Ocultar pagos' : 'Ver pagos'}
+                  </button>
+                )}
                 <button type="button" className="enlace" onClick={() => alternarEstado(c)}>
                   {c.activa ? 'Desactivar' : 'Reactivar'}
                 </button>
               </div>
+
+              {abierta === c.id && (
+                <div className="cuenta__historial">
+                  <h3 className="cuenta__historial-titulo">Pagos hechos a esta tarjeta</h3>
+                  {(pagos[c.id] ?? []).length === 0 ? (
+                    <p className="campo__ayuda">
+                      Todavía no has registrado pagos. Para anotar uno, registra un
+                      ingreso sobre esta tarjeta desde Movimientos.
+                    </p>
+                  ) : (
+                    <ul className="cuenta__pagos">
+                      {pagos[c.id].map((p) => (
+                        <li key={p.id} className="cuenta__pago">
+                          <span>{p.fecha}</span>
+                          <span>{p.descripcion || 'Pago'}</span>
+                          <strong>{formatearDinero(p.monto, c.moneda)}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>

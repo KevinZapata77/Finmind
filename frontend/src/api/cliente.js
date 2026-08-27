@@ -139,9 +139,15 @@ export const api = {
 
 export const ES_ADMIN = (usuario) => usuario?.rol === 'ROLE_ADMIN'
 
-/** Tipos de obligacion. Los valores los fija el backend. */
+/**
+ * Tipos de crédito y préstamo. Los valores los fija el backend.
+ *
+ * 'TARJETA_CREDITO' salió de esta lista: las tarjetas se registran en Cuentas,
+ * donde tienen cupo y sus gastos quedan categorizados. Estaba en los dos sitios
+ * y quien registraba la misma tarjeta en ambos veía su deuda restada dos veces
+ * del patrimonio.
+ */
 export const TIPOS_DE_OBLIGACION = [
-  { valor: 'TARJETA_CREDITO', etiqueta: 'Tarjeta de crédito' },
   { valor: 'PRESTAMO_BANCARIO', etiqueta: 'Préstamo bancario' },
   { valor: 'PRESTAMO_PERSONAL', etiqueta: 'Préstamo personal' },
   { valor: 'CREDITO_HIPOTECARIO', etiqueta: 'Crédito hipotecario' },

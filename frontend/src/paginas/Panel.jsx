@@ -11,6 +11,16 @@ export default function Panel() {
   const hoy = new Date()
   const [anio, setAnio] = useState(hoy.getFullYear())
   const [mes, setMes] = useState(hoy.getMonth() + 1)
+
+  // "Cómo vas" solo tiene sentido en el mes que está corriendo. Al mirar
+  // febrero en agosto, el mes ya terminó y la pregunta es en pasado. Y si
+  // el año no es el actual, se escribe para que no se confunda con el mes
+  // de este año.
+  const esMesActual = anio === hoy.getFullYear() && mes === hoy.getMonth() + 1
+  const nombreDelMes = MESES[mes - 1]
+  const tituloDelPeriodo = esMesActual
+    ? `Cómo vas en ${nombreDelMes}`
+    : `Cómo te fue en ${nombreDelMes}${anio === hoy.getFullYear() ? '' : ` de ${anio}`}`
   const [datos, setDatos] = useState(null)
   const [rapido, setRapido] = useState(null)
   const [cargando, setCargando] = useState(true)
@@ -71,7 +81,7 @@ export default function Panel() {
       )}
 
       <div className="contenido__encabezado">
-        <h2 className="bloque__titulo">Cómo vas en {MESES[mes - 1]}</h2>
+        <h2 className="bloque__titulo">{tituloDelPeriodo}</h2>
         <SelectorDeMes anio={anio} mes={mes} onCambiar={cambiar} />
       </div>
 
@@ -141,7 +151,10 @@ export default function Panel() {
         {gastoPorCategoria.porciones.length === 0 ? (
           <div className="vacio">
             <h3 className="vacio__titulo">
-              {sinDatos ? 'Todavía no hay movimientos este mes' : 'No registraste gastos este mes'}
+              {/* Mismo motivo que el título: al mirar un mes cerrado, "este mes" es falso. */}
+              {sinDatos
+                ? `Todavía no hay movimientos ${esMesActual ? 'este mes' : `en ${nombreDelMes}`}`
+                : `No registraste gastos ${esMesActual ? 'este mes' : `en ${nombreDelMes}`}`}
             </h3>
             <p className="vacio__texto">
               Registra tus ingresos y gastos para ver aquí en qué se va tu dinero.
