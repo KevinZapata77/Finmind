@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api, DIAS_SEMANA, formatearDinero, hoyISO, PERIODICIDAD_CORTA, PERIODICIDADES } from '../api/cliente'
+import { Link } from 'react-router-dom'
+import { api, DIAS_SEMANA, enlaceCategoriaDelMes, formatearDinero, hoyISO, PERIODICIDAD_CORTA, PERIODICIDADES } from '../api/cliente'
+
+const hoy = new Date()
 import Layout from '../componentes/Layout'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
@@ -364,6 +367,14 @@ export default function GastosFijos() {
                     Abonar a este pago
                   </Boton>
                 )}
+                {/* RF-049. "cubiertoEsteMes" se decide comparando con el gasto
+                    real de la categoría, así que el usuario tiene que poder ver
+                    ese gasto: es la única forma de entender por qué FinMind dice
+                    que algo ya está pagado (o que no). */}
+                <Link className="enlace-boton"
+                  to={enlaceCategoriaDelMes(g.categoriaId, hoy.getFullYear(), hoy.getMonth() + 1)}>
+                  Ver gastos de {g.categoriaNombre}
+                </Link>
                 {g.activo && (
                   <button type="button" className="enlace-boton" onClick={() => abrirEdicion(g)}>
                     Editar

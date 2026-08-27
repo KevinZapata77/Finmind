@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { formatearDinero } from '../api/cliente'
 
 /**
@@ -34,8 +35,16 @@ const CIRCUNFERENCIA = 2 * Math.PI * RADIO
 /** Un gris que se distingue del fondo si una categoría llegara sin color. */
 const COLOR_POR_DEFECTO = 'var(--color-neutral-500)'
 
-export default function Dona({ porciones, total }) {
+/**
+ * RF-049: `enlaceDe` es opcional y recibe el categoriaId, devolviendo la ruta
+ * al detalle de esa categoría. Se pasa como función y no como ruta fija para
+ * que la dona no tenga que saber nada del enrutador ni del período que se está
+ * mirando: quien la usa ya lo sabe. Sin `enlaceDe`, la dona se comporta igual
+ * que antes.
+ */
+export default function Dona({ porciones, total, enlaceDe }) {
   const [activa, setActiva] = useState(null)
+  const navegar = useNavigate()
 
   if (!porciones?.length) return null
 
@@ -76,9 +85,17 @@ export default function Dona({ porciones, total }) {
               strokeDashoffset={desfase}
               // Sin esto la dona empieza a las 3 en punto, no arriba.
               transform={`rotate(-90 ${CENTRO} ${CENTRO})`}
-              className="dona__porcion"
+              className={`dona__porcion${enlaceDe ? ' dona__porcion--enlace' : ''}`}
               onMouseEnter={() => setActiva(i)}
               onMouseLeave={() => setActiva(null)}
+              /*
+                Clic en la porción: la gente lo intenta por instinto en
+                cualquier gráfico de gastos. No lleva foco ni rol de enlace a
+                propósito — para teclado y lector de pantalla está la leyenda
+                de abajo, que sí son enlaces reales. Duplicar el foco aquí
+                obligaría a tabular dos veces por cada categoría.
+              */
+              onClick={enlaceDe ? () => navegar(enlaceDe(p.categoriaId)) : undefined}
             />
           )
         })}
@@ -94,22 +111,38 @@ export default function Dona({ porciones, total }) {
       {/* La leyenda no es decoración: es la forma de saber qué color es qué
           sin tener que pasar el ratón, y la única que sirve en un teléfono. */}
       <ul className="dona__leyenda">
-        {porciones.map((p, i) => (
-          <li key={p.categoriaId}>
-            <button
-              type="button"
-              className={`dona__item${activa === i ? ' dona__item--activo' : ''}`}
-              onMouseEnter={() => setActiva(i)}
-              onMouseLeave={() => setActiva(null)}
-              onFocus={() => setActiva(i)}
-              onBlur={() => setActiva(null)}
-            >
+        {porciones.map((p, i) => {
+          // Mismo contenido en los dos casos; cambia solo el elemento. Se
+          // mantiene el <button> cuando no hay enlace para no perder el
+          // resaltado por teclado que ya existía.
+          const contenido = (
+            <>
               <span className="dona__punto" style={{ background: p.color || COLOR_POR_DEFECTO }} />
               <span className="dona__nombre">{p.nombre}</span>
               <span className="dona__pct">{p.porcentaje}%</span>
-            </button>
-          </li>
-        ))}
+            </>
+          )
+          const comunes = {
+            className: `dona__item${activa === i ? ' dona__item--activo' : ''}`,
+            onMouseEnter: () => setActiva(i),
+            onMouseLeave: () => setActiva(null),
+            onFocus: () => setActiva(i),
+            onBlur: () => setActiva(null),
+          }
+
+          return (
+            <li key={p.categoriaId}>
+              {enlaceDe ? (
+                <Link {...comunes} to={enlaceDe(p.categoriaId)}
+                  aria-label={`Ver los gastos de ${p.nombre}, ${formatearDinero(p.monto)}`}>
+                  {contenido}
+                </Link>
+              ) : (
+                <button type="button" {...comunes}>{contenido}</button>
+              )}
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

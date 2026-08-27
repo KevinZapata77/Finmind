@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
-import { api, ErrorApi, formatearDinero, hoyISO } from '../api/cliente'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { api, ErrorApi, formatearDinero, hoyISO, describirFiltro } from '../api/cliente'
 import Layout from '../componentes/Layout'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
@@ -7,15 +8,38 @@ import Alerta from '../componentes/Alerta'
 
 const VACIO = { cuentaId: '', categoriaId: '', monto: '', fecha: hoyISO(), descripcion: '' }
 
-/** UI-004 y UI-005 — Movimientos. Implementa HU-010 a HU-014 / RF-012 a RF-016. */
+/** Los filtros que viven en la URL (RF-049). */
+const CAMPOS_FILTRO = ['desde', 'hasta', 'cuentaId', 'categoriaId', 'tipo']
+
+/**
+ * UI-004 y UI-005 — Movimientos. Implementa HU-010 a HU-014 / RF-012 a RF-016.
+ *
+ * RF-049: LOS FILTROS VIVEN EN LA URL, NO EN useState
+ * Antes el filtro era estado interno, así que era imposible enlazar aquí desde
+ * otra pantalla: el panel podía decir "te pasaste en Alimentación" pero no
+ * llevarte a los movimientos de Alimentación. El usuario tenía que venir por el
+ * menú y volver a armar el filtro a mano, seis acciones para responder una
+ * pregunta que la aplicación acababa de plantearle.
+ *
+ * Con el filtro en la URL, cualquier pantalla puede enlazar a una vista concreta
+ * (`/movimientos?categoriaId=3&desde=2026-08-01&hasta=2026-08-31`), y de paso el
+ * usuario puede guardar o compartir ese enlace, y el botón "atrás" del navegador
+ * hace lo que se espera.
+ */
 export default function Movimientos() {
+  const [params, setParams] = useSearchParams()
   const [pagina, setPagina] = useState(null)
   const [cuentas, setCuentas] = useState([])
   const [categorias, setCategorias] = useState([])
-  const [filtros, setFiltros] = useState({ desde: '', hasta: '', cuentaId: '', categoriaId: '', tipo: '' })
-  const [page, setPage] = useState(0)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
+
+  const filtros = useMemo(
+    () => Object.fromEntries(CAMPOS_FILTRO.map((c) => [c, params.get(c) ?? ''])),
+    [params],
+  )
+  const page = Number(params.get('page') ?? 0)
+  const hayFiltro = CAMPOS_FILTRO.some((c) => filtros[c])
 
   const [abierto, setAbierto] = useState(false)
   const [editando, setEditando] = useState(null)
@@ -91,7 +115,29 @@ export default function Movimientos() {
     }
   }
 
-  const cambiarFiltro = (campo, valor) => { setPage(0); setFiltros({ ...filtros, [campo]: valor }) }
+  /**
+   * Escribe el filtro en la URL. Un filtro vacío se borra del enlace en vez de
+   * quedar como `categoriaId=`: así la barra de direcciones dice exactamente lo
+   * que el usuario está viendo, sin ruido.
+   */
+  function cambiarFiltro(campo, valor) {
+    const siguiente = new URLSearchParams(params)
+    if (valor) siguiente.set(campo, valor)
+    else siguiente.delete(campo)
+    // Cambiar un filtro invalida la página: la 3 de un filtro puede no existir
+    // en el siguiente.
+    siguiente.delete('page')
+    setParams(siguiente, { replace: true })
+  }
+
+  function irAPagina(n) {
+    const siguiente = new URLSearchParams(params)
+    if (n > 0) siguiente.set('page', String(n))
+    else siguiente.delete('page')
+    setParams(siguiente, { replace: true })
+  }
+
+  const limpiarFiltros = () => setParams(new URLSearchParams(), { replace: true })
 
   return (
     <Layout titulo="Movimientos" acciones={<Boton onClick={abrirNuevo}>Nuevo movimiento</Boton>}>
@@ -156,6 +202,22 @@ export default function Movimientos() {
             </button>
           </div>
         </form>
+      )}
+
+      {/* RF-049. Cuando se llega aquí desde otra pantalla, el filtro ya viene
+          puesto. Sin este aviso el usuario ve una lista corta y no entiende por
+          qué le faltan movimientos: cree que se perdieron. Decir en palabras qué
+          está viendo, y dar un botón para salir del filtro, es lo que convierte
+          la profundización en algo reversible. */}
+      {hayFiltro && (
+        <section className="filtro-activo" aria-live="polite">
+          <p className="filtro-activo__texto">
+            Estás viendo <strong>{describirFiltro(filtros, cuentas, categorias)}</strong>
+          </p>
+          <button type="button" className="enlace-boton" onClick={limpiarFiltros}>
+            Ver todos mis movimientos
+          </button>
+        </section>
       )}
 
       {/* Filtros (RF-014) */}
@@ -245,10 +307,10 @@ export default function Movimientos() {
           {pagina.totalPaginas > 1 && (
             <nav className="paginacion" aria-label="Paginación">
               <button type="button" className="boton boton--secundario"
-                disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</button>
+                disabled={page === 0} onClick={() => irAPagina(page - 1)}>Anterior</button>
               <span>Página {pagina.pagina + 1} de {pagina.totalPaginas}</span>
               <button type="button" className="boton boton--secundario"
-                disabled={page + 1 >= pagina.totalPaginas} onClick={() => setPage(page + 1)}>Siguiente</button>
+                disabled={page + 1 >= pagina.totalPaginas} onClick={() => irAPagina(page + 1)}>Siguiente</button>
             </nav>
           )}
         </>

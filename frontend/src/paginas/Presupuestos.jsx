@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, ErrorApi, formatearDinero, MESES } from '../api/cliente'
+import { Link } from 'react-router-dom'
+import { api, enlaceMovimientos, ErrorApi, formatearDinero, MESES } from '../api/cliente'
 import Layout from '../componentes/Layout'
 import SelectorDeMes from '../componentes/SelectorDeMes'
 import Campo from '../componentes/Campo'
@@ -226,6 +227,17 @@ export default function Presupuestos() {
                 </div>
 
                 <div className="presupuesto__acciones">
+                  {/*
+                    RF-049. Se usan `desde` y `hasta` del propio presupuesto, no
+                    el mes del selector: un presupuesto quincenal o semanal cubre
+                    un tramo más corto que el mes, y filtrar por el mes completo
+                    mostraría movimientos que no cuentan para este consumo. La
+                    cifra del enlace y la del filtro tienen que ser la misma.
+                  */}
+                  <Link className="enlace"
+                    to={enlaceMovimientos({ categoriaId: p.categoriaId, desde: p.desde, hasta: p.hasta })}>
+                    Ver los {formatearDinero(p.consumo)} gastados
+                  </Link>
                   <button type="button" className="enlace" onClick={() => abrirEdicion(p)}>
                     Cambiar límite
                   </button>
