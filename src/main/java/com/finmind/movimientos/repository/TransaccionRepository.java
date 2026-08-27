@@ -133,6 +133,27 @@ public interface TransaccionRepository extends JpaRepository<Transaccion, Long> 
                                        @Param("desde") LocalDate desde,
                                        @Param("hasta") LocalDate hasta);
 
+    /**
+     * RF-048. Suma por dia y por tipo dentro de un rango.
+     *
+     * Devuelve solo los dias CON movimientos. Rellenar los huecos es tarea del
+     * servicio: hacerlo en SQL exigiria generar una serie de fechas, que en
+     * H2 y en PostgreSQL se escribe distinto.
+     *
+     * Columnas: [0] fecha, [1] tipo, [2] suma.
+     */
+    @Query("""
+           SELECT t.fecha, t.tipo, SUM(t.monto) FROM Transaccion t
+           WHERE t.usuario.id = :usuarioId
+             AND t.tipo IN ('INGRESO', 'GASTO')
+             AND t.fecha BETWEEN :desde AND :hasta
+           GROUP BY t.fecha, t.tipo
+           ORDER BY t.fecha
+           """)
+    List<Object[]> agruparPorDia(@Param("usuarioId") Long usuarioId,
+                                @Param("desde") LocalDate desde,
+                                @Param("hasta") LocalDate hasta);
+
     boolean existsByCategoriaId(Long categoriaId);
 
     boolean existsByCuentaId(Long cuentaId);
