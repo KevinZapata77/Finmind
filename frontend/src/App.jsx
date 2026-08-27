@@ -14,6 +14,7 @@ import Presupuestos from './paginas/Presupuestos'
 import Obligaciones from './paginas/Obligaciones'
 import Categorias from './paginas/Categorias'
 import Metas from './paginas/Metas'
+import GastosFijos from './paginas/GastosFijos'
 import Administracion from './paginas/Administracion'
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/obligaciones" element={<RutaProtegida><Obligaciones /></RutaProtegida>} />
         <Route path="/categorias" element={<RutaProtegida><Categorias /></RutaProtegida>} />
         <Route path="/metas" element={<RutaProtegida><Metas /></RutaProtegida>} />
+        <Route path="/gastos-fijos" element={<RutaProtegida><GastosFijos /></RutaProtegida>} />
         <Route path="/administracion" element={<RutaProtegida><Administracion /></RutaProtegida>} />
         <Route path="*" element={<Navigate to="/panel" replace />} />
       </Routes>

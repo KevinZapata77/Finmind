@@ -6,9 +6,22 @@ import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
 
+const ETIQUETA_LIMITE = {
+  MENSUAL: 'Límite del mes',
+  QUINCENAL: 'Límite de cada quincena',
+  SEMANAL: 'Límite de cada semana',
+}
+
+const AYUDA_LIMITE = {
+  MENSUAL: 'Cuánto quieres gastar como máximo en esta categoría durante el mes.',
+  QUINCENAL: 'Cuánto quieres gastar como máximo en cada quincena: del 1 al 15 y del 16 en adelante.',
+  SEMANAL: 'Cuánto quieres gastar como máximo cada semana, de lunes a domingo.',
+}
+
+const hoy = new Date()
+
 /** UI-006 — Presupuestos. Implementa HU-015 a HU-017 / RF-017 a RF-020. */
 export default function Presupuestos() {
-  const hoy = new Date()
   const [anio, setAnio] = useState(hoy.getFullYear())
   const [mes, setMes] = useState(hoy.getMonth() + 1)
   const [lista, setLista] = useState([])
@@ -18,7 +31,7 @@ export default function Presupuestos() {
 
   const [abierto, setAbierto] = useState(false)
   const [editando, setEditando] = useState(null)
-  const [datos, setDatos] = useState({ categoriaId: '', montoLimite: '' })
+  const [datos, setDatos] = useState({ categoriaId: '', montoLimite: '', periodo: 'MENSUAL' })
   const [errorForm, setErrorForm] = useState(null)
   const [errores, setErrores] = useState({})
   const [guardando, setGuardando] = useState(false)
@@ -42,13 +55,14 @@ export default function Presupuestos() {
   }, [])
 
   function abrirNuevo() {
-    setEditando(null); setDatos({ categoriaId: '', montoLimite: '' })
+    setEditando(null); setDatos({ categoriaId: '', montoLimite: '', periodo: 'MENSUAL' })
     setErrores({}); setErrorForm(null); setAbierto(true)
   }
 
   function abrirEdicion(p) {
     setEditando(p.id)
-    setDatos({ categoriaId: String(p.categoriaId), montoLimite: String(p.montoLimite) })
+    setDatos({ categoriaId: String(p.categoriaId), montoLimite: String(p.montoLimite),
+      periodo: p.periodo ?? 'MENSUAL' })
     setErrores({}); setErrorForm(null); setAbierto(true)
   }
 
@@ -62,6 +76,7 @@ export default function Presupuestos() {
         await api.crearPresupuesto({
           categoriaId: Number(datos.categoriaId),
           montoLimite: Number(datos.montoLimite),
+          periodo: datos.periodo,
           anio, mes,
         })
       }
@@ -114,9 +129,26 @@ export default function Presupuestos() {
             </div>
           )}
 
+          {!editando && (
+            <div className="campo">
+              <label className="campo__etiqueta" htmlFor="periodo">Cada cuánto</label>
+              <select id="periodo" className="campo__control" value={datos.periodo}
+                onChange={(e) => setDatos({ ...datos, periodo: e.target.value })}>
+                <option value="MENSUAL">Al mes</option>
+                <option value="QUINCENAL">Por quincena</option>
+                <option value="SEMANAL">Por semana</option>
+              </select>
+              <p className="campo__ayuda">
+                El límite aplica a cada período, no al mes completo. Un presupuesto
+                semanal de $100.000 son $100.000 cada semana.
+              </p>
+            </div>
+          )}
+
           <Campo id="montoLimite" name="montoLimite" type="number" inputMode="decimal"
-            min="0.01" step="0.01" etiqueta="Límite del mes" placeholder="500000" required
-            ayuda="Cuánto quieres gastar como máximo en esta categoría durante el mes."
+            min="0.01" step="0.01" required placeholder="500000"
+            etiqueta={ETIQUETA_LIMITE[datos.periodo] ?? 'Límite del mes'}
+            ayuda={AYUDA_LIMITE[datos.periodo] ?? AYUDA_LIMITE.MENSUAL}
             value={datos.montoLimite} error={errores.montoLimite}
             onChange={(e) => setDatos({ ...datos, montoLimite: e.target.value })} />
 

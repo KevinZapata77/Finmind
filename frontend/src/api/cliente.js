@@ -83,6 +83,22 @@ export const api = {
   editarCuenta: (id, datos) => peticion(`/cuentas/${id}`, { metodo: 'PUT', cuerpo: datos }),
   desactivarCuenta: (id) => peticion(`/cuentas/${id}/desactivar`, { metodo: 'PATCH' }),
   activarCuenta: (id) => peticion(`/cuentas/${id}/activar`, { metodo: 'PATCH' }),
+  /**
+   * RF-044. Abonar a una tarjeta. Es una transferencia, no un ingreso: el dinero
+   * sale de otra cuenta y baja la deuda, sin inflar los ingresos del mes.
+   */
+  abonarTarjeta: (id, datos) => peticion(`/cuentas/${id}/abonos`, { metodo: 'POST', cuerpo: datos }),
+
+  // --- Gastos fijos (RF-046) ---
+  gastosFijos: (incluirInactivos = false) =>
+    peticion(`/gastos-fijos?incluirInactivos=${incluirInactivos}`),
+  crearGastoFijo: (datos) => peticion('/gastos-fijos', { metodo: 'POST', cuerpo: datos }),
+  editarGastoFijo: (id, datos) => peticion(`/gastos-fijos/${id}`, { metodo: 'PUT', cuerpo: datos }),
+  desactivarGastoFijo: (id) => peticion(`/gastos-fijos/${id}/desactivar`, { metodo: 'PATCH' }),
+  activarGastoFijo: (id) => peticion(`/gastos-fijos/${id}/activar`, { metodo: 'PATCH' }),
+
+  // --- Alertas (RF-047). Se calculan al pedirlas: no hay tabla que consultar ---
+  alertas: () => peticion('/alertas'),
 
   // --- Obligaciones (RF-035 a RF-039) ---
   obligaciones: (soloActivas = true) => peticion(`/obligaciones?soloActivas=${soloActivas}`),
@@ -121,6 +137,8 @@ export const api = {
   // --- Reportes (RF-021, RF-022) ---
   panel: (anio, mes) => peticion(`/reportes/panel?anio=${anio}&mes=${mes}`),
   resumenRapido: () => peticion('/reportes/resumen-rapido'),
+  /** RF-048. Un punto por día: es lo que permite dibujar la curva del mes. */
+  ritmo: (anio, mes) => peticion(`/reportes/ritmo?anio=${anio}&mes=${mes}`),
 
   // --- Metas de ahorro (RF-032 a RF-034) ---
   metas: (estado) => peticion(`/metas${estado ? `?estado=${estado}` : ''}`),
@@ -157,6 +175,37 @@ export const TIPOS_DE_OBLIGACION = [
 
 export const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
+/** RF-046. Cada cuánto vuelve un compromiso. Los valores los fija el backend. */
+export const PERIODICIDADES = [
+  { valor: 'MENSUAL', etiqueta: 'Cada mes' },
+  { valor: 'QUINCENAL', etiqueta: 'Cada quincena' },
+  { valor: 'SEMANAL', etiqueta: 'Cada semana' },
+]
+
+/**
+ * Versión corta para las listas. Escribir "Cada mes" al lado de cada monto
+ * ocupa media línea; "al mes" cabe junto a la cifra.
+ */
+export const PERIODICIDAD_CORTA = {
+  MENSUAL: 'al mes',
+  QUINCENAL: 'cada quincena',
+  SEMANAL: 'cada semana',
+}
+
+/**
+ * RF-047. Cómo se pinta cada severidad. El texto acompaña siempre al color:
+ * un usuario que no distingue rojo de ámbar tiene que poder saber qué es grave
+ * (RNF-008).
+ */
+export const SEVERIDADES = {
+  ALTA: { clase: 'error', texto: 'Urgente' },
+  MEDIA: { clase: 'aviso', texto: 'Atención' },
+  BAJA: { clase: 'aviso', texto: 'Para tener en cuenta' },
+}
+
+/** Orden en que se muestran: lo grave primero. */
+export const PESO_SEVERIDAD = { ALTA: 0, MEDIA: 1, BAJA: 2 }
 
 /** Fecha de hoy en el formato que espera el backend, sin desfase de zona horaria. */
 export const hoyISO = () => {

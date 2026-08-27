@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, ErrorApi, TIPOS_DE_CUENTA, etiquetaDeTipo, formatearDinero, ES_PASIVO } from '../api/cliente'
+import { api, ErrorApi, TIPOS_DE_CUENTA, etiquetaDeTipo, formatearDinero, ES_PASIVO, hoyISO } from '../api/cliente'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
 import Layout from '../componentes/Layout'
 
 const VACIO = { nombre: '', tipo: 'AHORROS', saldoInicial: '', cupo: '' }
+const ABONO_VACIO = { cuentaOrigenId: '', monto: '', fecha: '', descripcion: '' }
 
 /** UI-008 — Cuentas. Implementa HU-006, HU-007 / RF-006 a RF-008. */
 export default function Cuentas() {
@@ -23,21 +24,77 @@ export default function Cuentas() {
   // saldo inicial significa deuda, no dinero disponible.
   const esTarjeta = ES_PASIVO(datos.tipo)
 
-  // Historial de pagos de una tarjeta, por identificador de cuenta.
-  // No hay tabla de pagos: cada pago es un ingreso que el usuario ya registró
-  // sobre la tarjeta, así que se piden con el filtro que la API ya tenía.
+  /*
+    Historial de pagos de una tarjeta, por identificador de cuenta.
+
+    No hay tabla de pagos: un abono es un movimiento de tipo TRANSFERENCIA con
+    la tarjeta como destino. Antes esta lista pedía tipo INGRESO, que era como
+    se registraban los pagos cuando no existía la transferencia; con el modelo
+    actual eso ya no devuelve nada, porque un ingreso sobre una tarjeta está
+    prohibido (RN-023).
+  */
   const [pagos, setPagos] = useState({})
   const [abierta, setAbierta] = useState(null)
+
+  const cargarPagos = useCallback(async (cuentaId) => {
+    const r = await api.movimientos({ cuentaId, tipo: 'TRANSFERENCIA', size: 50 })
+    setPagos((p) => ({ ...p, [cuentaId]: r.contenido ?? r.movimientos ?? [] }))
+  }, [])
 
   async function alternarHistorial(c) {
     if (abierta === c.id) { setAbierta(null); return }
     setAbierta(c.id)
     if (pagos[c.id]) return                    // ya se cargó antes
     try {
-      const r = await api.movimientos({ cuentaId: c.id, tipo: 'INGRESO', size: 50 })
-      setPagos((p) => ({ ...p, [c.id]: r.contenido ?? r.movimientos ?? [] }))
+      await cargarPagos(c.id)
     } catch (err) {
       setError(err.message)
+    }
+  }
+
+  // --- Abonar a una tarjeta (RF-044, RF-045) ---
+  const [abonando, setAbonando] = useState(null)   // la tarjeta, o null
+  const [abono, setAbono] = useState(ABONO_VACIO)
+  const [erroresAbono, setErroresAbono] = useState({})
+  const [errorAbono, setErrorAbono] = useState(null)
+  const [enviandoAbono, setEnviandoAbono] = useState(false)
+
+  /**
+   * De dónde puede salir el dinero. Se excluyen las tarjetas: pagar una tarjeta
+   * con otra no reduce la deuda, la traslada — y el servidor lo rechaza igual.
+   * Mostrarlas en la lista sería ofrecer una opción que va a fallar.
+   */
+  const origenesPosibles = cuentas.filter((c) => c.activa && !c.esPasivo)
+
+  function abrirAbono(tarjeta) {
+    setAbonando(tarjeta)
+    setAbono({
+      ...ABONO_VACIO,
+      fecha: hoyISO(),
+      cuentaOrigenId: origenesPosibles.length === 1 ? String(origenesPosibles[0].id) : '',
+    })
+    setErroresAbono({}); setErrorAbono(null)
+  }
+
+  async function enviarAbono(e) {
+    e.preventDefault()
+    setEnviandoAbono(true); setErroresAbono({}); setErrorAbono(null)
+    try {
+      await api.abonarTarjeta(abonando.id, {
+        cuentaOrigenId: Number(abono.cuentaOrigenId),
+        monto: Number(abono.monto),
+        fecha: abono.fecha,
+        descripcion: abono.descripcion.trim() || null,
+      })
+      // El historial que ya se hubiera cargado quedaría viejo: se recarga.
+      if (pagos[abonando.id]) await cargarPagos(abonando.id).catch(() => {})
+      setAbonando(null)
+      await cargar()
+    } catch (err) {
+      if (err instanceof ErrorApi && err.erroresPorCampo) setErroresAbono(err.erroresPorCampo)
+      else setErrorAbono(err.message)
+    } finally {
+      setEnviandoAbono(false)
     }
   }
   const [errorForm, setErrorForm] = useState(null)
@@ -257,6 +314,13 @@ export default function Cuentas() {
                 <button type="button" className="enlace" onClick={() => abrirEdicion(c)}>
                   Editar
                 </button>
+                {/* Solo en tarjetas activas: abonar a una desactivada dejaría
+                    un movimiento sobre algo que el usuario dio de baja. */}
+                {c.esPasivo && c.activa && (
+                  <button type="button" className="enlace" onClick={() => abrirAbono(c)}>
+                    Abonar
+                  </button>
+                )}
                 {c.esPasivo && (
                   <button type="button" className="enlace"
                     aria-expanded={abierta === c.id}
@@ -269,20 +333,94 @@ export default function Cuentas() {
                 </button>
               </div>
 
+              {/* El formulario de abono va dentro de la tarjeta a la que se le
+                  abona: así no hay duda de cuál se está pagando. */}
+              {abonando?.id === c.id && (
+                <form className="cuenta__abono" onSubmit={enviarAbono}>
+                  <h3 className="cuenta__historial-titulo">Abonar a {c.nombre}</h3>
+
+                  {errorAbono && <Alerta tipo="error" titulo="No se pudo registrar">{errorAbono}</Alerta>}
+
+                  {origenesPosibles.length === 0 ? (
+                    <p className="campo__ayuda">
+                      Necesitas otra cuenta —efectivo, ahorros o billetera— de
+                      donde salga el dinero. El abono mueve plata de una cuenta a
+                      la tarjeta; no aparece de la nada.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="fila-doble">
+                        <div className="campo">
+                          <label className="campo__etiqueta" htmlFor={`origen-${c.id}`}>
+                            ¿De dónde sale?
+                          </label>
+                          <select id={`origen-${c.id}`} className="campo__control" required
+                            value={abono.cuentaOrigenId}
+                            onChange={(e) => setAbono({ ...abono, cuentaOrigenId: e.target.value })}>
+                            <option value="">Elige una cuenta…</option>
+                            {origenesPosibles.map((o) => (
+                              <option key={o.id} value={o.id}>
+                                {o.nombre} · {formatearDinero(o.saldoActual, o.moneda)}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="campo__ayuda">
+                            El saldo de esa cuenta baja y la deuda de la tarjeta
+                            también. Pagar una deuda no es un ingreso, así que
+                            esto no infla tus ingresos del mes.
+                          </p>
+                        </div>
+
+                        <Campo id={`monto-abono-${c.id}`} name="monto" type="number"
+                          inputMode="decimal" etiqueta="¿Cuánto abonas?" placeholder="0"
+                          min="0.01" step="0.01" required
+                          value={abono.monto} error={erroresAbono.monto}
+                          ayuda={c.cupo != null
+                            ? `Debes ${formatearDinero(c.saldoActual, c.moneda)}.`
+                            : undefined}
+                          onChange={(e) => setAbono({ ...abono, monto: e.target.value })} />
+                      </div>
+
+                      <div className="fila-doble">
+                        <Campo id={`fecha-abono-${c.id}`} name="fecha" type="date"
+                          etiqueta="Fecha del pago" required max={hoyISO()}
+                          value={abono.fecha} error={erroresAbono.fecha}
+                          onChange={(e) => setAbono({ ...abono, fecha: e.target.value })} />
+
+                        <Campo id={`desc-abono-${c.id}`} name="descripcion"
+                          etiqueta="Nota (opcional)" placeholder="Pago mínimo de agosto"
+                          maxLength={120}
+                          value={abono.descripcion} error={erroresAbono.descripcion}
+                          onChange={(e) => setAbono({ ...abono, descripcion: e.target.value })} />
+                      </div>
+
+                      <div className="acciones">
+                        <Boton type="submit" cargando={enviandoAbono}>Registrar abono</Boton>
+                        <button type="button" className="enlace-boton"
+                          onClick={() => setAbonando(null)}>
+                          Cancelar
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </form>
+              )}
+
               {abierta === c.id && (
                 <div className="cuenta__historial">
                   <h3 className="cuenta__historial-titulo">Pagos hechos a esta tarjeta</h3>
                   {(pagos[c.id] ?? []).length === 0 ? (
                     <p className="campo__ayuda">
-                      Todavía no has registrado pagos. Para anotar uno, registra un
-                      ingreso sobre esta tarjeta desde Movimientos.
+                      Todavía no has registrado pagos. Usa el botón Abonar para
+                      anotar uno.
                     </p>
                   ) : (
                     <ul className="cuenta__pagos">
                       {pagos[c.id].map((p) => (
                         <li key={p.id} className="cuenta__pago">
                           <span>{p.fecha}</span>
-                          <span>{p.descripcion || 'Pago'}</span>
+                          {/* De qué cuenta salió: es la mitad del dato. */}
+                          <span>{p.descripcion || `Desde ${p.cuentaNombre ?? 'otra cuenta'}`}</span>
                           <strong>{formatearDinero(p.monto, c.moneda)}</strong>
                         </li>
                       ))}
