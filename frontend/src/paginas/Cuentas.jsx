@@ -5,7 +5,7 @@ import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
 import Layout from '../componentes/Layout'
 
-const VACIO = { nombre: '', tipo: 'AHORROS', saldoInicial: '' }
+const VACIO = { nombre: '', tipo: 'AHORROS', saldoInicial: '', cupo: '' }
 
 /** UI-008 — Cuentas. Implementa HU-006, HU-007 / RF-006 a RF-008. */
 export default function Cuentas() {
@@ -18,6 +18,10 @@ export default function Cuentas() {
   const [editando, setEditando] = useState(null)   // id o null si es creación
   const [datos, setDatos] = useState(VACIO)
   const [errores, setErrores] = useState({})
+
+  // El formulario cambia según el tipo elegido: una tarjeta pide cupo y su
+  // saldo inicial significa deuda, no dinero disponible.
+  const esTarjeta = ES_PASIVO(datos.tipo)
   const [errorForm, setErrorForm] = useState(null)
   const [guardando, setGuardando] = useState(false)
 
@@ -42,7 +46,9 @@ export default function Cuentas() {
     // El saldo inicial no se edita: cambiarlo alteraría hacia atrás los saldos
     // ya calculados y el historial dejaría de cuadrar.
     setEditando(c.id)
-    setDatos({ nombre: c.nombre, tipo: c.tipo, saldoInicial: '' })
+    // El cupo sí se edita: el banco lo sube o lo baja y cambiarlo no altera
+    // ningún movimiento pasado, solo lo que queda por gastar.
+    setDatos({ nombre: c.nombre, tipo: c.tipo, saldoInicial: '', cupo: c.cupo ?? '' })
     setErrores({}); setErrorForm(null); setFormAbierto(true)
   }
 
@@ -50,13 +56,18 @@ export default function Cuentas() {
     e.preventDefault()
     setErrores({}); setErrorForm(null); setGuardando(true)
     try {
+      // El cupo solo viaja si la cuenta es tarjeta: el servidor rechaza un cupo
+      // en cualquier otro tipo, y mandar null lo deja sin registrar.
+      const cupo = esTarjeta && datos.cupo !== '' ? Number(datos.cupo) : null
+
       if (editando) {
-        await api.editarCuenta(editando, { nombre: datos.nombre, tipo: datos.tipo })
+        await api.editarCuenta(editando, { nombre: datos.nombre, tipo: datos.tipo, cupo })
       } else {
         await api.crearCuenta({
           nombre: datos.nombre,
           tipo: datos.tipo,
           saldoInicial: datos.saldoInicial === '' ? 0 : Number(datos.saldoInicial),
+          cupo,
         })
       }
       setFormAbierto(false)
@@ -83,11 +94,11 @@ export default function Cuentas() {
   // mas dinero del que tiene: el saldo de una tarjeta es deuda, no disponible.
   const activas = cuentas.filter((c) => c.activa)
   const disponible = activas
-    .filter((c) => !ES_PASIVO(c.tipo))
+    .filter((c) => !c.esPasivo)
     .reduce((suma, c) => suma + Number(c.saldoActual ?? 0), 0)
   const enTarjetas = activas
-    .filter((c) => ES_PASIVO(c.tipo))
-    .reduce((suma, c) => suma + Number(c.saldoActual ?? 0), 0)
+    .filter((c) => c.esPasivo)
+    .reduce((suma, c) => suma + Math.max(Number(c.saldoActual ?? 0), 0), 0)
 
   return (
     <Layout titulo="Mis cuentas" acciones={<Boton onClick={abrirCreacion}>Nueva cuenta</Boton>}>
@@ -98,8 +109,8 @@ export default function Cuentas() {
           </p>
           {enTarjetas > 0 && (
             <p className="pagina__nota">
-              No incluye {formatearDinero(enTarjetas)} en tarjetas de crédito:
-              eso es deuda, no dinero tuyo. Lo ves en <strong>Obligaciones</strong>.
+              No incluye {formatearDinero(enTarjetas)} que debes en tarjetas de crédito:
+              eso es deuda, no dinero tuyo. Ya se resta de tu patrimonio en el <strong>Inicio</strong>.
             </p>
           )}
         </div>
@@ -141,10 +152,21 @@ export default function Cuentas() {
 
           {!editando && (
             <Campo id="saldoInicial" name="saldoInicial" type="number" inputMode="decimal"
-              etiqueta="Saldo inicial" placeholder="0" min="0" step="0.01"
-              ayuda="Cuánto dinero hay hoy en esa cuenta. Si lo dejas vacío, empieza en cero."
+              etiqueta={esTarjeta ? 'Cuánto debes hoy' : 'Saldo inicial'}
+              placeholder="0" min="0" step="0.01"
+              ayuda={esTarjeta
+                ? 'Lo que ya debes en la tarjeta. Cada compra que registres lo aumenta y cada pago lo baja.'
+                : 'Cuánto dinero hay hoy en esa cuenta. Si lo dejas vacío, empieza en cero.'}
               value={datos.saldoInicial} error={errores.saldoInicial}
               onChange={(e) => setDatos({ ...datos, saldoInicial: e.target.value })} />
+          )}
+
+          {esTarjeta && (
+            <Campo id="cupo" name="cupo" type="number" inputMode="decimal"
+              etiqueta="Cupo total (opcional)" placeholder="0" min="0" step="0.01"
+              ayuda="El máximo que te presta el banco. Sirve para saber cuánto te queda disponible."
+              value={datos.cupo} error={errores.cupo}
+              onChange={(e) => setDatos({ ...datos, cupo: e.target.value })} />
           )}
 
           {editando && (
@@ -189,12 +211,22 @@ export default function Cuentas() {
               </div>
 
               <div className="cuenta__saldo">
-                <strong className={ES_PASIVO(c.tipo) ? 'cuenta__deuda' : undefined}>
-                  {ES_PASIVO(c.tipo) && '− '}{formatearDinero(c.saldoActual, c.moneda)}
+                <strong className={c.esPasivo ? 'cuenta__deuda' : undefined}>
+                  {c.esPasivo && 'Debes '}{formatearDinero(c.saldoActual, c.moneda)}
                 </strong>
-                <span className="cuenta__inicial">
-                  Inicial: {formatearDinero(c.saldoInicial, c.moneda)}
-                </span>
+
+                {c.esPasivo && c.cupo != null ? (
+                  <span className={Number(c.cupoDisponible) < 0
+                    ? 'cuenta__inicial cuenta__deuda' : 'cuenta__inicial'}>
+                    {Number(c.cupoDisponible) < 0
+                      ? `Te pasaste del cupo por ${formatearDinero(Math.abs(Number(c.cupoDisponible)), c.moneda)}`
+                      : `Te quedan ${formatearDinero(c.cupoDisponible, c.moneda)} de ${formatearDinero(c.cupo, c.moneda)}`}
+                  </span>
+                ) : (
+                  <span className="cuenta__inicial">
+                    {c.esPasivo ? 'Debía' : 'Inicial'}: {formatearDinero(c.saldoInicial, c.moneda)}
+                  </span>
+                )}
               </div>
 
               <div className="cuenta__acciones">

@@ -20,7 +20,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .marca__logo { display: grid; place-items: center; width: 30px; height: 30px; border-radius: var(--radio-sm);
   background: var(--color-primary-500); font-weight: 700; }
 
-.tarjeta { background: var(--color-surface); border: 1px solid var(--color-neutral-200);
+.tarjeta { background: var(--color-tarjeta); border: 1px solid var(--color-neutral-400);
   border-radius: var(--radio-lg); padding: var(--space-4); width: 100%; max-width: 460px;
   display: flex; flex-direction: column; gap: var(--space-2); }
 .tarjeta__titulo { font: var(--font-titulo); margin: 0; }
@@ -293,8 +293,8 @@ a { color: var(--color-primary-600); font-weight: 600; }
   gap: var(--space-4);
   align-items: center;
   padding: var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-neutral-200);
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-neutral-400);
   border-radius: var(--radio-lg);
 }
 
@@ -334,7 +334,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .vacio {
   text-align: center;
   padding: var(--space-6);
-  background: var(--color-surface);
+  background: var(--color-tarjeta);
   border: 1px dashed var(--color-neutral-300);
   border-radius: var(--radio-lg);
 }
@@ -418,8 +418,8 @@ a { color: var(--color-primary-600); font-weight: 600; }
 }
 
 .tarjeta-dato {
-  background: var(--color-surface);
-  border: 1px solid var(--color-neutral-200);
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-neutral-400);
   border-radius: var(--radio-lg);
   padding: var(--space-4);
 }
@@ -490,8 +490,8 @@ a { color: var(--color-primary-600); font-weight: 600; }
   gap: var(--space-4);
   align-items: center;
   padding: var(--space-3) var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-neutral-200);
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-neutral-400);
   border-radius: var(--radio-md);
 }
 
@@ -516,8 +516,8 @@ a { color: var(--color-primary-600); font-weight: 600; }
 }
 
 .presupuesto, .obligacion {
-  background: var(--color-surface);
-  border: 1px solid var(--color-neutral-200);
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-neutral-400);
   border-radius: var(--radio-lg);
   padding: var(--space-4);
 }
@@ -580,8 +580,8 @@ a { color: var(--color-primary-600); font-weight: 600; }
   gap: var(--space-3);
   align-items: center;
   padding: var(--space-3) var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-neutral-200);
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-neutral-400);
   border-radius: var(--radio-md);
 }
 
@@ -612,7 +612,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .pestana:hover { color: var(--color-neutral-900); }
 .pestana--activa { color: var(--color-primary-600); border-bottom-color: var(--color-primary-600); font-weight: 600; }
 
-.tabla-envoltura { overflow-x: auto; border: 1px solid var(--color-neutral-200); border-radius: var(--radio-lg); background: var(--color-surface); }
+.tabla-envoltura { overflow-x: auto; border: 1px solid var(--color-neutral-400); border-radius: var(--radio-lg); background: var(--color-tarjeta); }
 .tabla { width: 100%; border-collapse: collapse; font: var(--font-cuerpo); }
 .tabla__titulo { text-align: left; padding: var(--space-4); font: var(--font-seccion); color: var(--color-neutral-900); }
 
@@ -631,7 +631,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
    --------------------------------------------------------------- */
 
 .rapido {
-  background: var(--color-surface);
+  background: var(--color-tarjeta);
   border: 2px solid var(--color-primary-600);
   border-radius: var(--radio-lg);
   padding: var(--space-3);
