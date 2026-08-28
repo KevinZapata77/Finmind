@@ -147,6 +147,131 @@ class GastosFijosYAlertasTest {
                 .andExpect(status().isBadRequest());
     }
 
+    // ============================================ DEF-21: el quincenal
+
+    /**
+     * DEF-21. Un compromiso quincenal se paga DOS veces al mes: el dia pactado
+     * y quince dias despues.
+     *
+     * Antes esta rama fijaba el primer pago el dia 15 sin mirar el dia elegido,
+     * y el segundo lo mandaba al mes siguiente. O sea: un pago al mes, en una
+     * fecha que el usuario no habia pedido. Y el monto mensual si contaba dos
+     * pagos, asi que la cifra y el calendario decian cosas distintas.
+     */
+    @Test
+    @DisplayName("DEF-21: un quincenal tiene dos fechas de pago en el mes, a 15 dias")
+    void elQuincenalTieneDosPagosAlMes() throws Exception {
+        String token = usuarioListo("fijo@finmind.test");
+        long cat = categoria(token, "GASTO");
+
+        String r = mockMvc.perform(post("/api/v1/gastos-fijos")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"nombre":"Arriendo quincenal","categoriaId":%d,"monto":300000.00,
+                                 "periodicidad":"QUINCENAL","diaPago":5}""".formatted(cat)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode g = objectMapper.readTree(r);
+        JsonNode pagos = g.get("pagosDelMes");
+        assertThat(pagos).hasSize(2);
+
+        LocalDate uno = LocalDate.parse(pagos.get(0).asText());
+        LocalDate dos = LocalDate.parse(pagos.get(1).asText());
+        assertThat(uno.getDayOfMonth()).isEqualTo(5);
+        assertThat(dos.getDayOfMonth()).isEqualTo(20);
+        // Lo que hace que sea quincenal y no "dos fechas cualesquiera".
+        assertThat(java.time.temporal.ChronoUnit.DAYS.between(uno, dos)).isEqualTo(15);
+    }
+
+    /** El proximo pago es el mas cercano de los dos que aun no han pasado. */
+    @Test
+    @DisplayName("DEF-21: el proximo pago quincenal es una de las dos fechas del mes")
+    void elProximoPagoQuincenalEsUnaDeLasDos() throws Exception {
+        String token = usuarioListo("fijo@finmind.test");
+        long cat = categoria(token, "GASTO");
+
+        String r = mockMvc.perform(post("/api/v1/gastos-fijos")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"nombre":"Transporte quincenal","categoriaId":%d,"monto":120000.00,
+                                 "periodicidad":"QUINCENAL","diaPago":3}""".formatted(cat)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        LocalDate proximo = LocalDate.parse(objectMapper.readTree(r).get("proximoPago").asText());
+        LocalDate hoy = LocalDate.now();
+
+        // Nunca en el pasado, y siempre cae en uno de los dos dias pactados.
+        assertThat(proximo).isAfterOrEqualTo(hoy);
+        assertThat(proximo.getDayOfMonth()).isIn(3, 18);
+        // Y nunca mas alla del mes que viene: si los dos pagos de este mes ya
+        // pasaron, el siguiente es el dia 3 del mes entrante.
+        assertThat(proximo).isBeforeOrEqualTo(hoy.plusMonths(1).withDayOfMonth(3));
+    }
+
+    /**
+     * DEF-21. El tope es 13 y no 15: el segundo pago cae quince dias despues,
+     * asi que con 14 caeria el 29 y en febrero no existe.
+     */
+    @Test
+    @DisplayName("DEF-21: en un quincenal el primer pago no puede pasar del 13")
+    void quincenalConDiaFueraDeRango() throws Exception {
+        String token = usuarioListo("fijo@finmind.test");
+        long cat = categoria(token, "GASTO");
+
+        mockMvc.perform(post("/api/v1/gastos-fijos").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"nombre":"Quincenal invalido","categoriaId":%d,"monto":50000.00,
+                                 "periodicidad":"QUINCENAL","diaPago":14}""".formatted(cat)))
+                .andExpect(status().isBadRequest());
+
+        // El 13 si entra, y su segundo pago es el 28: existe en todos los meses.
+        String r = mockMvc.perform(post("/api/v1/gastos-fijos")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"nombre":"Quincenal al limite","categoriaId":%d,"monto":50000.00,
+                                 "periodicidad":"QUINCENAL","diaPago":13}""".formatted(cat)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode pagos = objectMapper.readTree(r).get("pagosDelMes");
+        assertThat(LocalDate.parse(pagos.get(1).asText()).getDayOfMonth()).isEqualTo(28);
+    }
+
+    /** Un mensual trae una sola fecha, y un semanal ninguna. */
+    @Test
+    @DisplayName("Las fechas del mes: dos en quincenal, una en mensual, ninguna en semanal")
+    void cadaPeriodicidadTraeSusFechas() throws Exception {
+        String token = usuarioListo("fijo@finmind.test");
+        long cat = categoria(token, "GASTO");
+
+        crearFijo(token, cat, "Mensual", "100000.00", "MENSUAL", 10);
+        crearFijo(token, cat, "Semanal", "20000.00", "SEMANAL", 3);
+        crearFijo(token, cat, "Quincenal", "60000.00", "QUINCENAL", 4);
+
+        String r = mockMvc.perform(get("/api/v1/gastos-fijos")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        for (JsonNode g : objectMapper.readTree(r)) {
+            JsonNode pagos = g.get("pagosDelMes");
+            int cuantos = pagos == null ? 0 : pagos.size();
+            switch (g.get("periodicidad").asText()) {
+                case "QUINCENAL" -> assertThat(cuantos).as("quincenal").isEqualTo(2);
+                case "MENSUAL"   -> assertThat(cuantos).as("mensual").isEqualTo(1);
+                // Jackson omite la lista vacia (default-property-inclusion: non_null
+                // no la quita, pero si estuviera vacia igual da 0).
+                default          -> assertThat(cuantos).as("semanal").isZero();
+            }
+        }
+    }
+
+    /**
+     * RN-025. El dia era 15 y ahora es 10: con DEF-21 el primer pago quincenal
+     * no puede pasar del 13, porque el segundo cae quince dias despues y el 29
+     * no existe en febrero. La regla que esta prueba cubre —el peso mensual es
+     * el doble— no depende del dia, asi que el cambio no la debilita.
+     */
     @Test
     @DisplayName("RN-025: un compromiso quincenal pesa el doble en el mes")
     void elQuincenalPesaElDoble() throws Exception {
@@ -156,7 +281,7 @@ class GastosFijosYAlertasTest {
         mockMvc.perform(post("/api/v1/gastos-fijos").header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON).content("""
                                 {"nombre":"Transporte","categoriaId":%d,"monto":120000.00,
-                                 "periodicidad":"QUINCENAL","diaPago":15}""".formatted(cat)))
+                                 "periodicidad":"QUINCENAL","diaPago":10}""".formatted(cat)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.montoMensual").value(240000.00));
     }

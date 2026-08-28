@@ -4,6 +4,8 @@ import com.finmind.fijos.entity.GastoFijo;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.List;
 
 /**
  * Vista de un compromiso recurrente.
@@ -24,6 +26,15 @@ public record GastoFijoResponse(
         BigDecimal montoMensual,
         Short diaPago,
         LocalDate proximoPago,
+        /**
+         * DEF-21. Todas las fechas de pago del mes en curso.
+         *
+         * En un quincenal son dos, y mostrar solo la proxima lo hacia ver como
+         * mensual: el monto mensual contaba dos pagos pero el calendario
+         * enseñaba uno. Vacia en los semanales, donde enumerar cuatro o cinco
+         * fechas no aporta nada sobre "cada viernes".
+         */
+        List<LocalDate> pagosDelMes,
         /** True si el compromiso ya fue cubierto por el gasto real de su categoria. */
         Boolean cubiertoEsteMes,
         Boolean activo
@@ -34,6 +45,7 @@ public record GastoFijoResponse(
                 g.getCategoria().getId(), g.getCategoria().getNombre(),
                 g.getCategoria().getColorHex(),
                 g.getMonto(), g.getPeriodicidad(), g.montoMensualEquivalente(),
-                g.getDiaPago(), g.proximoPagoDesde(hoy), cubierto, g.getActivo());
+                g.getDiaPago(), g.proximoPagoDesde(hoy),
+                g.fechasDelMes(YearMonth.from(hoy)), cubierto, g.getActivo());
     }
 }
