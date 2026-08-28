@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -68,6 +69,12 @@ public class GastoFijo {
     @Column(nullable = false, length = 10)
     private String periodicidad;
 
+    /**
+     * En MENSUAL y QUINCENAL, el dia del mes (1-28). En SEMANAL, el dia de
+     * la semana (1 lunes, ..., 7 domingo, ISO-8601). Se guarda en la misma
+     * columna en los dos casos porque en ninguno de los dos se pisan los
+     * rangos: 1-7 cabe dentro de 1-28, y la columna en la base ya lo permite.
+     */
     @Column(name = "dia_pago", nullable = false)
     private Short diaPago;
 
@@ -111,13 +118,30 @@ public class GastoFijo {
     /**
      * Proxima fecha de pago a partir de hoy.
      *
+     * En los semanales, diaPago es el dia de la semana: 1 lunes, ..., 7
+     * domingo (ISO-8601, igual que DayOfWeek). Se busca la primera fecha
+     * desde hoy —hoy incluido— que caiga en ese dia.
+     *
+     * DEFECTO CORREGIDO (DEF-19): esta rama nunca uso diaPago. Calculaba
+     * hoy.getDayOfMonth() % 7, que es el resto del DIA DEL MES entre 7 y no
+     * tiene ninguna relacion con el dia de la semana. Un compromiso marcado
+     * "cada viernes" caia en cualquier dia: el numero cambiaba solo porque
+     * cambiaba el dia del mes, no porque el dia de la semana fuera otro.
+     *
      * En los mensuales es el dia pactado de este mes si aun no paso, y si ya
-     * paso el del mes siguiente. En quincenales y semanales el dia pactado se
-     * usa como referencia del ciclo.
+     * paso el del mes siguiente. En quincenales el primer pago es el dia 15
+     * y el segundo el dia pactado del mes siguiente.
      */
     public LocalDate proximoPagoDesde(LocalDate hoy) {
         return switch (periodicidad) {
-            case "SEMANAL" -> hoy.plusDays(7 - (hoy.getDayOfMonth() % 7 == 0 ? 7 : hoy.getDayOfMonth() % 7));
+            case "SEMANAL" -> {
+                DayOfWeek objetivo = DayOfWeek.of(diaPago);
+                int distancia = objetivo.getValue() - hoy.getDayOfWeek().getValue();
+                // Modulo que nunca da negativo: si el dia ya paso esta semana,
+                // salta a la semana siguiente. Si es hoy, distancia es 0 y el
+                // pago es hoy mismo — no ha pasado, sigue siendo el proximo.
+                yield hoy.plusDays(distancia < 0 ? distancia + 7 : distancia);
+            }
 
             case "QUINCENAL" -> hoy.getDayOfMonth() < 15
                     ? hoy.withDayOfMonth(15)

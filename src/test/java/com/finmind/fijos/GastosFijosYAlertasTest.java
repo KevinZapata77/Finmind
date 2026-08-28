@@ -105,6 +105,48 @@ class GastosFijosYAlertasTest {
                 .andExpect(jsonPath("$.montoMensual").value(217250.00));
     }
 
+    /**
+     * DEF-19 (regresion). Antes, un compromiso "cada viernes" no caia en
+     * viernes: el calculo usaba el dia del MES, no el dia de la SEMANA, asi
+     * que el proximo pago caia en cualquier fecha. Se prueban los 7 dias
+     * posibles para no dejar pasar un caso puntual que por casualidad
+     * coincidiera.
+     */
+    @Test
+    @DisplayName("DEF-19: el proximo pago de un compromiso semanal cae en el dia pactado")
+    void elSemanalCaeEnElDiaPactado() throws Exception {
+        String token = usuarioListo("fijo@finmind.test");
+        long cat = categoria(token, "GASTO");
+
+        for (short dia = 1; dia <= 7; dia++) {
+            String r = mockMvc.perform(post("/api/v1/gastos-fijos")
+                            .header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON).content("""
+                                    {"nombre":"Semanal dia %d","categoriaId":%d,"monto":20000.00,
+                                     "periodicidad":"SEMANAL","diaPago":%d}""".formatted(dia, cat, dia)))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
+
+            LocalDate proximoPago = LocalDate.parse(objectMapper.readTree(r).get("proximoPago").asText());
+            assertThat(proximoPago.getDayOfWeek().getValue()).isEqualTo(dia);
+            assertThat(proximoPago).isBetween(LocalDate.now(), LocalDate.now().plusDays(6));
+        }
+    }
+
+    /** DEF-19: la validacion de rango del dia depende de la periodicidad. */
+    @Test
+    @DisplayName("DEF-19: un dia de semana fuera de 1-7 se rechaza en un compromiso semanal")
+    void semanalConDiaFueraDeRango() throws Exception {
+        String token = usuarioListo("fijo@finmind.test");
+        long cat = categoria(token, "GASTO");
+
+        mockMvc.perform(post("/api/v1/gastos-fijos").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"nombre":"Semanal invalido","categoriaId":%d,"monto":20000.00,
+                                 "periodicidad":"SEMANAL","diaPago":8}""".formatted(cat)))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test
     @DisplayName("RN-025: un compromiso quincenal pesa el doble en el mes")
     void elQuincenalPesaElDoble() throws Exception {
