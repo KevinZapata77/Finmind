@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, ErrorApi, TIPOS_DE_CUENTA, etiquetaDeTipo, formatearDinero, ES_PASIVO, hoyISO } from '../api/cliente'
+import { Link } from 'react-router-dom'
+import { api, ErrorApi, TIPOS_DE_CUENTA, etiquetaDeTipo, formatearDinero, ES_PASIVO, hoyISO, enlaceMovimientos } from '../api/cliente'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
@@ -311,6 +312,12 @@ export default function Cuentas() {
               </div>
 
               <div className="cuenta__acciones">
+                {/* RF-049. El saldo de una cuenta es la suma de sus movimientos;
+                    poder abrirlos desde aquí es lo que permite responder "¿por
+                    qué me quedó este saldo?" sin salir a buscar el filtro. */}
+                <Link className="enlace" to={enlaceMovimientos({ cuentaId: c.id })}>
+                  Ver movimientos
+                </Link>
                 <button type="button" className="enlace" onClick={() => abrirEdicion(c)}>
                   Editar
                 </button>

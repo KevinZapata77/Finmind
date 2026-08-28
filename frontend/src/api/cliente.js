@@ -139,6 +139,11 @@ export const api = {
   resumenRapido: () => peticion('/reportes/resumen-rapido'),
   /** RF-048. Un punto por día: es lo que permite dibujar la curva del mes. */
   ritmo: (anio, mes) => peticion(`/reportes/ritmo?anio=${anio}&mes=${mes}`),
+  /**
+   * RF-050. Un punto por mes, y la comparación con el mes anterior. Es el
+   * único endpoint que ve más de un mes: los demás solo saben del presente.
+   */
+  historico: (meses = 6) => peticion(`/reportes/historico?meses=${meses}`),
 
   // --- Metas de ahorro (RF-032 a RF-034) ---
   metas: (estado) => peticion(`/metas${estado ? `?estado=${estado}` : ''}`),
@@ -194,6 +199,22 @@ export const PERIODICIDAD_CORTA = {
 }
 
 /**
+ * RF-046 (DEF-19). Solo aplica cuando periodicidad es SEMANAL: ahí diaPago no
+ * es un día del mes sino un día de la semana, 1 lunes a 7 domingo (ISO-8601,
+ * igual que el backend). Antes el formulario mostraba el mismo campo numérico
+ * 1-28 para las tres periodicidades, así que "cada viernes" no se podía decir.
+ */
+export const DIAS_SEMANA = [
+  { valor: 1, etiqueta: 'Lunes' },
+  { valor: 2, etiqueta: 'Martes' },
+  { valor: 3, etiqueta: 'Miércoles' },
+  { valor: 4, etiqueta: 'Jueves' },
+  { valor: 5, etiqueta: 'Viernes' },
+  { valor: 6, etiqueta: 'Sábado' },
+  { valor: 7, etiqueta: 'Domingo' },
+]
+
+/**
  * RF-047. Cómo se pinta cada severidad. El texto acompaña siempre al color:
  * un usuario que no distingue rojo de ámbar tiene que poder saber qué es grave
  * (RNF-008).
@@ -211,6 +232,89 @@ export const PESO_SEVERIDAD = { ALTA: 0, MEDIA: 1, BAJA: 2 }
 export const hoyISO = () => {
   const d = new Date()
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+}
+
+// ===================================================== RF-049: profundización
+//
+// Estas funciones son el pegamento entre módulos. La idea: toda cifra agregada
+// que se muestre en cualquier pantalla debe poder abrir los movimientos que la
+// componen, sin que el usuario configure un filtro a mano. El backend ya acepta
+// `categoriaId`, `cuentaId`, `desde`, `hasta` y `tipo` en /transacciones; lo que
+// faltaba era que el frontend construyera esos enlaces.
+
+/** Primer y último día de un mes, en el formato que espera el backend. */
+export function rangoDelMes(anio, mes) {
+  const dosDigitos = (n) => String(n).padStart(2, '0')
+  // new Date(anio, mes, 0) es el último día del mes `mes` (1-12), porque el
+  // constructor cuenta los meses desde 0 y el día 0 retrocede uno.
+  const ultimo = new Date(anio, mes, 0).getDate()
+  return {
+    desde: `${anio}-${dosDigitos(mes)}-01`,
+    hasta: `${anio}-${dosDigitos(mes)}-${dosDigitos(ultimo)}`,
+  }
+}
+
+/**
+ * Construye el enlace a Movimientos ya filtrado. Los campos vacíos no se
+ * escriben, para que el enlace diga solo lo que de verdad filtra.
+ */
+export function enlaceMovimientos(filtros = {}) {
+  const q = new URLSearchParams()
+  for (const [clave, valor] of Object.entries(filtros)) {
+    if (valor !== '' && valor != null) q.set(clave, String(valor))
+  }
+  const cadena = q.toString()
+  return `/movimientos${cadena ? `?${cadena}` : ''}`
+}
+
+/** Enlace a los movimientos de una categoría dentro de un mes. */
+export const enlaceCategoriaDelMes = (categoriaId, anio, mes) =>
+  enlaceMovimientos({ categoriaId, ...rangoDelMes(anio, mes) })
+
+const fechaCorta = (iso) => {
+  const [a, m, d] = iso.split('-').map(Number)
+  return `${d} de ${MESES[m - 1].toLowerCase()} de ${a}`
+}
+
+function describirPeriodo(desde, hasta) {
+  if (!desde && !hasta) return ''
+  if (!desde) return `hasta el ${fechaCorta(hasta)}`
+  if (!hasta) return `desde el ${fechaCorta(desde)}`
+
+  const [a1, m1, d1] = desde.split('-').map(Number)
+  const [a2, m2, d2] = hasta.split('-').map(Number)
+  // Si el rango es exactamente un mes completo, se nombra el mes. "de agosto de
+  // 2026" se lee mucho mejor que "del 1 de agosto al 31 de agosto".
+  if (a1 === a2 && m1 === m2 && d1 === 1 && d2 === new Date(a2, m2, 0).getDate()) {
+    return `de ${MESES[m1 - 1].toLowerCase()} de ${a1}`
+  }
+  return `del ${fechaCorta(desde)} al ${fechaCorta(hasta)}`
+}
+
+/**
+ * Traduce un filtro a una frase en español, para el aviso de Movimientos.
+ *
+ * Se arma con los nombres reales de cuenta y categoría, no con los ids: al
+ * usuario no le dice nada "categoriaId=3".
+ */
+export function describirFiltro(filtros, cuentas = [], categorias = []) {
+  const mismo = (a, b) => String(a) === String(b)
+  const categoria = categorias.find((c) => mismo(c.id, filtros.categoriaId))
+  const cuenta = cuentas.find((c) => mismo(c.id, filtros.cuentaId))
+
+  const partes = [
+    filtros.tipo === 'INGRESO' ? 'los ingresos'
+      : filtros.tipo === 'GASTO' ? 'los gastos'
+        : filtros.tipo === 'TRANSFERENCIA' ? 'las transferencias'
+          : 'los movimientos',
+  ]
+  if (categoria) partes.push(`de ${categoria.nombre}`)
+  if (cuenta) partes.push(`en ${cuenta.nombre}`)
+
+  const periodo = describirPeriodo(filtros.desde, filtros.hasta)
+  if (periodo) partes.push(periodo)
+
+  return partes.join(' ')
 }
 
 /** RN-020: la tarjeta de credito no es dinero disponible, es deuda. */

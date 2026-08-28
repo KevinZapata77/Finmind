@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, formatearDinero, MESES } from '../api/cliente'
+import { api, enlaceCategoriaDelMes, enlaceMovimientos, formatearDinero, MESES, rangoDelMes } from '../api/cliente'
 import Layout from '../componentes/Layout'
 import RegistroRapido from '../componentes/RegistroRapido'
 import SelectorDeMes from '../componentes/SelectorDeMes'
@@ -8,6 +8,8 @@ import Alerta from '../componentes/Alerta'
 import Alertas from '../componentes/Alertas'
 import Dona from '../componentes/Dona'
 import CurvaDelMes from '../componentes/CurvaDelMes'
+import TendenciaMeses from '../componentes/TendenciaMeses'
+import ComparacionConElMesPasado from '../componentes/ComparacionConElMesPasado'
 
 /** UI-003 — Panel. Implementa HU-018, HU-019 / RF-021, RF-022, RF-038. */
 export default function Panel() {
@@ -27,6 +29,7 @@ export default function Panel() {
   const [datos, setDatos] = useState(null)
   const [rapido, setRapido] = useState(null)
   const [curva, setCurva] = useState(null)
+  const [historico, setHistorico] = useState(null)
   const [alertas, setAlertas] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
@@ -56,6 +59,20 @@ export default function Panel() {
       } else {
         setAlertas(null)
       }
+
+      /*
+        El histórico va aparte y con su propio catch, por el mismo motivo que
+        las alertas: es un bloque secundario y no debe poder tumbar el panel.
+        Además NO depende del selector de mes — la tendencia de los últimos 6
+        meses es la misma se esté mirando agosto o febrero, así que volver a
+        pedirla al cambiar de mes sería una llamada de más contra una base que
+        se duerme.
+      */
+      try {
+        setHistorico(await api.historico(6))
+      } catch {
+        setHistorico(null)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -81,6 +98,12 @@ export default function Panel() {
 
   const { balance, gastoPorCategoria, patrimonio, presupuestosEnAlerta } = datos
   const sinDatos = balance.ingresos === 0 && balance.gastos === 0
+
+  // Días que le faltan al mes. Sale de la curva, que ya se pidió, así que no
+  // cuesta una llamada más. Null si no hay curva: no se inventa el dato.
+  const diasQueQuedan = curva?.diasDelMes != null && curva?.diasTranscurridos != null
+    ? curva.diasDelMes - curva.diasTranscurridos
+    : null
 
   return (
     <Layout titulo="Inicio">
@@ -114,54 +137,94 @@ export default function Panel() {
       */}
       {esMesActual && <Alertas resumen={alertas} />}
 
+      {/*
+        RF-050. La comparación va arriba, junto a los avisos y antes de
+        cualquier gráfico. Es una sola frase y es la que más mueve: dice si la
+        persona va mejor o peor que el mes pasado, que es la pregunta con la que
+        llega. Solo en el mes en curso: "vas gastando" en pasado no significa
+        nada.
+      */}
+      {esMesActual && <ComparacionConElMesPasado comparacion={historico?.comparacion} />}
+
       <div className="contenido__encabezado">
         <h2 className="bloque__titulo">{tituloDelPeriodo}</h2>
         <SelectorDeMes anio={anio} mes={mes} onCambiar={cambiar} />
       </div>
 
-      {/* Balance del período (RF-021) */}
-      <section className="tarjetas" aria-label="Balance del período">
-        <article className="tarjeta-dato">
-          <p className="tarjeta-dato__rotulo">Ingresos</p>
-          <p className="tarjeta-dato__valor tarjeta-dato__valor--positivo">
-            {formatearDinero(balance.ingresos)}
-          </p>
-        </article>
-        <article className="tarjeta-dato">
-          <p className="tarjeta-dato__rotulo">Gastos</p>
-          <p className="tarjeta-dato__valor tarjeta-dato__valor--negativo">
-            {formatearDinero(balance.gastos)}
-          </p>
-        </article>
-        <article className="tarjeta-dato">
-          <p className="tarjeta-dato__rotulo">Diferencia</p>
-          <p className={`tarjeta-dato__valor ${balance.diferencia < 0 ? 'tarjeta-dato__valor--negativo' : ''}`}>
-            {formatearDinero(balance.diferencia)}
-          </p>
-          {/* El texto viene del servidor: el signo solo es fácil de pasar por alto. */}
-          <p className="tarjeta-dato__nota">{balance.lectura}</p>
-        </article>
-        <article className="tarjeta-dato">
-          <p className="tarjeta-dato__rotulo">Patrimonio neto</p>
-          <p className={`tarjeta-dato__valor ${patrimonio.patrimonioNeto < 0 ? 'tarjeta-dato__valor--negativo' : ''}`}>
-            {formatearDinero(patrimonio.patrimonioNeto)}
-          </p>
-          <p className="tarjeta-dato__nota">
-            {formatearDinero(patrimonio.activos)} en cuentas −{' '}
-            {formatearDinero(patrimonio.deudaTotal ?? patrimonio.obligaciones)} en deudas
-          </p>
-          {/*
-            Se desglosa cuando hay deuda de tarjetas. Antes esa deuda no
-            aparecía en ningún lado del patrimonio, y al empezar a restarla
-            el número cambia: conviene que se vea de dónde sale.
-          */}
-          {Number(patrimonio.deudaEnTarjetas ?? 0) > 0 && (
-            <p className="tarjeta-dato__nota">
-              De la deuda, {formatearDinero(patrimonio.deudaEnTarjetas)} son tarjetas
-              de crédito y {formatearDinero(patrimonio.obligaciones)} son préstamos.
-            </p>
+      {/*
+        Balance del período (RF-021), en jerarquía enfocada — opción B de
+        ADSO-UXUI-02.
+
+        POR QUÉ SE DEJARON DE USAR CUATRO TARJETAS IGUALES
+        Antes esto eran cuatro cifras del mismo tamaño en cuatro cajas idénticas:
+        ingresos, gastos, diferencia y patrimonio. Cuatro cosas con el mismo peso
+        visual equivalen a ninguna: el ojo las recorre y no se queda con nada, y
+        es exactamente lo que hacía que la pantalla se leyera como un formulario.
+
+        Ahora hay UNA cifra grande —lo que le queda— y el resto queda como
+        contexto. La diferencia es la que se destaca porque es la única que
+        responde la pregunta con la que la persona abre la aplicación: "¿me
+        alcanza?". Ingresos y gastos siguen ahí, más pequeños, y siguen abriendo
+        su detalle (RF-049).
+      */}
+      <section className="resumen" aria-label="Balance del período">
+        <p className="resumen__rotulo">
+          {esMesActual ? 'Te queda este mes' : `Te quedó en ${nombreDelMes}`}
+        </p>
+        <p className={`resumen__cifra${balance.diferencia < 0 ? ' resumen__cifra--negativa' : ''}`}>
+          {formatearDinero(balance.diferencia)}
+        </p>
+        <p className="resumen__contexto">
+          de {formatearDinero(balance.ingresos)} que entraron
+          {/* Los días que faltan salen de la curva, que ya se pidió. Solo tienen
+              sentido en el mes en curso: en uno cerrado no falta nada. El día 31
+              la resta da 0, y "quedan 0 días" se lee como un error. */}
+          {esMesActual && diasQueQuedan != null && (
+            <> · {diasQueQuedan === 0 ? 'hoy cierra el mes'
+              : `${diasQueQuedan === 1 ? 'queda 1 día' : `quedan ${diasQueQuedan} días`}`}</>
           )}
-        </article>
+        </p>
+        {/* El texto viene del servidor: el signo solo es fácil de pasar por alto. */}
+        <p className="resumen__lectura">{balance.lectura}</p>
+
+        <div className="resumen__secundarios">
+          <Link className="resumen__dato resumen__dato--enlace"
+            to={enlaceMovimientos({ tipo: 'INGRESO', ...rangoDelMes(anio, mes) })}>
+            <span className="resumen__dato-rotulo">Entró</span>
+            <span className="resumen__dato-valor positivo">{formatearDinero(balance.ingresos)}</span>
+          </Link>
+          <Link className="resumen__dato resumen__dato--enlace"
+            to={enlaceMovimientos({ tipo: 'GASTO', ...rangoDelMes(anio, mes) })}>
+            <span className="resumen__dato-rotulo">Salió</span>
+            <span className="resumen__dato-valor negativo">{formatearDinero(balance.gastos)}</span>
+          </Link>
+          {/* El patrimonio no enlaza: es una cifra derivada, no existe "la lista
+              de movimientos de tu patrimonio". */}
+          <div className="resumen__dato">
+            <span className="resumen__dato-rotulo">Patrimonio</span>
+            <span className={`resumen__dato-valor${patrimonio.patrimonioNeto < 0 ? ' negativo' : ''}`}>
+              {formatearDinero(patrimonio.patrimonioNeto)}
+            </span>
+          </div>
+        </div>
+
+        {/*
+          El desglose del patrimonio pasa a un detalle desplegable en vez de
+          ocupar una tarjeta entera. La cifra importa; de qué está hecha importa
+          solo cuando alguien la cuestiona — y entonces tiene que estar.
+        */}
+        <details className="resumen__desglose">
+          <summary>Cómo se calcula el patrimonio</summary>
+          <p>
+            {formatearDinero(patrimonio.activos)} en cuentas −{' '}
+            {formatearDinero(patrimonio.deudaTotal ?? patrimonio.obligaciones)} en deudas.
+            {Number(patrimonio.deudaEnTarjetas ?? 0) > 0 && (
+              <> De la deuda, {formatearDinero(patrimonio.deudaEnTarjetas)} son
+                tarjetas de crédito y {formatearDinero(patrimonio.obligaciones)} son
+                préstamos.</>
+            )}
+          </p>
+        </details>
       </section>
 
       {/* Presupuestos que piden atención (RF-019) */}
@@ -172,6 +235,14 @@ export default function Panel() {
             <Alerta key={p.id} tipo={p.estado === 'EXCEDIDO' ? 'error' : 'aviso'}
               titulo={`${p.categoriaNombre} · ${p.porcentajeConsumido}%`}>
               {p.aviso}
+              {/* RF-049. Antes este aviso era un callejón sin salida: decía que
+                  te pasaste en una categoría y ahí terminaba. La pregunta
+                  siguiente siempre es "¿en qué?", y ahora se responde en un
+                  clic en vez de seis. */}
+              {' '}
+              <Link className="enlace" to={enlaceCategoriaDelMes(p.categoriaId, anio, mes)}>
+                Ver en qué gastaste
+              </Link>
             </Alerta>
           ))}
           <Link className="enlace" to="/presupuestos">Ver todos mis presupuestos</Link>
@@ -193,6 +264,25 @@ export default function Panel() {
         </div>
         <CurvaDelMes ritmo={curva} nombreDelMes={nombreDelMes} />
       </section>
+
+      {/*
+        RF-050. La tendencia de varios meses va después de la curva del mes y
+        antes de la composición: primero "cómo voy este mes", luego "cómo voy
+        comparado con antes", y al final "en qué se fue". De lo urgente a lo
+        explicativo.
+
+        No depende del selector de mes, y el título lo dice para que no parezca
+        que el gráfico ignoró el cambio de período.
+      */}
+      {historico?.meses?.length > 1 && (
+        <section className="bloque" aria-label="Tendencia de los últimos meses">
+          <div className="bloque__cabecera">
+            <h2 className="bloque__titulo">Cómo vienes mes a mes</h2>
+            <span className="bloque__meta">Últimos {historico.meses.length} meses</span>
+          </div>
+          <TendenciaMeses historico={historico} />
+        </section>
+      )}
 
       {/* Composición del gasto (RF-022) */}
       <section className="bloque" aria-label="Composición del gasto">
@@ -220,22 +310,46 @@ export default function Panel() {
               Quitar las barras dejaría el dato solo en un gráfico, y un gráfico
               no se puede leer con un lector de pantalla.
             */}
-            <Dona porciones={gastoPorCategoria.porciones} total={gastoPorCategoria.total} />
+            <Dona porciones={gastoPorCategoria.porciones} total={gastoPorCategoria.total}
+              enlaceDe={(categoriaId) => enlaceCategoriaDelMes(categoriaId, anio, mes)} />
 
             <ul className="barras">
             {gastoPorCategoria.porciones.map((p) => (
               <li key={p.categoriaId} className="barra">
-                <div className="barra__fila">
-                  <span className="barra__nombre">{p.nombre}</span>
-                  <span className="barra__monto">
-                    {formatearDinero(p.monto)} <span className="barra__pct">{p.porcentaje}%</span>
-                  </span>
-                </div>
-                <div className="barra__pista">
-                  {/* El color acompaña, pero el porcentaje siempre está escrito al lado. */}
-                  <div className="barra__relleno"
-                    style={{ width: `${p.porcentaje}%`, background: p.color || 'var(--color-primary-600)' }} />
-                </div>
+                {/*
+                  RF-049. Cada barra abre los movimientos de esa categoría en el
+                  mes que se está mirando. Es el gesto que la gente ya intenta
+                  hacer por instinto en cualquier gráfico de gastos; antes no
+                  pasaba nada al hacer clic.
+                */}
+                <Link className="barra__enlace" to={enlaceCategoriaDelMes(p.categoriaId, anio, mes)}>
+                  <div className="barra__fila">
+                    <span className="barra__nombre">{p.nombre}</span>
+                    <span className="barra__monto">
+                      {formatearDinero(p.monto)} <span className="barra__pct">{p.porcentaje}%</span>
+                    </span>
+                  </div>
+                  <div className="barra__pista">
+                    {/* El color acompaña, pero el porcentaje siempre está escrito al lado. */}
+                    <div className="barra__relleno"
+                      style={{ width: `${p.porcentaje}%`, background: p.color || 'var(--color-primary-600)' }} />
+                  </div>
+                  {/*
+                    RF-050. La comparación por categoría: es la frase que la
+                    investigación señala como la de más efecto, porque apunta a
+                    algo concreto que la persona puede cambiar. Se omite cuando
+                    la variación es cero — repetir "igual que el mes pasado" en
+                    ocho categorías es ruido — y cuando el servidor no la mandó
+                    por no tener con qué comparar (RN-032).
+                  */}
+                  {p.variacion != null && Number(p.variacion) !== 0 && (
+                    <p className={`barra__variacion ${Number(p.variacion) > 0 ? 'negativo' : 'positivo'}`}>
+                      {Number(p.variacion) > 0 ? '▲' : '▼'}{' '}
+                      {formatearDinero(Math.abs(Number(p.variacion)))}
+                      {Number(p.variacion) > 0 ? ' más' : ' menos'} que el mes pasado
+                    </p>
+                  )}
+                </Link>
               </li>
             ))}
             </ul>

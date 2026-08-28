@@ -11,6 +11,16 @@
   --color-primary-500: #0E8368;  /* 4.62:1 */
   --color-primary-100: #DCF2EC;
   --color-success-600: #15803D;  /* 5.02:1 */
+  /*
+    Verde para TEXTO PEQUENO sobre fondos tenidos.
+    Mismo caso que obligo a oscurecer neutral-500: success-600 da 5.02:1 sobre
+    blanco, pero al ponerlo sobre el gris de un elemento resaltado (neutral-200,
+    el hover de una fila) cae a 4.05:1 y deja de cumplir AA. Con este valor
+    cumple sobre los tres fondos: neutral-200 5.33:1, tarjeta 5.94:1 y blanco
+    6.60:1. El 600 se sigue usando para rellenos y barras, donde el minimo
+    aplicable es 3:1 y no 4.5:1.
+  */
+  --color-success-700: #146B34;  /* 6.60:1 sobre blanco */
   --color-success-100: #DCFCE7;
   --color-warning-600: #B45309;  /* 5.02:1 */
   --color-warning-100: #FEF3C7;
