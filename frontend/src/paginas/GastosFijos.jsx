@@ -263,6 +263,19 @@ export default function GastosFijos() {
                 <p className="campo__ayuda">Cada cuál día de la semana se paga.</p>
                 {errores.diaPago && <p className="campo__error" role="alert">! {errores.diaPago}</p>}
               </div>
+            ) : datos.periodicidad === 'QUINCENAL' ? (
+              /*
+                DEF-21. En quincenal se elige el PRIMER pago; el segundo es
+                quince días después y lo calcula el servidor. El tope es 13
+                porque con 14 el segundo caería el 29, que en febrero no existe.
+                Se muestra la segunda fecha mientras se escribe: sin eso el
+                usuario no tiene forma de saber cuándo será.
+              */
+              <Campo id="diaPago" name="diaPago" type="number" inputMode="numeric"
+                etiqueta="Día del primer pago" placeholder="1" min="1" max="13" step="1" required
+                value={datos.diaPago} error={errores.diaPago}
+                ayuda={segundoPagoDe(datos.diaPago)}
+                onChange={(e) => setDatos({ ...datos, diaPago: e.target.value })} />
             ) : (
               <Campo id="diaPago" name="diaPago" type="number" inputMode="numeric"
                 etiqueta="Día de pago" placeholder="1" min="1" max="28" step="1" required
@@ -356,6 +369,18 @@ export default function GastosFijos() {
                     <> · {formatearDinero(g.montoMensual)} al mes</>
                   )}
                 </p>
+                {/*
+                  DEF-21. Las dos fechas del quincenal, escritas. Con una sola
+                  fecha a la vista el compromiso se leía como mensual, mientras
+                  el monto mensual ya contaba dos pagos: la cifra decía una cosa
+                  y el calendario otra.
+                */}
+                {g.periodicidad === 'QUINCENAL' && g.pagosDelMes?.length === 2 && (
+                  <p className="fijo__meta">
+                    Este mes se paga el {formatearFecha(g.pagosDelMes[0])} y el{' '}
+                    {formatearFecha(g.pagosDelMes[1])}
+                  </p>
+                )}
               </div>
 
               <div className="fijo__acciones">
@@ -442,6 +467,20 @@ function equivalenteMensual({ monto, periodicidad }) {
   if (periodicidad === 'SEMANAL') return m * SEMANAS_POR_MES
   if (periodicidad === 'QUINCENAL') return m * 2
   return m
+}
+
+/**
+ * DEF-21. Dice cuándo cae el segundo pago mientras se escribe el primero.
+ *
+ * El servidor lo calcula igual, pero mostrarlo aquí evita que el usuario tenga
+ * que guardar para enterarse de una fecha que no eligió.
+ */
+function segundoPagoDe(dia) {
+  const d = Number(dia)
+  if (!d || d < 1 || d > 13) {
+    return 'Del 1 al 13. El segundo pago es quince días después.'
+  }
+  return `Se paga el ${d} y el ${d + 15} de cada mes.`
 }
 
 /** El backend manda ISO; aquí se muestra como lo lee una persona. */
