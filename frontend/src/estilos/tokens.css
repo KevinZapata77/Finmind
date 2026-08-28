@@ -41,19 +41,36 @@
   --color-neutral-100: #F3F4F6;
 
   /*
-    Tres niveles de superficie, de mas claro a mas oscuro:
+    Tres niveles de superficie. El lienzo es el mas oscuro y las tarjetas el
+    mas claro, que es como funciona la elevacion: lo que esta "encima" recibe
+    mas luz.
 
-      --color-surface    blanco, para los campos de formulario
-      --color-canvas     el fondo de la pagina
-      --color-tarjeta    las tarjetas, un gris apenas mas oscuro que el fondo
+      --color-canvas     el fondo de la pagina, azul muy tenue
+      --color-tarjeta    las tarjetas, blancas, flotando sobre el lienzo
+      --color-surface    los campos de formulario, blancos con borde
 
-    Antes las tarjetas eran blancas sobre un fondo casi blanco y no se
-    distinguian del papel. Ahora la tarjeta es lo mas oscuro de los tres y los
-    campos, que siguen blancos, resaltan dentro de ella.
+    ESTO ESTUVO AL REVES Y SE MIDIO
+    Antes la tarjeta (#F1F3F7) era mas OSCURA que el lienzo (#F7F8FA), con una
+    separacion de 1,045:1 — indistinguible. Las tarjetas se veian hundidas y
+    toda la aplicacion parecia un formulario plano. El intento anterior fue
+    oscurecer la tarjeta, que empeoraba el problema: apilaba gris sobre gris.
+
+    La solucion fue invertir la relacion y dar color al lienzo. Con #DDE7F2 la
+    separacion sube a 1,25:1 y las tarjetas por fin se despegan.
+
+    EFECTO SECUNDARIO QUE CONVIENE SABER
+    Al pasar las tarjetas a blanco, TODO el texto gana contraste, porque el
+    blanco es el mejor fondo posible: success-600 pasa de 4,51:1 a 5,02:1 y
+    neutral-500 de 4,97:1 a 5,52:1. El azul del lienzo se eligio con el texto
+    mas claro que se apoya en el (neutral-700) a 8,24:1, con margen de sobra.
+
+    El azul es tenue a proposito. Un fondo saturado obligaria a revisar la
+    paleta entera y no es lo que pide una aplicacion de finanzas: el color
+    tiene que enmarcar los numeros, no competir con ellos.
   */
   --color-surface:     #FFFFFF;
-  --color-canvas:      #F7F8FA;
-  --color-tarjeta:     #F1F3F7;
+  --color-canvas:      #DDE7F2;  /* tarjeta blanca encima: 1.25:1 */
+  --color-tarjeta:     #FFFFFF;
 
   /* Tipografía */
   --font-familia: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
