@@ -184,23 +184,45 @@ public class ServicioGastosFijos {
     }
 
     /**
-     * DEF-19. El rango del dia depende de la periodicidad: un dia de la
-     * semana va de 1 a 7, un dia del mes va de 1 a 28. La anotacion del DTO
-     * solo puede exigir un rango fijo (1-28), asi que el caso semanal se
-     * revisa aqui, con la periodicidad ya normalizada.
+     * DEF-19 y DEF-21. El rango del dia depende de la periodicidad y son tres
+     * rangos distintos:
+     *
+     *     MENSUAL     dia del mes,         1 a 28
+     *     QUINCENAL   primer pago del mes, 1 a 13
+     *     SEMANAL     dia de la semana,    1 a 7
+     *
+     * La anotacion del DTO solo puede exigir un rango fijo, asi que la
+     * comprobacion real vive aqui, con la periodicidad ya normalizada.
+     *
+     * El tope del quincenal es 13 y no 15 porque el segundo pago cae quince
+     * dias despues: con 13 el segundo es el 28, que existe en todos los meses;
+     * con 14 seria el 29 y en febrero no existe.
      */
     private Short diaPagoValido(String periodicidad, Short diaPago) {
         if (diaPago == null) {
             throw new DiaDePagoInvalidoException("El dia de pago es obligatorio");
         }
-        if ("SEMANAL".equals(periodicidad)) {
-            if (diaPago < 1 || diaPago > 7) {
-                throw new DiaDePagoInvalidoException(
-                        "En un compromiso semanal el dia va de 1 (lunes) a 7 (domingo)");
+        switch (periodicidad) {
+            case "SEMANAL" -> {
+                if (diaPago < 1 || diaPago > 7) {
+                    throw new DiaDePagoInvalidoException(
+                            "En un compromiso semanal el dia va de 1 (lunes) a 7 (domingo)");
+                }
             }
-        } else if (diaPago < 1 || diaPago > 28) {
-            throw new DiaDePagoInvalidoException(
-                    "El dia del mes va de 1 a 28, para que exista en cualquier mes");
+            case "QUINCENAL" -> {
+                if (diaPago < 1 || diaPago > GastoFijo.MAXIMO_DIA_QUINCENAL) {
+                    throw new DiaDePagoInvalidoException(
+                            "En un compromiso quincenal el primer pago va del 1 al "
+                            + GastoFijo.MAXIMO_DIA_QUINCENAL
+                            + ". El segundo se calcula solo, quince dias despues");
+                }
+            }
+            default -> {
+                if (diaPago < 1 || diaPago > 28) {
+                    throw new DiaDePagoInvalidoException(
+                            "El dia del mes va de 1 a 28, para que exista en cualquier mes");
+                }
+            }
         }
         return diaPago;
     }
