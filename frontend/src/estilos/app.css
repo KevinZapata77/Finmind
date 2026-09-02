@@ -95,7 +95,10 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .vacio__titulo { font: var(--font-titulo); margin: 0 0 var(--space-1); }
 .vacio__texto { color: var(--color-neutral-500); margin: 0 auto var(--space-2); max-width: 52ch; }
 .vacio__meta { font: var(--font-ayuda); color: var(--color-neutral-500); margin: 0; }
-.estado-carga { padding: var(--space-4); color: var(--color-neutral-500); }
+/* neutral-700 y no 500: este texto se apoya en el lienzo azul, donde el 500
+   cae a 4,42:1 y no cumple AA. Sobre blanco el 500 estaria bien, pero aqui no
+   hay tarjeta debajo. */
+.estado-carga { padding: var(--space-4); color: var(--color-neutral-700); }
 
 /* ---------- responsive: móvil < 768 px ---------- */
 @media (max-width: 767px) {
@@ -374,7 +377,9 @@ a { color: var(--color-primary-600); font-weight: 600; }
   margin-bottom: var(--space-2);
 }
 
-.contenido__bajada { font: var(--font-ayuda); color: var(--color-neutral-500); margin: 0 0 var(--space-6); }
+/* Mismo motivo que .estado-carga: va sobre el lienzo azul, no sobre tarjeta.
+   Y a 11px el gris claro era lo mas debil de la pantalla. */
+.contenido__bajada { font: var(--font-ayuda); color: var(--color-neutral-700); margin: 0 0 var(--space-6); }
 
 .pagina__resumen { margin-bottom: var(--space-4); }
 
@@ -382,13 +387,22 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .navegacion { display: flex; flex-direction: column; gap: 2px; }
 
 .navegacion__item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radio-md);
   color: var(--color-neutral-300);
   font: var(--font-cuerpo);
   text-decoration: none;
 }
+
+/* El ícono va un punto más apagado que la etiqueta: acompaña, no compite.
+   flex:none evita que se comprima cuando el texto es largo, como en
+   "Créditos y préstamos". */
+.navegacion__icono { flex: none; opacity: .75; }
+.navegacion__item:hover .navegacion__icono,
+.navegacion__item--activo .navegacion__icono { opacity: 1; }
 
 .navegacion__item:hover { background: var(--color-neutral-700); color: var(--color-surface); }
 
@@ -991,12 +1005,21 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 /* --- RF-050: la comparación con el mes pasado --- */
 .comparacion {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-2);
+  align-items: start;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radio-md);
   border-left: 3px solid var(--color-neutral-400);
   background: var(--color-neutral-100);
   margin-bottom: var(--space-4);
 }
+/* La flecha ocupa las dos filas del texto, alineada con la primera. */
+.comparacion__icono { grid-row: 1 / span 2; margin-top: 2px; }
+.comparacion--sube .comparacion__icono { color: var(--color-warning-600); }
+.comparacion--baja .comparacion__icono { color: var(--color-success-700); }
+.comparacion--igual .comparacion__icono { color: var(--color-neutral-700); }
 /* Gastar más que el mes pasado no es un error: es un dato. Por eso el borde es
    ámbar y no rojo — el rojo está reservado para lo que ya salió mal, y usarlo
    aquí haría que el usuario dejara de distinguir un aviso de una alarma. */

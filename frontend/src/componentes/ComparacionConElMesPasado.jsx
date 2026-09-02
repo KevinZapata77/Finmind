@@ -1,4 +1,5 @@
 import { formatearDinero } from '../api/cliente'
+import { IconoSube, IconoBaja, IconoIgual } from './Iconos'
 
 /**
  * "Vas gastando X más que a esta altura del mes pasado" (RF-050 / RN-032).
@@ -27,9 +28,14 @@ export default function ComparacionConElMesPasado({ comparacion }) {
   // "gastaste lo mismo: nada" no le sirve a nadie.
   if (igual && Number(comparacion.gastoEsteMes) === 0) return null
 
+  // El ícono repite lo que la frase ya dice. Es redundancia a propósito: da
+  // la lectura de un vistazo sin que el color sea la única señal (RNF-008).
+  const Flecha = igual ? IconoIgual : gastaMas ? IconoSube : IconoBaja
+
   return (
     <section className={`comparacion comparacion--${igual ? 'igual' : gastaMas ? 'sube' : 'baja'}`}
       aria-label="Comparación con el mes pasado">
+      <Flecha className="comparacion__icono" size={22} />
       <p className="comparacion__titular">
         {igual ? (
           <>Vas gastando <strong>lo mismo</strong> que a esta altura del mes pasado.</>
