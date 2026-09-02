@@ -580,6 +580,31 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 .barra__relleno { height: 100%; border-radius: 5px; transition: width .25s ease; }
 
+/* RF-052. Marca de ritmo: dónde debería ir el consumo a esta altura del
+   período. La pista necesita position:relative para poder anclarla, y algo
+   más de alto para que la marca sobresalga y no se confunda con el relleno. */
+.barra__pista--con-marca { position: relative; overflow: visible; }
+.barra__marca {
+  position: absolute;
+  top: -3px; bottom: -3px;
+  width: 2px;
+  /* left viene en línea con el porcentaje; este translate la centra sobre el
+     punto exacto en vez de dejarla empezando ahí. */
+  transform: translateX(-1px);
+  background: var(--color-neutral-900);
+  border-radius: 1px;
+}
+/* La marca es negra y no de color: tiene que leerse encima del relleno sea
+   verde, ámbar o rojo, y un color propio competiría con el semáforo. */
+
+.presupuesto__ritmo {
+  font: var(--font-ayuda);
+  margin: 6px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+.presupuesto__ritmo--bien { color: var(--color-success-700); }
+.presupuesto__ritmo--alerta { color: var(--color-warning-600); }
+
 /* RF-049. Aviso de filtro heredado de otra pantalla.
    Va en verde de marca y no en ámbar: llegar aquí con un filtro puesto no es un
    problema ni un error, es lo que el usuario pidió. El ámbar está reservado
@@ -618,6 +643,25 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .totales__nota { margin-left: auto; color: var(--color-neutral-500); }
 .positivo { color: var(--color-success-600); }
 .negativo { color: var(--color-error-600); }
+
+/* RF-053. Agrupación por día en Movimientos.
+   El encabezado es pegajoso: al bajar por una lista larga, saber en qué día
+   se está mirando es justo lo que se pierde. */
+.dia { margin-bottom: var(--space-3); }
+.dia__cabecera {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-2);
+  padding: 6px var(--space-2);
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-neutral-300);
+  margin-bottom: 2px;
+}
+.dia__fecha {
+  font: var(--font-etiqueta); color: var(--color-neutral-700);
+  margin: 0; text-transform: none;
+}
+.dia__neto { font: var(--font-etiqueta); font-variant-numeric: tabular-nums; }
 
 /* Movimientos */
 .lista-movimientos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }

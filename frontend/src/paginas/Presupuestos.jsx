@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, enlaceMovimientos, ErrorApi, formatearDinero, MESES } from '../api/cliente'
+import { api, enlaceMovimientos, ErrorApi, formatearDinero, MESES, ritmoDelPeriodo } from '../api/cliente'
 import Layout from '../componentes/Layout'
 import SelectorDeMes from '../componentes/SelectorDeMes'
 import Campo from '../componentes/Campo'
@@ -204,7 +204,15 @@ export default function Presupuestos() {
                   </span>
                 </div>
 
-                <div className="barra__pista">
+                {/*
+                  RF-052. La barra con su marca de ritmo.
+
+                  Una barra al 60% no dice nada sola: el día 10 es alarma y el
+                  día 27 es buena noticia. La marca señala dónde deberías ir
+                  hoy, y el texto de abajo lo dice en palabras — porque una
+                  línea sin explicación se lee como un adorno.
+                */}
+                <div className="barra__pista barra__pista--con-marca">
                   <div className="barra__relleno"
                     style={{
                       width: `${Math.min(Number(p.porcentajeConsumido), 100)}%`,
@@ -212,7 +220,16 @@ export default function Presupuestos() {
                         : p.estado === 'EN_ALERTA' ? 'var(--color-warning-600)'
                         : 'var(--color-primary-600)',
                     }} />
+                  {ritmoDe(p) != null && (
+                    <span className="barra__marca" style={{ left: `${ritmoDe(p) * 100}%` }}
+                      aria-hidden="true" />
+                  )}
                 </div>
+                {lecturaDeRitmo(p) && (
+                  <p className={`presupuesto__ritmo presupuesto__ritmo--${lecturaDeRitmo(p).tono}`}>
+                    {lecturaDeRitmo(p).texto}
+                  </p>
+                )}
 
                 <div className="presupuesto__fila">
                   <span className="presupuesto__cifras">
@@ -254,4 +271,46 @@ export default function Presupuestos() {
       )}
     </Layout>
   )
+}
+
+/** RF-052. Fracción del período ya transcurrida, o null si no está en curso. */
+const ritmoDe = (p) => ritmoDelPeriodo(p.desde, p.hasta)
+
+/**
+ * RF-052. Traduce la distancia entre lo gastado y lo que tocaría a esta altura.
+ *
+ * POR QUÉ HAY UN MARGEN DE 5 PUNTOS
+ * Sin él, casi ningún presupuesto estaría "en ritmo": el consumo real nunca
+ * cae exactamente sobre la línea, así que la pantalla estaría siempre
+ * regañando o siempre felicitando por diferencias de un punto. Cinco puntos es
+ * lo que separa "vas bien" de una desviación que vale la pena mirar.
+ *
+ * Devuelve null cuando no hay nada útil que decir: período cerrado, o ya
+ * excedido — ahí el problema no es el ritmo, es que se pasó, y la insignia de
+ * arriba ya lo grita.
+ */
+function lecturaDeRitmo(p) {
+  const ritmo = ritmoDe(p)
+  if (ritmo == null) return null
+  if (p.estado === 'EXCEDIDO') return null
+
+  const consumido = Number(p.porcentajeConsumido)
+  const esperado = ritmo * 100
+  const diferencia = Math.round(consumido - esperado)
+  const MARGEN = 5
+
+  if (Math.abs(diferencia) <= MARGEN) {
+    return { tono: 'bien', texto: 'Vas justo en tu ritmo para lo que va del período.' }
+  }
+  if (diferencia > 0) {
+    return {
+      tono: 'alerta',
+      texto: `Vas ${diferencia} puntos por delante de tu ritmo: a esta altura tocaría `
+             + `${Math.round(esperado)}% y llevas ${Math.round(consumido)}%.`,
+    }
+  }
+  return {
+    tono: 'bien',
+    texto: `Vas ${Math.abs(diferencia)} puntos por debajo de tu ritmo. Buen margen.`,
+  }
 }

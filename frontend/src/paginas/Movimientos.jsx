@@ -8,6 +8,50 @@ import Alerta from '../componentes/Alerta'
 
 const VACIO = { cuentaId: '', categoriaId: '', monto: '', fecha: hoyISO(), descripcion: '' }
 
+/**
+ * RF-053. Parte la página en días, conservando el orden que trae el servidor.
+ *
+ * No reordena nada: el backend ya devuelve por fecha descendente, así que
+ * recorrer y cortar cuando cambia la fecha basta. Ordenar aquí otra vez sería
+ * una segunda fuente de verdad sobre el orden, y las dos se acabarían
+ * separando.
+ *
+ * El neto suma ingresos y resta todo lo demás — gastos y transferencias que
+ * salen— igual que el balance.
+ */
+function agruparPorDia(movimientos) {
+  const dias = []
+  for (const m of movimientos) {
+    let dia = dias[dias.length - 1]
+    if (!dia || dia.fecha !== m.fecha) {
+      dia = { fecha: m.fecha, movimientos: [], neto: 0 }
+      dias.push(dia)
+    }
+    dia.movimientos.push(m)
+    dia.neto += m.tipo === 'INGRESO' ? Number(m.monto) : -Number(m.monto)
+  }
+  return dias
+}
+
+/** "Miércoles 12 de agosto", o "Hoy" y "Ayer" cuando aplica. */
+function formatearDiaLargo(iso) {
+  const [a, m, d] = iso.split('-').map(Number)
+  const fecha = new Date(a, m - 1, d)
+  const hoy = new Date()
+  const soloDia = (f) => new Date(f.getFullYear(), f.getMonth(), f.getDate()).getTime()
+  const DIA = 24 * 60 * 60 * 1000
+
+  // "Hoy" y "Ayer" se leen más rápido que la fecha, y son los dos días que
+  // más se consultan.
+  if (soloDia(fecha) === soloDia(hoy)) return 'Hoy'
+  if (soloDia(fecha) === soloDia(hoy) - DIA) return 'Ayer'
+
+  const texto = fecha.toLocaleDateString('es-CO', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  })
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
+
 /** Los filtros que viven en la URL (RF-049). */
 const CAMPOS_FILTRO = ['desde', 'hasta', 'cuentaId', 'categoriaId', 'tipo']
 
@@ -279,30 +323,52 @@ export default function Movimientos() {
         </div>
       ) : (
         <>
-          <ul className="lista-movimientos">
-            {pagina.contenido.map((m) => (
-              <li key={m.id} className="movimiento">
-                <span className="movimiento__punto" aria-hidden="true"
-                  style={{ background: m.categoriaColor || 'var(--color-neutral-300)' }} />
-                <div className="movimiento__datos">
-                  <span className="movimiento__descripcion">
-                    {m.descripcion || m.categoriaNombre}
-                  </span>
-                  <span className="movimiento__meta">
-                    {m.fecha} · {m.categoriaNombre} · {m.cuentaNombre}
-                  </span>
-                </div>
-                {/* El signo va escrito, no solo el color. */}
-                <span className={`movimiento__monto ${m.tipo === 'INGRESO' ? 'positivo' : 'negativo'}`}>
-                  {m.tipo === 'INGRESO' ? '+' : '−'} {formatearDinero(m.monto)}
+          {/*
+            RF-053. Los movimientos van agrupados por día, con el neto del día
+            en el encabezado.
+
+            Antes eran veinte filas seguidas repitiendo la misma fecha dentro
+            del texto pequeño de cada una. La fecha es lo que la gente usa para
+            orientarse en una lista de movimientos —"¿qué gasté el sábado?"— y
+            estaba escondida como un dato más. Sacarla a un encabezado y sumar
+            el día responde esa pregunta sin leer fila por fila.
+          */}
+          {agruparPorDia(pagina.contenido).map((dia) => (
+            <section key={dia.fecha} className="dia">
+              <header className="dia__cabecera">
+                <h2 className="dia__fecha">{formatearDiaLargo(dia.fecha)}</h2>
+                <span className={`dia__neto ${dia.neto < 0 ? 'negativo' : dia.neto > 0 ? 'positivo' : ''}`}>
+                  {dia.neto > 0 ? '+' : dia.neto < 0 ? '−' : ''} {formatearDinero(Math.abs(dia.neto))}
                 </span>
-                <div className="movimiento__acciones">
-                  <button type="button" className="enlace" onClick={() => abrirEdicion(m)}>Editar</button>
-                  <button type="button" className="enlace" onClick={() => borrar(m)}>Borrar</button>
-                </div>
-              </li>
-            ))}
-          </ul>
+              </header>
+
+              <ul className="lista-movimientos">
+                {dia.movimientos.map((m) => (
+                  <li key={m.id} className="movimiento">
+                    <span className="movimiento__punto" aria-hidden="true"
+                      style={{ background: m.categoriaColor || 'var(--color-neutral-300)' }} />
+                    <div className="movimiento__datos">
+                      <span className="movimiento__descripcion">
+                        {m.descripcion || m.categoriaNombre}
+                      </span>
+                      {/* La fecha ya no va aquí: la dice el encabezado del día. */}
+                      <span className="movimiento__meta">
+                        {m.categoriaNombre} · {m.cuentaNombre}
+                      </span>
+                    </div>
+                    {/* El signo va escrito, no solo el color. */}
+                    <span className={`movimiento__monto ${m.tipo === 'INGRESO' ? 'positivo' : 'negativo'}`}>
+                      {m.tipo === 'INGRESO' ? '+' : '−'} {formatearDinero(m.monto)}
+                    </span>
+                    <div className="movimiento__acciones">
+                      <button type="button" className="enlace" onClick={() => abrirEdicion(m)}>Editar</button>
+                      <button type="button" className="enlace" onClick={() => borrar(m)}>Borrar</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
 
           {pagina.totalPaginas > 1 && (
             <nav className="paginacion" aria-label="Paginación">

@@ -317,6 +317,47 @@ export function describirFiltro(filtros, cuentas = [], categorias = []) {
   return partes.join(' ')
 }
 
+// ====================================================== RF-052: marca de ritmo
+//
+// Qué fracción del período ya transcurrió, de 0 a 1.
+//
+// POR QUÉ ESTO CAMBIA UNA BARRA DE PRESUPUESTO
+// Una barra al 60% no dice nada por sí sola: el día 10 es una alarma y el día
+// 27 es una buena noticia, y hoy las dos se ven idénticas. Sabiendo en qué
+// punto del período estamos, la barra pasa de informar a avisar.
+//
+// Se calcula con el `desde` y el `hasta` del propio presupuesto, no con el día
+// del mes: un presupuesto quincenal o semanal cubre un tramo más corto, y usar
+// el mes entero pondría la marca en el lugar equivocado justo en esos casos.
+//
+// Devuelve null cuando el período no está en curso —ya terminó o no ha
+// empezado—, porque "deberías ir por el 40%" sobre un mes cerrado no significa
+// nada. Sin marca es mejor que con una marca falsa.
+export function ritmoDelPeriodo(desde, hasta, hoy = new Date()) {
+  if (!desde || !hasta) return null
+
+  // Se parte la fecha a mano en vez de usar new Date(iso): esa forma
+  // interpreta la cadena como UTC y en Colombia (UTC-5) devuelve el día
+  // anterior, corriendo la marca un día entero.
+  const aFecha = (iso) => {
+    const [a, m, d] = iso.split('-').map(Number)
+    return new Date(a, m - 1, d)
+  }
+
+  const inicio = aFecha(desde)
+  const fin = aFecha(hasta)
+  const ahora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
+
+  if (ahora < inicio || ahora > fin) return null
+
+  const DIA = 24 * 60 * 60 * 1000
+  // +1 en los dos lados: un período de un solo día está transcurrido al 100%,
+  // no al 0%.
+  const total = Math.round((fin - inicio) / DIA) + 1
+  const corridos = Math.round((ahora - inicio) / DIA) + 1
+  return corridos / total
+}
+
 /** RN-020: la tarjeta de credito no es dinero disponible, es deuda. */
 export const ES_PASIVO = (tipo) => tipo === 'TARJETA_CREDITO'
 
