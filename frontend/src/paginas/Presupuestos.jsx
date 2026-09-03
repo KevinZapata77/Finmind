@@ -165,7 +165,17 @@ export default function Presupuestos() {
         <Boton onClick={abrirNuevo}>Nuevo presupuesto</Boton>
       </div>
     }>
-      <p className="contenido__bajada">{MESES[mes - 1]} de {anio}</p>
+      {/*
+        La bajada explica el modelo en una línea. Sin esto, el selector de mes
+        se lee como un filtro sobre una lista permanente, y entonces encontrar
+        octubre vacío parece un error. Es un tope que te pones para un mes
+        concreto, y decirlo evita la confusión antes de que ocurra.
+      */}
+      <p className="contenido__bajada">
+        Tus topes de gasto para <strong>{MESES[mes - 1]} de {anio}</strong>. Cada mes
+        tiene los suyos, así puedes mirar atrás y ver qué límite regía y cuánto
+        gastaste de verdad.
+      </p>
 
       {error && <Alerta tipo="error" titulo="No pudimos cargar tus presupuestos">{error}</Alerta>}
 
@@ -238,20 +248,24 @@ export default function Presupuestos() {
             Ponle un límite a una categoría y FinMind te avisa antes de que te pases.
           </p>
           <div className="acciones acciones--centradas">
-            <Boton onClick={abrirNuevo}>Crear un presupuesto</Boton>
             {/*
-              RF-054. Es el momento exacto en que hace falta: el mes está
-              vacío porque los presupuestos no se arrastran solos, y armar
-              ocho categorías a mano cada mes es lo que hace que la gente
-              deje de usarlos.
+              RF-054. Traer los del mes anterior va PRIMERO y como acción
+              principal: quien ya usó la aplicación el mes pasado casi siempre
+              quiere los mismos topes, y armar ocho categorías a mano otra vez
+              es lo que hace que la gente deje de usar los presupuestos.
+
+              El texto dice "seguir con" y no "copiar": copiar suena a
+              duplicado y a parche. Lo que el usuario quiere es continuar con
+              sus mismos límites, y la palabra tiene que decir eso.
             */}
-            <Boton tipo="secundario" onClick={copiarDelMesAnterior} cargando={copiando}>
-              Copiar los de {MESES[(mes === 1 ? 12 : mes - 1) - 1]}
+            <Boton onClick={copiarDelMesAnterior} cargando={copiando}>
+              Seguir con mis topes de {MESES[(mes === 1 ? 12 : mes - 1) - 1]}
             </Boton>
+            <Boton tipo="secundario" onClick={abrirNuevo}>Empezar de cero</Boton>
           </div>
           <p className="vacio__meta">
-            Los presupuestos son de cada mes, para que puedas mirar atrás y ver
-            qué límite regía. Copiarlos te deja ajustar las cifras antes de empezar.
+            Traerlos te deja ajustar las cifras antes de arrancar el mes, que es
+            justo cuando conviene revisarlas.
           </p>
         </div>
       ) : (
