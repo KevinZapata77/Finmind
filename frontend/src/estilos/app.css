@@ -4,18 +4,22 @@ body { margin: 0; font: var(--font-cuerpo); color: var(--color-neutral-900); bac
 a { color: var(--color-primary-600); font-weight: 600; }
 
 /* Foco visible en todo elemento interactivo: criterio de accesibilidad, no decoración */
-:focus-visible { outline: 3px solid var(--color-primary-100); outline-offset: 2px; border-radius: var(--radio-sm); }
+/* El anillo va en teal brillante, no en el tinte: al invertir el tema
+   primary-100 paso de ser un verde claro a un verde casi negro, y el foco
+   quedaba invisible sobre el fondo oscuro. Un foco que no se ve deja la
+   aplicacion inusable con teclado. */
+:focus-visible { outline: 3px solid var(--color-primary-700); outline-offset: 2px; border-radius: var(--radio-sm); }
 
 /* ---------- pantallas de autenticación (UI-001, UI-002) ---------- */
 .pantalla-auth { display: grid; grid-template-columns: 40% 60%; min-height: 100vh; }
-.pantalla-auth__lateral { background: var(--color-primary-700); color: var(--color-surface);
+.pantalla-auth__lateral { background: var(--color-barra); color: var(--color-neutral-900);
   padding: var(--space-6); display: flex; flex-direction: column; justify-content: center; }
 .pantalla-auth__lema { font: var(--font-display); font-size: 34px; margin: 0 0 var(--space-2); }
-.pantalla-auth__bajada { color: var(--color-primary-100); margin: 0; max-width: 34ch; }
+.pantalla-auth__bajada { color: var(--color-neutral-700); margin: 0; max-width: 34ch; }
 .pantalla-auth__panel { display: flex; align-items: center; justify-content: center; padding: var(--space-3); }
 
 .marca { display: flex; align-items: center; gap: var(--space-1); font: var(--font-seccion);
-  color: var(--color-surface); margin-bottom: var(--space-6); }
+  color: var(--color-neutral-900); margin-bottom: var(--space-6); }
 .marca--clara { margin-bottom: var(--space-4); }
 .marca__logo { display: grid; place-items: center; width: 30px; height: 30px; border-radius: var(--radio-sm);
   background: var(--color-primary-500); font-weight: 700; }
@@ -44,14 +48,14 @@ a { color: var(--color-primary-600); font-weight: 600; }
 /* ---------- botones ---------- */
 .boton { font: var(--font-cuerpo); font-weight: 600; padding: 12px 16px; border-radius: var(--radio-md);
   border: 1px solid transparent; cursor: pointer; }
-.boton--primario { background: var(--color-primary-600); color: var(--color-surface); }
+.boton--primario { background: var(--color-primary-600); color: var(--color-sobre-lleno); }
 .boton--primario:hover:not(:disabled) { background: var(--color-primary-700); }
 .boton--secundario { background: var(--color-surface); color: var(--color-neutral-700); border-color: var(--color-neutral-300); }
 .boton--peligro { background: var(--color-surface); color: var(--color-error-600); border-color: var(--color-error-600); }
 .boton:disabled { background: var(--color-neutral-200); color: var(--color-neutral-500); cursor: not-allowed; }
 .enlace-boton { background: none; border: none; padding: 0; font: var(--font-ayuda); font-weight: 600;
   color: var(--color-primary-600); cursor: pointer; text-decoration: underline; }
-.enlace-boton--claro { color: var(--color-neutral-300); }
+.enlace-boton--claro { color: var(--color-texto-barra); }
 
 /* ---------- alertas: icono y texto, nunca solo color ---------- */
 .alerta { display: flex; gap: var(--space-1); padding: 12px; border-radius: var(--radio-md); border: 1px solid; }
@@ -66,7 +70,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .fuerza { background: var(--color-neutral-100); border-radius: var(--radio-md); padding: 10px 12px;
   display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
 .fuerza__rotulo { font: var(--font-ayuda); font-weight: 600; color: var(--color-neutral-700); grid-column: 1 / -1; }
-.fuerza__barra { height: 6px; background: var(--color-neutral-300); border-radius: 3px; overflow: hidden; }
+.fuerza__barra { height: 6px; background: var(--color-neutral-200); border-radius: 3px; overflow: hidden; }
 .fuerza__relleno { height: 100%; border-radius: 3px; }
 .fuerza__relleno--error { background: var(--color-error-600); }
 .fuerza__relleno--aviso { background: var(--color-warning-600); }
@@ -92,7 +96,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
    ancho. El alto fijo en 100vh es lo que permite que el pie se vaya al fondo
    y que, si algún día el menú crece, se desplace solo por dentro. */
 .barra-lateral {
-  background: var(--color-neutral-900); color: var(--color-surface);
+  background: var(--color-barra); color: var(--color-neutral-900);
   padding: var(--space-3) var(--space-2);
   display: flex; flex-direction: column;
   position: sticky; top: 0;
@@ -100,13 +104,32 @@ a { color: var(--color-primary-600); font-weight: 600; }
   overflow-y: auto;
 }
 .navegacion { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.navegacion__item { padding: 10px 14px; border-radius: var(--radio-md); color: var(--color-neutral-300);
+.navegacion__item { padding: 10px 14px; border-radius: var(--radio-md); color: var(--color-texto-barra);
   text-decoration: none; font: var(--font-cuerpo); }
-.navegacion__item--activo { background: var(--color-primary-700); color: var(--color-surface); font-weight: 600; }
+.navegacion__item--activo { background: var(--color-primary-700); color: var(--color-sobre-lleno); font-weight: 600; }
 .navegacion__item--inactivo { color: var(--color-neutral-500); }
-.barra-lateral__pie { border-top: 1px solid var(--color-neutral-700); padding-top: var(--space-2); }
+.barra-lateral__pie { border-top: 1px solid var(--color-neutral-400); padding-top: var(--space-2); }
 .barra-lateral__usuario { font: var(--font-ayuda); font-weight: 600; margin: 0 0 4px; }
 .contenido { padding: var(--space-3); }
+
+/* ------------------------------------------- Panel en dos columnas
+   Contenido a la izquierda, riel de avisos a la derecha.
+
+   El riel se queda pegado arriba mientras el contenido se desplaza: los
+   avisos son lo que hay que tener presente mientras se mira todo lo demás,
+   y si suben con la página dejan de cumplir esa función.
+
+   300px es el ancho mínimo para que un aviso de dos líneas no se parta en
+   cinco. Por debajo de 1100px de ventana el riel se va abajo: partir el
+   ancho en dos haría ilegibles las dos columnas. */
+.panel { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--space-3); align-items: start; }
+.panel__principal { min-width: 0; }
+.panel__riel { position: sticky; top: var(--space-3); }
+
+@media (max-width: 1100px) {
+  .panel { grid-template-columns: 1fr; }
+  .panel__riel { position: static; }
+}
 .contenido__titulo { font: var(--font-titulo); margin: 0 0 var(--space-3); }
 .vacio__titulo { font: var(--font-titulo); margin: 0 0 var(--space-1); }
 .vacio__texto { color: var(--color-neutral-500); margin: 0 auto var(--space-2); max-width: 52ch; }
@@ -223,7 +246,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--color-neutral-300);
+  background: var(--color-neutral-400);
 }
 
 .captcha { margin: var(--space-4) 0; min-height: 65px; }
@@ -418,7 +441,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radio-md);
-  color: var(--color-neutral-300);
+  color: var(--color-texto-barra);
   font: var(--font-cuerpo);
   text-decoration: none;
 }
@@ -430,11 +453,11 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .navegacion__item:hover .navegacion__icono,
 .navegacion__item--activo .navegacion__icono { opacity: 1; }
 
-.navegacion__item:hover { background: var(--color-neutral-700); color: var(--color-surface); }
+.navegacion__item:hover { background: var(--color-neutral-200); color: var(--color-neutral-900); }
 
 .navegacion__item--activo {
   background: var(--color-primary-700);
-  color: var(--color-surface);
+  color: var(--color-sobre-lleno);
   font-weight: 600;
 }
 
@@ -442,12 +465,12 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 .usuario__avatar {
   width: 32px; height: 32px; border-radius: 16px;
-  background: var(--color-primary-500); color: var(--color-surface);
+  background: var(--color-primary-500); color: var(--color-sobre-lleno);
   display: flex; align-items: center; justify-content: center;
   font: var(--font-etiqueta); font-weight: 700;
 }
 
-.usuario__nombre { font: var(--font-ayuda); color: var(--color-surface); margin: 0; font-weight: 600; }
+.usuario__nombre { font: var(--font-ayuda); color: var(--color-neutral-900); margin: 0; font-weight: 600; }
 
 /* Tarjetas de dato */
 .tarjetas {
@@ -492,6 +515,37 @@ a { color: var(--color-primary-600); font-weight: 600; }
   padding: var(--space-4);
   margin-bottom: var(--space-4);
 }
+
+/* ------------------------------------- Bordes semánticos en las tarjetas
+   El borde toma el color de lo que la tarjeta significa: teal para lo que
+   queda, verde para lo que entró, rojo para lo que salió, ámbar para lo que
+   pide atención.
+
+   Sobre fondo oscuro el borde de color hace un trabajo que en tema claro
+   hacía la sombra: separa la tarjeta del fondo y de paso la clasifica antes
+   de leer una sola palabra. Es lo que distingue un tablero de una lista de
+   cajas grises.
+
+   El borde NO es la única señal: cada tarjeta lleva su rótulo escrito y su
+   cifra con signo, así que quien no distinga los colores no pierde nada
+   (RNF-008). */
+.tarjeta--neutra  { border-color: var(--color-neutral-400); }
+.tarjeta--positiva { border-color: var(--color-success-600); }
+.tarjeta--negativa { border-color: var(--color-error-600); }
+.tarjeta--aviso    { border-color: var(--color-warning-600); }
+.tarjeta--marca    { border-color: var(--color-primary-600); }
+
+/* El chip del ícono: un cuadrado redondeado con el tinte de su color. Da
+   un punto de entrada visual a la tarjeta sin agregar texto. */
+.chip-icono {
+  width: 30px; height: 30px; border-radius: var(--radio-md);
+  display: grid; place-items: center;
+  margin-bottom: var(--space-2);
+}
+.chip-icono--positiva { background: var(--color-success-100); color: var(--color-success-700); }
+.chip-icono--negativa { background: var(--color-error-100); color: var(--color-error-600); }
+.chip-icono--aviso    { background: var(--color-warning-100); color: var(--color-warning-600); }
+.chip-icono--marca    { background: var(--color-primary-100); color: var(--color-primary-700); }
 .resumen__rotulo {
   font: var(--font-etiqueta); color: var(--color-neutral-700);
   margin: 0 0 2px;
@@ -765,7 +819,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   display: inline-block;
   padding: var(--space-3) var(--space-4);
   background: var(--color-primary-600);
-  color: var(--color-surface);
+  color: var(--color-sobre-lleno);
   border-radius: var(--radio-md);
   font: var(--font-cuerpo);
   font-weight: 600;
@@ -921,7 +975,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   border: 0; border-radius: var(--radio-sm); cursor: pointer;
 }
 
-.atajo:hover { background: var(--color-primary-500); color: var(--color-surface); }
+.atajo:hover { background: var(--color-primary-500); color: var(--color-sobre-lleno); }
 
 /* Tira de resumen: tres datos en una linea, no tres tarjetas altas. */
 .tira {
@@ -1029,7 +1083,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   border: 1px solid var(--color-primary-600); border-radius: var(--radio-md);
   white-space: nowrap;
 }
-.aviso__accion:hover { background: var(--color-primary-600); color: var(--color-surface); }
+.aviso__accion:hover { background: var(--color-primary-600); color: var(--color-sobre-lleno); }
 
 /* --- Curva del mes --- */
 .grafico {

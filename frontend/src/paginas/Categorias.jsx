@@ -5,7 +5,7 @@ import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
 
-const VACIA = { nombre: '', tipo: 'GASTO', icono: '', colorHex: '#0E8368' }
+const VACIA = { nombre: '', tipo: 'GASTO', icono: '', colorHex: '#2DD4BF' }
 
 /** UI-015 — Categorías. Implementa HU-008, HU-009 / RF-009 a RF-011. */
 export default function Categorias() {
@@ -41,7 +41,7 @@ export default function Categorias() {
     // El tipo no se edita: si una categoría de GASTO pasara a INGRESO, todos los
     // movimientos ya registrados con ella quedarían contados al revés.
     setEditando(c.id)
-    setDatos({ nombre: c.nombre, tipo: c.tipo, icono: c.icono ?? '', colorHex: c.colorHex ?? '#0E8368' })
+    setDatos({ nombre: c.nombre, tipo: c.tipo, icono: c.icono ?? '', colorHex: c.colorHex ?? '#2DD4BF' })
     setErrores({}); setErrorForm(null); setAbierto(true)
   }
 

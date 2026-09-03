@@ -10,6 +10,7 @@ import Dona from '../componentes/Dona'
 import CurvaDelMes from '../componentes/CurvaDelMes'
 import TendenciaMeses from '../componentes/TendenciaMeses'
 import ComparacionConElMesPasado from '../componentes/ComparacionConElMesPasado'
+import { IconoDinero, IconoAviso } from '../componentes/Iconos'
 
 /** UI-003 — Panel. Implementa HU-018, HU-019 / RF-021, RF-022, RF-038. */
 export default function Panel() {
@@ -107,43 +108,45 @@ export default function Panel() {
 
   return (
     <Layout titulo="Inicio">
-      {/* RF-040: lo primero es anotar, no consultar. */}
-      <RegistroRapido onRegistrado={cargar} />
-
-      {/* Una tira compacta, no tres tarjetas: el resumen del mes tiene que
-          quedar a la vista sin desplazarse. */}
-      {rapido && (
-        <section className="tira" aria-label="Lo que llevas">
-          {[['Hoy', rapido.hoy], ['Esta semana', rapido.semana], ['Este mes', rapido.mes]]
-            .map(([rot, p]) => (
-              <div key={rot} className="tira__dato">
-                <span className="tira__rotulo">{rot}</span>
-                <strong className={`tira__valor ${p.neto < 0 ? 'negativo' : p.neto > 0 ? 'positivo' : ''}`}>
-                  {formatearDinero(p.neto)}
-                </strong>
-                <span className="tira__detalle">
-                  +{formatearDinero(p.ingresos)} · −{formatearDinero(p.gastos)}
-                </span>
-              </div>
-            ))}
-        </section>
-      )}
-
       {/*
-        Los avisos van arriba, antes del balance. El balance dice qué pasó; los
-        avisos dicen qué va a pasar, y eso es lo que todavía se puede cambiar.
-        Solo aparecen en el mes en curso: sobre un mes cerrado, "no te alcanza"
-        no sirve de nada.
-      */}
-      {esMesActual && <Alertas resumen={alertas} />}
+        El panel va en dos columnas: el contenido a la izquierda y los avisos
+        en un riel a la derecha.
 
-      {/*
-        RF-050. La comparación va arriba, junto a los avisos y antes de
-        cualquier gráfico. Es una sola frase y es la que más mueve: dice si la
-        persona va mejor o peor que el mes pasado, que es la pregunta con la que
-        llega. Solo en el mes en curso: "vas gastando" en pasado no significa
-        nada.
+        POR QUE LOS AVISOS SE MUEVEN A UN LADO
+        Antes iban intercalados arriba, empujando hacia abajo el balance y los
+        gráficos. Eso obligaba a elegir entre dos cosas que compiten: los
+        avisos son lo más urgente, pero el balance es lo que la persona vino a
+        ver. En una columna propia dejan de competir — se leen de un vistazo y
+        siguen visibles mientras se mira el resto.
+
+        En pantallas angostas el riel se va abajo (ver .panel en app.css): en
+        móvil una columna de 300px al lado no cabe, y partir el ancho haría
+        ilegibles las dos.
       */}
+      <div className="panel">
+        <div className="panel__principal">
+          {/* RF-040: lo primero es anotar, no consultar. */}
+          <RegistroRapido onRegistrado={cargar} />
+
+          {/* Una tira compacta, no tres tarjetas: el resumen del mes tiene que
+              quedar a la vista sin desplazarse. */}
+          {rapido && (
+            <section className="tira" aria-label="Lo que llevas">
+              {[['Hoy', rapido.hoy], ['Esta semana', rapido.semana], ['Este mes', rapido.mes]]
+                .map(([rot, p]) => (
+                  <div key={rot} className="tira__dato">
+                    <span className="tira__rotulo">{rot}</span>
+                    <strong className={`tira__valor ${p.neto < 0 ? 'negativo' : p.neto > 0 ? 'positivo' : ''}`}>
+                      {formatearDinero(p.neto)}
+                    </strong>
+                    <span className="tira__detalle">
+                      +{formatearDinero(p.ingresos)} · −{formatearDinero(p.gastos)}
+                    </span>
+                  </div>
+                ))}
+            </section>
+          )}
+
       {esMesActual && <ComparacionConElMesPasado comparacion={historico?.comparacion} />}
 
       <div className="contenido__encabezado">
@@ -167,7 +170,17 @@ export default function Panel() {
         alcanza?". Ingresos y gastos siguen ahí, más pequeños, y siguen abriendo
         su detalle (RF-049).
       */}
-      <section className="resumen" aria-label="Balance del período">
+      <section className={`resumen ${balance.diferencia < 0 ? 'tarjeta--negativa' : 'tarjeta--marca'}`}
+        aria-label="Balance del período">
+        {/*
+          El borde y el chip cambian con el signo: teal cuando queda dinero,
+          rojo cuando no. Es la misma información que ya da la cifra, dicha
+          también en color y forma — quien no distinga los colores sigue
+          leyendo el número y su signo (RNF-008).
+        */}
+        <span className={`chip-icono ${balance.diferencia < 0 ? 'chip-icono--negativa' : 'chip-icono--marca'}`}>
+          {balance.diferencia < 0 ? <IconoAviso /> : <IconoDinero />}
+        </span>
         <p className="resumen__rotulo">
           {esMesActual ? 'Te queda este mes' : `Te quedó en ${nombreDelMes}`}
         </p>
@@ -356,6 +369,19 @@ export default function Panel() {
           </div>
         )}
       </section>
+        </div>
+
+        {/*
+          El riel de avisos. Solo existe en el mes en curso: sobre un mes
+          cerrado, "no te alcanza" no significa nada, y una columna vacía a la
+          derecha desequilibraría la pantalla sin aportar.
+        */}
+        {esMesActual && (
+          <aside className="panel__riel" aria-label="Tus alertas">
+            <Alertas resumen={alertas} />
+          </aside>
+        )}
+      </div>
     </Layout>
   )
 }
