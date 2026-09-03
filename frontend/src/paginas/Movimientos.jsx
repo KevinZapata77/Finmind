@@ -76,7 +76,18 @@ export default function Movimientos() {
   const [cuentas, setCuentas] = useState([])
   const [categorias, setCategorias] = useState([])
   const [cargando, setCargando] = useState(true)
+  /*
+    Dos errores separados y no uno.
+
+    Antes la carga de movimientos y la de los catalogos (cuentas y categorias,
+    que llenan los desplegables de filtro) escribian en el mismo estado, y el
+    aviso llevaba el titulo "No pudimos cargar tus movimientos" fijo en el
+    codigo. Si lo que fallaba eran los catalogos, la pantalla culpaba a los
+    movimientos: un mensaje que apunta al sitio equivocado hace perder mas
+    tiempo que no tener mensaje.
+  */
   const [error, setError] = useState(null)
+  const [errorCatalogos, setErrorCatalogos] = useState(null)
 
   const filtros = useMemo(
     () => Object.fromEntries(CAMPOS_FILTRO.map((c) => [c, params.get(c) ?? ''])),
@@ -108,7 +119,7 @@ export default function Movimientos() {
   useEffect(() => {
     Promise.all([api.cuentas(), api.categorias()])
       .then(([c, k]) => { setCuentas(c); setCategorias(k) })
-      .catch((err) => setError(err.message))
+      .catch((err) => setErrorCatalogos(err.message))
   }, [])
 
   function abrirNuevo() {
@@ -185,7 +196,14 @@ export default function Movimientos() {
 
   return (
     <Layout titulo="Movimientos" acciones={<Boton onClick={abrirNuevo}>Nuevo movimiento</Boton>}>
-      {error && <Alerta tipo="error" titulo="No pudimos cargar tus movimientos">{error}</Alerta>}
+      {/* Los catalogos alimentan los desplegables de filtro. Si fallan, los
+          movimientos igual se ven: el aviso lo dice y no bloquea la pantalla. */}
+      {errorCatalogos && (
+        <Alerta tipo="aviso" titulo="No pudimos cargar las listas de filtro">
+          Puedes ver tus movimientos, pero los desplegables de cuenta y categoría
+          van a salir vacíos. {errorCatalogos}
+        </Alerta>
+      )}
 
       {abierto && (
         <form className="tarjeta tarjeta--formulario" onSubmit={guardar} noValidate>
@@ -315,11 +333,31 @@ export default function Movimientos() {
 
       {cargando ? (
         <p className="estado-carga">Cargando…</p>
+      ) : error ? (
+        /*
+          El error va AQUI y no arriba, en el lugar donde iria la lista.
+          Antes se pintaba el aviso rojo arriba y ademas el estado vacio
+          debajo, porque al fallar la consulta la pagina queda nula y el
+          vacio no distinguia "no hay nada" de "no pude preguntar". Las dos
+          cosas dicen lo contrario y la de abajo es falsa: no sabemos si hay
+          movimientos o no.
+        */
+        <Alerta tipo="error" titulo="No pudimos cargar tus movimientos">
+          {error}
+          <br />
+          <button type="button" className="enlace" onClick={cargar}>Reintentar</button>
+        </Alerta>
       ) : !pagina || pagina.contenido.length === 0 ? (
         <div className="vacio">
           <h2 className="vacio__titulo">No hay movimientos con estos filtros</h2>
-          <p className="vacio__texto">Cambia los filtros o registra tu primer movimiento.</p>
-          <Boton onClick={abrirNuevo}>Registrar un movimiento</Boton>
+          <p className="vacio__texto">
+            {hayFiltro
+              ? 'Prueba a quitar el filtro o a ampliar el rango de fechas.'
+              : 'Registra tu primer movimiento para empezar.'}
+          </p>
+          {hayFiltro
+            ? <Boton tipo="secundario" onClick={limpiarFiltros}>Ver todos mis movimientos</Boton>
+            : <Boton onClick={abrirNuevo}>Registrar un movimiento</Boton>}
         </div>
       ) : (
         <>
