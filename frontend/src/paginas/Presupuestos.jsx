@@ -36,6 +36,7 @@ export default function Presupuestos() {
   const [errorForm, setErrorForm] = useState(null)
   const [errores, setErrores] = useState({})
   const [guardando, setGuardando] = useState(false)
+  const [copiando, setCopiando] = useState(false)
 
   const cargar = useCallback(async () => {
     setCargando(true); setError(null)
@@ -94,6 +95,64 @@ export default function Presupuestos() {
   async function desactivar(p) {
     try { await api.desactivarPresupuesto(p.id); await cargar() }
     catch (err) { setError(err.message) }
+  }
+
+  /**
+   * RF-054. Trae los presupuestos del mes anterior a este mes.
+   *
+   * EL PROBLEMA QUE RESUELVE
+   * Un presupuesto se guarda con año y mes fijos, así que el de septiembre no
+   * existe en octubre. Eso es correcto para el histórico —hay que poder mirar
+   * atrás y ver qué límite regía entonces, y cuánto se consumió— pero deja al
+   * usuario recreando la misma lista de ocho categorías cada mes. Nadie
+   * sostiene eso: a los dos meses deja de usar los presupuestos.
+   *
+   * Se copia en vez de hacerlos recurrentes porque un límite que se arrastra
+   * solo, sin que nadie lo mire, envejece mal: el arriendo sube, el mercado
+   * cambia, y el presupuesto seguiría diciendo la cifra del año pasado.
+   * Copiar deja el gesto en manos del usuario y le da la oportunidad de
+   * ajustar, que es justo el momento en que conviene pensarlo.
+   */
+  async function copiarDelMesAnterior() {
+    setCopiando(true); setError(null)
+    try {
+      const previo = mes === 1
+        ? { anio: anio - 1, mes: 12 }
+        : { anio, mes: mes - 1 }
+
+      const anteriores = await api.presupuestos(previo.anio, previo.mes)
+      const aCopiar = anteriores.filter((p) => p.activo)
+
+      if (aCopiar.length === 0) {
+        setError(`No hay presupuestos en ${MESES[previo.mes - 1]} para copiar.`)
+        return
+      }
+
+      // Las categorías que ya tienen presupuesto este mes se saltan: el
+      // backend responde 409 y un error a mitad de la copia dejaría el mes a
+      // medio armar sin decir cuáles entraron.
+      const yaEstan = new Set(lista.map((p) => p.categoriaId))
+      let copiados = 0
+      for (const p of aCopiar) {
+        if (yaEstan.has(p.categoriaId)) continue
+        await api.crearPresupuesto({
+          categoriaId: p.categoriaId,
+          montoLimite: Number(p.montoLimite),
+          periodo: p.periodo,
+          anio, mes,
+        })
+        copiados++
+      }
+
+      await cargar()
+      if (copiados === 0) {
+        setError('Todas las categorías del mes anterior ya tienen presupuesto aquí.')
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCopiando(false)
+    }
   }
 
   const totalLimite = lista.reduce((s, p) => s + Number(p.montoLimite), 0)
@@ -178,7 +237,22 @@ export default function Presupuestos() {
           <p className="vacio__texto">
             Ponle un límite a una categoría y FinMind te avisa antes de que te pases.
           </p>
-          <Boton onClick={abrirNuevo}>Crear mi primer presupuesto</Boton>
+          <div className="acciones acciones--centradas">
+            <Boton onClick={abrirNuevo}>Crear un presupuesto</Boton>
+            {/*
+              RF-054. Es el momento exacto en que hace falta: el mes está
+              vacío porque los presupuestos no se arrastran solos, y armar
+              ocho categorías a mano cada mes es lo que hace que la gente
+              deje de usarlos.
+            */}
+            <Boton tipo="secundario" onClick={copiarDelMesAnterior} cargando={copiando}>
+              Copiar los de {MESES[(mes === 1 ? 12 : mes - 1) - 1]}
+            </Boton>
+          </div>
+          <p className="vacio__meta">
+            Los presupuestos son de cada mes, para que puedas mirar atrás y ver
+            qué límite regía. Copiarlos te deja ajustar las cifras antes de empezar.
+          </p>
         </div>
       ) : (
         <>

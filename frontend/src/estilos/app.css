@@ -81,8 +81,24 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 /* ---------- aplicación autenticada (UI-003) ---------- */
 .aplicacion { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
-.barra-lateral { background: var(--color-neutral-900); color: var(--color-surface);
-  padding: var(--space-3) var(--space-2); display: flex; flex-direction: column; }
+
+/* La barra lateral se queda quieta mientras el contenido se desplaza.
+   Antes subía con la página: en una lista larga la navegación desaparecía y
+   "Cerrar sesión" quedaba fuera de la pantalla, cuando al lado sobraba
+   espacio vacío. El menú es lo que siempre tiene que estar a mano.
+
+   position: sticky y no fixed, para que siga ocupando su columna del grid;
+   con fixed habría que reservar el hueco a mano y se descuadra al cambiar el
+   ancho. El alto fijo en 100vh es lo que permite que el pie se vaya al fondo
+   y que, si algún día el menú crece, se desplace solo por dentro. */
+.barra-lateral {
+  background: var(--color-neutral-900); color: var(--color-surface);
+  padding: var(--space-3) var(--space-2);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
 .navegacion { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .navegacion__item { padding: 10px 14px; border-radius: var(--radio-md); color: var(--color-neutral-300);
   text-decoration: none; font: var(--font-cuerpo); }
@@ -107,7 +123,15 @@ a { color: var(--color-primary-600); font-weight: 600; }
   .pantalla-auth__lema { font-size: 26px; }
   .fila-doble { grid-template-columns: 1fr; }
   .aplicacion { grid-template-columns: 1fr; }
-  .barra-lateral { flex-direction: row; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-2); }
+  /* En móvil la barra es una tira horizontal arriba: fijarla a 100vh de alto
+     se comería la pantalla entera. Se vuelve al comportamiento normal y solo
+     se mantiene pegada arriba. */
+  .barra-lateral {
+    flex-direction: row; align-items: center; gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    height: auto; overflow-y: visible;
+    position: sticky; top: 0; z-index: 2;
+  }
   .navegacion { flex-direction: row; overflow-x: auto; }
 }
 
@@ -263,6 +287,8 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .tarjeta--formulario { margin-bottom: var(--space-6); }
 
 .acciones { display: flex; gap: var(--space-3); align-items: center; }
+/* En un estado vacío los botones van al centro, bajo el texto que los explica. */
+.acciones--centradas { justify-content: center; flex-wrap: wrap; margin-bottom: var(--space-2); }
 
 .boton--secundario {
   padding: var(--space-3) var(--space-4);
