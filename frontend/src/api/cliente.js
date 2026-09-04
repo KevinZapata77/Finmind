@@ -3,16 +3,54 @@
  * así el token, los encabezados y el manejo de errores viven en un solo lugar.
  */
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1'
-const CLAVE_TOKEN = 'finmind.token'
 
-export function guardarToken(token) {
-  sessionStorage.setItem(CLAVE_TOKEN, token)
-}
-export function leerToken() {
-  return sessionStorage.getItem(CLAVE_TOKEN)
-}
-export function borrarToken() {
-  sessionStorage.removeItem(CLAVE_TOKEN)
+/*
+  SEG-08. La sesión ya no se guarda acá: vive en una cookie HttpOnly.
+
+  Antes el token iba a sessionStorage y este archivo lo leía para armar el
+  encabezado Authorization. El problema de fondo es que sessionStorage lo puede
+  leer cualquier JavaScript de la página: si algún día entra un XSS —una
+  dependencia comprometida, un texto de usuario que se pinta sin escapar—, ese
+  script se lleva la sesión completa y nada lo impide.
+
+  Ahora el backend abre la sesión en una cookie con HttpOnly, que ningún script
+  puede leer. La contrapartida es que este código TAMPOCO la puede leer, y de
+  ahí salen los dos cambios que siguen.
+*/
+
+/*
+  Uno: hay que pedirle al navegador que mande la cookie.
+
+  Con credentials en 'omit' —que es el valor por defecto de fetch para
+  peticiones cruzadas— el navegador NO manda cookies. Y acá toda petición es
+  cruzada: el frontend está en el puerto 5173 y la API en el 8080, así que para
+  el navegador son orígenes distintos. Sin esto, el usuario iniciaría sesión
+  bien y la siguiente petición saldría sin autenticar.
+
+  Del lado del backend hace falta lo simétrico: allowCredentials en true en
+  CORS. Las dos cosas o ninguna.
+*/
+const CREDENCIALES = 'include'
+
+/*
+  Dos: ya no se puede preguntar "¿hay token?" para saber si hay sesión.
+
+  Esa era la forma de antes, y con una cookie HttpOnly es imposible: el
+  navegador la tiene y no la muestra. La única manera de saber si la sesión
+  sirve es preguntárselo al servidor.
+
+  Por eso esta función existe: pide el perfil y responde null si el servidor
+  contesta 401. No es una consulta de más — es la que reemplaza a leerToken(),
+  y es más honesta, porque antes un token vencido en sessionStorage se veía
+  como sesión válida hasta que fallaba la primera petición de verdad.
+*/
+export async function sesionActual() {
+  try {
+    return await api.miPerfil()
+  } catch (err) {
+    if (err instanceof ErrorApi && (err.estado === 401 || err.estado === 403)) return null
+    throw err
+  }
 }
 
 /** Error de API con el mensaje que devuelve el backend, no uno inventado en el cliente. */
@@ -24,20 +62,26 @@ export class ErrorApi extends Error {
   }
 }
 
+/*
+  El parámetro `autenticada` se mantiene aunque ya no haga nada con el token:
+  sigue documentando cuáles rutas son públicas, lo llaman decenas de sitios, y
+  quitarlo hoy sería tocar todo el archivo por cosmética. La cookie la manda el
+  navegador en todas las peticiones por igual; en las públicas el backend
+  simplemente la ignora.
+*/
 async function peticion(ruta, { metodo = 'GET', cuerpo, autenticada = true } = {}) {
+  void autenticada
   const encabezados = { Accept: 'application/json' }
   if (cuerpo) encabezados['Content-Type'] = 'application/json'
-
-  if (autenticada) {
-    const token = leerToken()
-    if (token) encabezados.Authorization = `Bearer ${token}`
-  }
 
   let respuesta
   try {
     respuesta = await fetch(`${BASE}${ruta}`, {
       method: metodo,
       headers: encabezados,
+      // SEG-08. Sin esto el navegador no manda la cookie en una petición
+      // cruzada, y 5173 -> 8080 es cruzada.
+      credentials: CREDENCIALES,
       body: cuerpo ? JSON.stringify(cuerpo) : undefined,
     })
   } catch {
@@ -65,6 +109,10 @@ export const api = {
   registro: (datos) => peticion('/auth/registro', { metodo: 'POST', cuerpo: datos, autenticada: false }),
   // RF-002 / HU-002
   login: (datos) => peticion('/auth/login', { metodo: 'POST', cuerpo: datos, autenticada: false }),
+  // SEG-08. Cierra la sesion en el servidor, que es el unico que puede borrar
+  // una cookie HttpOnly. Publica a proposito: con el token vencido tiene que
+  // funcionar igual, o la cookie muerta se queda pegada sin forma de limpiarla.
+  logout: () => peticion('/auth/logout', { metodo: 'POST', autenticada: false }),
   // RF-003 / HU-003
   miPerfil: () => peticion('/usuarios/me'),
   // RF-025 / HU-021. Al verificar sí devuelve token

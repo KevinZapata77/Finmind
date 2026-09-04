@@ -19,35 +19,26 @@ export default function CallbackGoogle() {
     yaCorrio.current = true
 
     /*
-      SEG-06. El token llega en el FRAGMENTO (#token=...), no en la consulta.
+      SEG-08. Ya no llega ningun token por la URL, ni en la consulta ni en el
+      fragmento. El backend abrio la cookie HttpOnly antes de devolver el
+      navegador, asi que aqui solo queda confirmar quien es.
 
-      Antes venía como ?token=... y aquí se borraba de la barra de direcciones
-      de inmediato. Eso arreglaba el historial del navegador, y nada más: la
-      cadena de consulta viaja en la línea de petición HTTP, así que la escribe
-      en su registro todo lo que esté en el camino —el servidor, un proxy, la
-      consola de la plataforma— y también se filtra por el encabezado Referer.
-      Un token de sesión en texto plano dentro de un log es un token regalado,
-      y los logs viven mucho más que la vigencia del token.
+      Es la version buena del recorrido que hicimos: primero el token venia como
+      ?token=..., que queda en el historial y en el registro de todo lo que este
+      en el camino. Despues se movio al fragmento, que el navegador no manda al
+      servidor. Con la cookie no hace falta ninguno de los dos: el secreto nunca
+      pasa por la barra de direcciones.
 
-      El navegador nunca manda el fragmento al servidor. Se queda de este lado,
-      que es donde tiene que quedarse.
-
-      Se lee de window.location.hash y no con useSearchParams porque ese hook
-      solo mira la cadena de consulta.
-
-      El error SÍ sigue viniendo por la consulta: no es secreto, y así el
-      servidor puede registrarlo, que para un fallo es lo que uno quiere.
+      Solo se sigue leyendo ?error=..., que no es secreto y conviene que el
+      servidor lo pueda registrar.
     */
-    const token = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('token')
-    if (!token) {
-      setError(params.get('error') || 'No recibimos la confirmación de Google.')
+    const fallo = params.get('error')
+    if (fallo) {
+      setError(fallo)
       return
     }
-    // Se limpia igual: el fragmento no llega al servidor, pero sí queda en el
-    // historial del navegador y a la vista en la barra de direcciones.
-    window.history.replaceState({}, '', '/oauth2/callback')
 
-    entrarConToken(token)
+    entrarConToken()
       .then(() => navegar('/panel', { replace: true }))
       .catch((err) => setError(err.message))
   }, [params, entrarConToken, navegar])
