@@ -132,8 +132,12 @@ export const api = {
   desactivarCuenta: (id) => peticion(`/cuentas/${id}/desactivar`, { metodo: 'PATCH' }),
   activarCuenta: (id) => peticion(`/cuentas/${id}/activar`, { metodo: 'PATCH' }),
   /**
-   * RF-044. Abonar a una tarjeta. Es una transferencia, no un ingreso: el dinero
+   * RF-045. Abonar a una tarjeta. Es una transferencia, no un ingreso: el dinero
    * sale de otra cuenta y baja la deuda, sin inflar los ingresos del mes.
+   *
+   * Aquí decía RF-044. Estaba mal: en el backend RF-044 es CONSULTAR el
+   * historial de abonos y RF-045 es hacer el abono. Un código de requisito
+   * equivocado en el cliente rompe la trazabilidad justo donde más se usa.
    */
   abonarTarjeta: (id, datos) => peticion(`/cuentas/${id}/abonos`, { metodo: 'POST', cuerpo: datos }),
 
