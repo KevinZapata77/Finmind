@@ -120,8 +120,15 @@ export default function Panel() {
         Antes iban intercalados arriba, empujando hacia abajo el balance y los
         gráficos. Eso obligaba a elegir entre dos cosas que compiten: los
         avisos son lo más urgente, pero el balance es lo que la persona vino a
-        ver. En una columna propia dejan de competir — se leen de un vistazo y
-        siguen visibles mientras se mira el resto.
+        ver. En una columna propia dejan de competir: se leen de un vistazo sin
+        empujar nada.
+
+        El riel se desplaza con la página. Antes quedaba pegado arriba, y eso
+        era un defecto: el riel mide más que la ventana, y sticky no puede
+        desplazar algo más alto que la ventana — clavaba el borde de arriba y
+        dejaba el último aviso fuera de alcance. Está explicado en .panel, en
+        app.css. Que los avisos no queden pegados no los deja desatendidos: la
+        cuarta tarjeta de métricas ya dice cuántos hay y cuántos son urgentes.
 
         En pantallas angostas el riel se va abajo (ver .panel en app.css): en
         móvil una columna de 300px al lado no cabe, y partir el ancho haría

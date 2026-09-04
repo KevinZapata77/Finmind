@@ -115,20 +115,43 @@ a { color: var(--color-primary-600); font-weight: 600; }
 /* ------------------------------------------- Panel en dos columnas
    Contenido a la izquierda, riel de avisos a la derecha.
 
-   El riel se queda pegado arriba mientras el contenido se desplaza: los
-   avisos son lo que hay que tener presente mientras se mira todo lo demás,
-   y si suben con la página dejan de cumplir esa función.
+   EL RIEL YA NO ES STICKY, Y ESE ARGUMENTO ERA MIO Y ESTABA MAL
+   Aqui habia "position: sticky; top: var(--space-3)", justificado asi: los
+   avisos son lo que hay que tener presente mientras se mira todo lo demas.
+   El argumento suena bien y es falso en esta pantalla, por una razon medible:
 
-   300px es el ancho mínimo para que un aviso de dos líneas no se parta en
+     sticky solo puede desplazar un elemento MAS CORTO que la ventana. Si es
+     mas alto, el navegador clava su borde superior en el "top" indicado y el
+     resto queda inalcanzable para siempre.
+
+   Y el riel es mas alto. Sumando el CSS de sus partes en una columna de
+   300px: cabecera ~50px, termometro ~220px (cuatro cifras que se parten en
+   tres filas), lectura ~100px y tres avisos de ~204px cada uno. Total del
+   orden de 1000px, contra 650-900px de ventana util en un portatil.
+
+   El resultado era el defecto que se reporto: la columna derecha se queda
+   congelada mientras la del medio se desplaza, el tercer aviso nunca se
+   alcanza, y al final del recorrido el riel se suelta de golpe. Se ve como un
+   salto. No era un bug del navegador: era pedirle a sticky algo que no hace.
+
+   La alternativa habria sido max-height mas overflow-y:auto, que es correcta
+   segun la especificacion. Se descarto: crea una segunda zona de desplazamiento
+   dentro de la pagina, asi que la rueda del raton deja de mover la pagina
+   cuando el puntero pasa por encima del riel. Cambiar un salto visible por una
+   trampa de scroll silenciosa es un mal negocio, y peor en una demostracion.
+
+   Ahora el riel se desplaza con la pagina. Y los avisos no quedan
+   desatendidos: la cuarta tarjeta de metricas ya dice cuantos hay y cuantos
+   son urgentes, arriba y en la columna principal.
+
+   300px es el ancho minimo para que un aviso de dos lineas no se parta en
    cinco. Por debajo de 1100px de ventana el riel se va abajo: partir el
-   ancho en dos haría ilegibles las dos columnas. */
+   ancho en dos haria ilegibles las dos columnas. */
 .panel { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--space-3); align-items: start; }
 .panel__principal { min-width: 0; }
-.panel__riel { position: sticky; top: var(--space-3); }
 
 @media (max-width: 1100px) {
   .panel { grid-template-columns: 1fr; }
-  .panel__riel { position: static; }
 }
 .contenido__titulo { font: var(--font-titulo); margin: 0 0 var(--space-3); }
 .vacio__titulo { font: var(--font-titulo); margin: 0 0 var(--space-1); }
