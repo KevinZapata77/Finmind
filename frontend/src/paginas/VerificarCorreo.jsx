@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { api } from '../api/cliente'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
+import { IconoMarca } from '../componentes/Iconos'
 
 const ESPERA_REENVIO = 60 // segundos
 
@@ -77,7 +78,7 @@ export default function VerificarCorreo() {
   return (
     <div className="pantalla-auth">
       <aside className="pantalla-auth__lateral">
-        <div className="marca"><span className="marca__logo">F</span> FinMind</div>
+        <div className="marca"><span className="marca__logo"><IconoMarca /></span> FinMind</div>
         <h1 className="pantalla-auth__lema">Un paso más.</h1>
         <p className="pantalla-auth__bajada">
           Confirmamos tu correo para que solo tú puedas entrar a tu cuenta.

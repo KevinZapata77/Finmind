@@ -3,7 +3,7 @@ import { useAuth } from '../auth/AuthContext'
 import { ES_ADMIN } from '../api/cliente'
 import {
   IconoInicio, IconoMovimientos, IconoPresupuesto, IconoGastoFijo,
-  IconoCredito, IconoMeta, IconoCuenta, IconoCategoria, IconoAdmin,
+  IconoCredito, IconoMeta, IconoCuenta, IconoCategoria, IconoAdmin, IconoMarca,
 } from './Iconos'
 
 /**
@@ -38,7 +38,7 @@ export default function Layout({ titulo, acciones, children }) {
   return (
     <div className="aplicacion">
       <aside className="barra-lateral">
-        <div className="marca marca--clara"><span className="marca__logo">F</span> FinMind</div>
+        <div className="marca marca--clara"><span className="marca__logo"><IconoMarca /></span> FinMind</div>
 
         <nav className="navegacion" aria-label="Secciones de la aplicación">
           {/* Administración solo aparece con el rol. Ocultarla no es la seguridad:

@@ -7,6 +7,7 @@ import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
 import Captcha from '../componentes/Captcha'
 import BotonGoogle from '../componentes/BotonGoogle'
+import { IconoMarca } from '../componentes/Iconos'
 
 /** UI-002 — Crear cuenta. Implementa HU-001 / RF-001. */
 export default function CrearCuenta() {
@@ -50,7 +51,7 @@ export default function CrearCuenta() {
   return (
     <div className="pantalla-auth">
       <aside className="pantalla-auth__lateral">
-        <div className="marca"><span className="marca__logo">F</span> FinMind</div>
+        <div className="marca"><span className="marca__logo"><IconoMarca /></span> FinMind</div>
         <h1 className="pantalla-auth__lema">Empieza gratis.</h1>
         <p className="pantalla-auth__bajada">
           Toma el control de tu dinero en menos de cinco minutos.

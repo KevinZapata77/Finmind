@@ -87,3 +87,34 @@ export const IconoSale        = icono(ArrowUpRight)
 export const IconoPatrimonio  = icono(Scale)
 export const IconoCampana     = icono(Bell)
 export const IconoBuscar      = icono(Search)
+
+/**
+ * La marca. Antes era la letra "F" dentro de un cuadro, que no dice de qué es
+ * la aplicación: una F sirve igual para una ferretería.
+ *
+ * POR QUÉ UNA LÍNEA QUE BAJA Y SUBE
+ * Es la forma con la que se reconoce el dinero en movimiento sin leer nada.
+ * Y baja antes de subir a propósito: una flecha que solo sube promete
+ * rendimientos, y FinMind no invierte ni promete ganancias — muestra lo que
+ * pasa, que unos meses es peor y otros mejor. El punto del final es el dato
+ * de hoy, que es lo que la aplicación responde.
+ *
+ * NO ES DE lucide, A DIFERENCIA DEL RESTO
+ * Los íconos de la interfaz vienen de la librería para que sean coherentes
+ * entre sí. Un logo es lo contrario: tiene que ser propio, o es el logo de
+ * cualquiera. Son cuatro puntos y un círculo, no hace falta más.
+ *
+ * Decorativo: al lado siempre está escrito "FinMind", así que anunciarlo al
+ * lector de pantalla lo repetiría dos veces.
+ */
+export function IconoMarca({ size = 19 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24"
+      aria-hidden="true" focusable="false">
+      <polyline points="2.5,13 9,17.5 14,8 20,3.5"
+        fill="none" stroke="var(--color-sobre-lleno)" strokeWidth="2.6"
+        strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="20" cy="3.5" r="2.6" fill="var(--color-sobre-lleno)" />
+    </svg>
+  )
+}

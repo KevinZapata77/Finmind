@@ -4,6 +4,7 @@ import { api } from '../api/cliente'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
+import { IconoMarca } from '../componentes/Iconos'
 
 /** UI-011 — Recuperar contraseña. Implementa HU-023 / RF-027. */
 export default function RecuperarContrasena() {
@@ -30,7 +31,7 @@ export default function RecuperarContrasena() {
   return (
     <div className="pantalla-auth">
       <aside className="pantalla-auth__lateral">
-        <div className="marca"><span className="marca__logo">F</span> FinMind</div>
+        <div className="marca"><span className="marca__logo"><IconoMarca /></span> FinMind</div>
         <h1 className="pantalla-auth__lema">Te ayudamos a volver.</h1>
       </aside>
 

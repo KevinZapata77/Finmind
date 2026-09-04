@@ -6,6 +6,7 @@ import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
 import BotonGoogle from '../componentes/BotonGoogle'
+import { IconoMarca } from '../componentes/Iconos'
 
 /** UI-001 — Iniciar sesión. Implementa HU-002 / RF-002. */
 export default function IniciarSesion() {
@@ -38,7 +39,7 @@ export default function IniciarSesion() {
   return (
     <div className="pantalla-auth">
       <aside className="pantalla-auth__lateral">
-        <div className="marca"><span className="marca__logo">F</span> FinMind</div>
+        <div className="marca"><span className="marca__logo"><IconoMarca /></span> FinMind</div>
         <h1 className="pantalla-auth__lema">Tus finanzas,<br />en orden.</h1>
         <p className="pantalla-auth__bajada">
           Registra ingresos y gastos, define presupuestos y mira a dónde se va tu dinero.
