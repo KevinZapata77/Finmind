@@ -568,42 +568,6 @@ a { color: var(--color-primary-600); font-weight: 600; }
   margin: 4px 0 0;
 }
 
-/* Los tres datos de apoyo, en fila y sin caja propia. Sin borde ni fondo se
-   leen como lo que son: contexto de la cifra de arriba, no cuatro cosas
-   compitiendo entre sí. */
-.resumen__secundarios {
-  display: flex; flex-wrap: wrap; gap: var(--space-4);
-  margin: var(--space-3) 0 0;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-neutral-300);
-}
-.resumen__dato { display: flex; flex-direction: column; gap: 2px; }
-.resumen__dato-rotulo { font: var(--font-etiqueta); color: var(--color-neutral-700); }
-.resumen__dato-valor {
-  font: var(--font-seccion); color: var(--color-neutral-900);
-  font-variant-numeric: tabular-nums;
-}
-/* RF-049. La pista de que se puede pulsar aparece al acercarse: si los tres
-   datos gritaran "púlsame" de entrada, volveríamos al tablero de botones. El
-   subrayado en hover es lo que distingue el enlace del dato que no lo es. */
-.resumen__dato--enlace {
-  text-decoration: none; color: inherit;
-  border-radius: var(--radio-sm);
-  padding: 4px; margin: -4px;
-  transition: background .15s ease;
-}
-.resumen__dato--enlace:hover { background: var(--color-neutral-200); }
-.resumen__dato--enlace:hover .resumen__dato-rotulo {
-  color: var(--color-primary-700); text-decoration: underline;
-}
-/* Mismo caso que .barra__variacion: este valor queda sobre el gris del hover,
-   donde .positivo (success-600) cae a 4.05:1 y no cumple AA. Se pisa con el
-   700. Ver el comentario de --color-success-700 en tokens.css. */
-.resumen__dato-valor.positivo { color: var(--color-success-700); }
-.resumen__dato--enlace:focus-visible {
-  outline: 2px solid var(--color-primary-600); outline-offset: 1px;
-}
-
 /* El desglose del patrimonio: presente, pero replegado. La cifra importa; de
    qué está hecha importa solo cuando alguien la cuestiona. */
 .resumen__desglose { margin: var(--space-2) 0 0; }
@@ -724,6 +688,15 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .positivo { color: var(--color-success-600); }
 .negativo { color: var(--color-error-600); }
 
+/* Chip de la flecha de dirección. El tinte dice de un vistazo si el dinero
+   entró o salió, sin depender de distinguir dos tonos de un punto de 10px. */
+.movimiento__flecha {
+  width: 30px; height: 30px; border-radius: var(--radio-md);
+  display: grid; place-items: center; flex: none;
+}
+.movimiento__flecha--entra { background: var(--color-success-100); color: var(--color-success-700); }
+.movimiento__flecha--sale  { background: var(--color-error-100); color: var(--color-error-600); }
+
 /* RF-053. Agrupación por día en Movimientos.
    El encabezado es pegajoso: al bajar por una lista larga, saber en qué día
    se está mirando es justo lo que se pierde. */
@@ -748,16 +721,19 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 .movimiento {
   display: grid;
-  grid-template-columns: 10px 1fr auto auto;
-  gap: var(--space-4);
+  /* La primera columna pasa de 10px a 30px: ahora lleva la flecha de
+     dirección dentro de su chip, no un punto de color suelto. */
+  grid-template-columns: 30px 1fr auto auto;
+  gap: var(--space-3);
   align-items: center;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-tarjeta);
   border: 1px solid var(--color-neutral-400);
   border-radius: var(--radio-md);
 }
 
-.movimiento__punto { width: 10px; height: 10px; border-radius: 5px; }
+/* .movimiento__punto se eliminó: lo reemplazó .movimiento__flecha, que dice la
+   dirección por forma y no solo por color. */
 .movimiento__datos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .movimiento__descripcion { font: var(--font-cuerpo); color: var(--color-neutral-900); }
 .movimiento__meta { font: var(--font-etiqueta); color: var(--color-neutral-500); margin: 0; }
@@ -1057,17 +1033,31 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 /* --- Avisos --- */
 .avisos { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+/* El aviso pasa de tira con franja izquierda a tarjeta con borde completo del
+   color de su severidad, más el chip del ícono. En el riel derecho, una franja
+   lateral se pierde contra el borde de la columna; el borde entero clasifica
+   la tarjeta de un vistazo. */
 .aviso {
-  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
-  padding: var(--space-3); border-radius: var(--radio-md);
-  border-left: 4px solid; background: var(--color-tarjeta);
-  border-top: 1px solid var(--color-neutral-400);
-  border-right: 1px solid var(--color-neutral-400);
-  border-bottom: 1px solid var(--color-neutral-400);
+  display: grid; grid-template-columns: auto 1fr; gap: var(--space-2);
+  align-items: start;
+  padding: var(--space-2); border-radius: var(--radio-md);
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-neutral-400);
 }
-.aviso--error { border-left-color: var(--color-error-600); }
-.aviso--aviso { border-left-color: var(--color-warning-600); }
-.aviso__cuerpo { flex: 1; min-width: 220px; }
+.aviso--error { border-color: var(--color-error-600); }
+.aviso--aviso { border-color: var(--color-warning-600); }
+
+/* Chip del ícono: cuadrado redondeado con el tinte de su severidad. */
+.aviso__chip {
+  width: 28px; height: 28px; border-radius: var(--radio-md);
+  display: grid; place-items: center; flex: none;
+}
+.aviso__chip--error { background: var(--color-error-100); color: var(--color-error-600); }
+.aviso__chip--aviso { background: var(--color-warning-100); color: var(--color-warning-600); }
+
+.aviso__cuerpo { min-width: 0; }
+/* La acción va debajo del cuerpo, alineada con el texto y no con el chip. */
+.aviso .aviso__accion { grid-column: 2; justify-self: start; margin-top: 6px; }
 /* La severidad va escrita: el borde de color no basta (RNF-008). */
 .aviso__severidad {
   font: var(--font-etiqueta); text-transform: uppercase; letter-spacing: .04em;
@@ -1075,8 +1065,11 @@ a { color: var(--color-primary-600); font-weight: 600; }
 }
 .aviso--error .aviso__severidad { color: var(--color-error-600); }
 .aviso--aviso .aviso__severidad { color: var(--color-warning-600); }
-.aviso__titulo { font: var(--font-seccion); color: var(--color-neutral-900); margin: 0 0 4px; }
-.aviso__mensaje { font: var(--font-cuerpo); color: var(--color-neutral-700); margin: 0; }
+/* En el riel de 300px el tamaño de sección (17px) hacía que cada título
+   ocupara tres renglones. Baja a cuerpo con peso, que es lo que la referencia
+   hace: el título destaca por peso, no por tamaño. */
+.aviso__titulo { font: var(--font-cuerpo); font-weight: 700; color: var(--color-neutral-900); margin: 0 0 3px; }
+.aviso__mensaje { font: var(--font-ayuda); color: var(--color-neutral-700); margin: 0; line-height: 1.5; }
 .aviso__accion {
   font: var(--font-cuerpo); font-weight: 600; color: var(--color-primary-600);
   text-decoration: none; padding: var(--space-1) var(--space-2);

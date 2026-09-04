@@ -5,6 +5,7 @@ import Layout from '../componentes/Layout'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
+import { IconoEntra, IconoSale } from '../componentes/Iconos'
 
 const VACIO = { cuentaId: '', categoriaId: '', monto: '', fecha: hoyISO(), descripcion: '' }
 
@@ -383,8 +384,17 @@ export default function Movimientos() {
               <ul className="lista-movimientos">
                 {dia.movimientos.map((m) => (
                   <li key={m.id} className="movimiento">
-                    <span className="movimiento__punto" aria-hidden="true"
-                      style={{ background: m.categoriaColor || 'var(--color-neutral-300)' }} />
+                    {/*
+                      Flecha de dirección con el punto de color de la categoría
+                      detrás. Antes solo estaba el punto: un círculo de 10px que
+                      obliga a distinguir tonos para saber si el dinero entró o
+                      salió. La flecha lo dice por forma, y el signo del monto
+                      lo repite por texto (RNF-008).
+                    */}
+                    <span className={`movimiento__flecha movimiento__flecha--${m.tipo === 'INGRESO' ? 'entra' : 'sale'}`}
+                      aria-hidden="true">
+                      {m.tipo === 'INGRESO' ? <IconoEntra size={15} /> : <IconoSale size={15} />}
+                    </span>
                     <div className="movimiento__datos">
                       <span className="movimiento__descripcion">
                         {m.descripcion || m.categoriaNombre}

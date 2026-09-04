@@ -10,7 +10,9 @@ import Dona from '../componentes/Dona'
 import CurvaDelMes from '../componentes/CurvaDelMes'
 import TendenciaMeses from '../componentes/TendenciaMeses'
 import ComparacionConElMesPasado from '../componentes/ComparacionConElMesPasado'
-import { IconoDinero, IconoAviso } from '../componentes/Iconos'
+import {
+  IconoDinero, IconoAviso, IconoEntra, IconoSale, IconoPatrimonio, IconoListo,
+} from '../componentes/Iconos'
 
 /** UI-003 — Panel. Implementa HU-018, HU-019 / RF-021, RF-022, RF-038. */
 export default function Panel() {
@@ -200,27 +202,6 @@ export default function Panel() {
         {/* El texto viene del servidor: el signo solo es fácil de pasar por alto. */}
         <p className="resumen__lectura">{balance.lectura}</p>
 
-        <div className="resumen__secundarios">
-          <Link className="resumen__dato resumen__dato--enlace"
-            to={enlaceMovimientos({ tipo: 'INGRESO', ...rangoDelMes(anio, mes) })}>
-            <span className="resumen__dato-rotulo">Entró</span>
-            <span className="resumen__dato-valor positivo">{formatearDinero(balance.ingresos)}</span>
-          </Link>
-          <Link className="resumen__dato resumen__dato--enlace"
-            to={enlaceMovimientos({ tipo: 'GASTO', ...rangoDelMes(anio, mes) })}>
-            <span className="resumen__dato-rotulo">Salió</span>
-            <span className="resumen__dato-valor negativo">{formatearDinero(balance.gastos)}</span>
-          </Link>
-          {/* El patrimonio no enlaza: es una cifra derivada, no existe "la lista
-              de movimientos de tu patrimonio". */}
-          <div className="resumen__dato">
-            <span className="resumen__dato-rotulo">Patrimonio</span>
-            <span className={`resumen__dato-valor${patrimonio.patrimonioNeto < 0 ? ' negativo' : ''}`}>
-              {formatearDinero(patrimonio.patrimonioNeto)}
-            </span>
-          </div>
-        </div>
-
         {/*
           El desglose del patrimonio pasa a un detalle desplegable en vez de
           ocupar una tarjeta entera. La cifra importa; de qué está hecha importa
@@ -238,6 +219,65 @@ export default function Panel() {
             )}
           </p>
         </details>
+      </section>
+
+      {/*
+        Fila de métricas, FUERA de la tarjeta del resumen y no dentro.
+
+        POR QUE ESTAN AQUI Y NO ANIDADAS
+        Estaban dentro de la tarjeta del resumen, y en tema oscuro eso las
+        volvía invisibles: el fondo de la métrica y el de la tarjeta que la
+        contenía eran el mismo valor, así que solo un borde de 1,35:1 las
+        separaba. En papel se disimula; sobre negro no.
+
+        Sobre el lienzo funcionan porque recuperan la relación de elevación que
+        usa el resto de la aplicación: tarjeta clara sobre fondo oscuro. Y es
+        además la estructura de la referencia visual — una fila de tarjetas de
+        métrica, no cifras apiladas dentro de otra tarjeta.
+      */}
+      <section className="metricas" aria-label="Ingresos, gastos y patrimonio">
+        <Link className="metrica metrica--positiva"
+          to={enlaceMovimientos({ tipo: 'INGRESO', ...rangoDelMes(anio, mes) })}>
+          <span className="chip-icono chip-icono--positiva"><IconoEntra /></span>
+          <span className="metrica__rotulo">Entró</span>
+          <span className="metrica__valor positivo">{formatearDinero(balance.ingresos)}</span>
+          <span className="metrica__nota">Ver los movimientos</span>
+        </Link>
+
+        <Link className="metrica metrica--negativa"
+          to={enlaceMovimientos({ tipo: 'GASTO', ...rangoDelMes(anio, mes) })}>
+          <span className="chip-icono chip-icono--negativa"><IconoSale /></span>
+          <span className="metrica__rotulo">Salió</span>
+          <span className="metrica__valor negativo">{formatearDinero(balance.gastos)}</span>
+          <span className="metrica__nota">Ver los movimientos</span>
+        </Link>
+
+        {/* El patrimonio no enlaza: es una cifra derivada, no existe "la lista
+            de movimientos de tu patrimonio". */}
+        <div className="metrica">
+          <span className="chip-icono chip-icono--marca"><IconoPatrimonio /></span>
+          <span className="metrica__rotulo">Patrimonio</span>
+          <span className={`metrica__valor${patrimonio.patrimonioNeto < 0 ? ' negativo' : ''}`}>
+            {formatearDinero(patrimonio.patrimonioNeto)}
+          </span>
+          <span className="metrica__nota">Cuentas menos deudas</span>
+        </div>
+
+        {/* La cuarta métrica es el conteo de avisos, como en la referencia. Solo
+            en el mes en curso, que es cuando las alertas existen. */}
+        {esMesActual && (
+          <div className={`metrica${(alertas?.alertas?.length ?? 0) > 0 ? ' metrica--aviso' : ''}`}>
+            <span className={`chip-icono ${(alertas?.alertas?.length ?? 0) > 0 ? 'chip-icono--aviso' : 'chip-icono--positiva'}`}>
+              {(alertas?.alertas?.length ?? 0) > 0 ? <IconoAviso /> : <IconoListo />}
+            </span>
+            <span className="metrica__rotulo">Alertas</span>
+            <span className="metrica__valor">{alertas?.alertas?.length ?? 0}</span>
+            <span className="metrica__nota">
+              {(alertas?.alertas?.length ?? 0) === 0 ? 'Todo en orden'
+                : `${alertas.alertas.filter((a) => a.severidad === 'ALTA').length} urgente(s)`}
+            </span>
+          </div>
+        )}
       </section>
 
       {/* Presupuestos que piden atención (RF-019) */}

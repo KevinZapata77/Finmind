@@ -67,7 +67,27 @@ export default function CurvaDelMes({ ritmo, nombreDelMes }) {
         ))}
 
         {/* Área bajo el gasto: da peso visual a la línea que importa. */}
-        <path d={g.areaGasto} fill="var(--color-error-100)" opacity="0.7" />
+        {/*
+          Degradado bajo la curva del gasto.
+
+          POR QUE UN DEGRADADO Y NO UN RELLENO PLANO
+          Sobre fondo oscuro, un área de color uniforme compite con la línea y
+          con la rejilla: se lee como un bloque. El degradado que se desvanece
+          hacia abajo deja la intensidad justo donde está el dato —la línea— y
+          libera la parte baja del gráfico. Es lo que separa un gráfico de
+          tablero de uno de hoja de cálculo.
+
+          El id lleva prefijo porque un id de SVG es global en el documento: si
+          otro gráfico definiera "degradado", el navegador usaría el primero
+          que encuentre y los dos se pintarían igual.
+        */}
+        <defs>
+          <linearGradient id="curva-degradado-gasto" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-error-600)" stopOpacity="0.38" />
+            <stop offset="100%" stopColor="var(--color-error-600)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={g.areaGasto} fill="url(#curva-degradado-gasto)" />
 
         {/* Proyección primero, para que las líneas reales queden encima. */}
         {g.proyeccion && (

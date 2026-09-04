@@ -36,6 +36,11 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Scale,
+  Bell,
+  Search,
 } from 'lucide-react'
 
 /**
@@ -71,3 +76,14 @@ export const IconoTarjeta     = icono(CreditCard)
 export const IconoAviso       = icono(AlertTriangle)
 export const IconoListo       = icono(CheckCircle2)
 export const IconoPendiente   = icono(Clock)
+
+/**
+ * Dirección del dinero. La flecha entra o sale, y eso se entiende antes de
+ * leer el signo: es la señal más rápida en una lista larga de movimientos.
+ * Va siempre acompañada del signo escrito y del color (RNF-008).
+ */
+export const IconoEntra       = icono(ArrowDownLeft)
+export const IconoSale        = icono(ArrowUpRight)
+export const IconoPatrimonio  = icono(Scale)
+export const IconoCampana     = icono(Bell)
+export const IconoBuscar      = icono(Search)
