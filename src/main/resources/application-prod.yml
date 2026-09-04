@@ -23,9 +23,28 @@ server:
     include-binding-errors: never
     include-exception: false
 
+finmind:
+  cookie:
+    # SEG-08. En produccion la cookie de sesion SOLO viaja por HTTPS.
+    #
+    # Esto no es un ajuste opcional: sin secure, la cookie se manda en texto
+    # plano y cualquiera en la misma red —un wifi de cafeteria, la red de la
+    # universidad— la copia y entra como el usuario. Con HttpOnly se protege de
+    # los scripts de la pagina; con secure, de quien mira el cable.
+    #
+    # En el perfil de desarrollo va en false porque en local se trabaja sobre
+    # http://localhost, y con secure en true el navegador simplemente no manda
+    # la cookie: nadie podria iniciar sesion.
+    #
+    # OJO AL DESPLEGAR: si se activa este perfil sobre http en vez de https, el
+    # inicio de sesion deja de funcionar. No es un defecto, es la proteccion
+    # haciendo lo que tiene que hacer.
+    segura: true
+
 springdoc:
   # Dejar Swagger accesible para que el evaluador pruebe la API (DOC-04, API-08).
   # Si el despliegue fuera real y publico, aqui iria swagger-ui.enabled: false
+  # y finmind.swagger.publico: false, que es lo que cierra la ruta (SEG-07).
   swagger-ui:
     enabled: true
 

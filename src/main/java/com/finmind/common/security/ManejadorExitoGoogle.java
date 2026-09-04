@@ -31,15 +31,18 @@ public class ManejadorExitoGoogle implements AuthenticationSuccessHandler {
 
     private final ServicioUsuarioGoogle servicioGoogle;
     private final JwtService jwtService;
+    private final CookieDeSesion cookieDeSesion;
     private final String urlExito;
     private final String urlError;
 
     public ManejadorExitoGoogle(ServicioUsuarioGoogle servicioGoogle,
                                 JwtService jwtService,
+                                CookieDeSesion cookieDeSesion,
                                 @Value("${finmind.oauth2.redireccion-exito}") String urlExito,
                                 @Value("${finmind.oauth2.redireccion-error}") String urlError) {
         this.servicioGoogle = servicioGoogle;
         this.jwtService = jwtService;
+        this.cookieDeSesion = cookieDeSesion;
         this.urlExito = urlExito;
         this.urlError = urlError;
     }
@@ -55,36 +58,43 @@ public class ManejadorExitoGoogle implements AuthenticationSuccessHandler {
             String token = jwtService.generarToken(new UsuarioPrincipal(usuario));
 
             /*
-             * SEG-06. El token vuelve en el FRAGMENTO de la URL, no en la cadena
-             * de consulta.
-             *
-             * Antes iba como ?token=... El frontend lo borraba de la barra de
-             * direcciones de inmediato, y eso resolvia el historial del
-             * navegador, pero solo eso. Lo que quedaba abierto:
-             *
-             *   - La cadena de consulta viaja en la LINEA DE PETICION HTTP. La
-             *     escribe en su registro cualquier cosa que este en el camino:
-             *     el servidor, un proxy inverso, un balanceador, la consola de
-             *     la plataforma donde se despliegue. Un token de sesion completo
-             *     en texto plano dentro de un log es un token regalado, y los
-             *     logs se guardan mucho mas tiempo que la vigencia del token.
-             *
-             *   - El encabezado Referer. Cualquier recurso que la pagina pida
-             *     antes de que corra el replaceState se lleva la URL entera —con
-             *     el token— hacia un tercero.
-             *
-             * El fragmento no tiene ninguno de los dos problemas: el navegador
-             * NUNCA lo manda al servidor. Se queda del lado del cliente, que es
-             * justo donde tiene que quedarse.
-             *
-             * No hace falta codificar: un JWT es base64url y un punto, todos
-             * caracteres validos en un fragmento.
+             * SEG-08. La sesion se abre en la cookie HttpOnly, igual que en el
+             * login normal. Es lo que permite que el token NO tenga que viajar
+             * en la URL de vuelta.
              */
-            String destino = UriComponentsBuilder.fromUriString(urlExito)
-                    .fragment("token=" + token)
-                    .build().toUriString();
+            respuesta.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE,
+                    cookieDeSesion.crear(token).toString());
 
-            respuesta.sendRedirect(destino);
+            /*
+             * SEG-06 y SEG-08. El token NO viaja en la URL. Ni en la cadena de
+             * consulta ni en el fragmento: no viaja.
+             *
+             * Este endpoint recorrio las tres versiones y vale la pena que quede
+             * escrito, porque explica por que la cookie es la respuesta buena:
+             *
+             *   1. ?token=... El frontend lo borraba de la barra de direcciones
+             *      enseguida, lo que resolvia el historial del navegador y solo
+             *      eso. La cadena de consulta viaja en la LINEA DE PETICION
+             *      HTTP, asi que la escribe en su registro cualquier cosa del
+             *      camino —servidor, proxy inverso, balanceador, la consola de
+             *      la plataforma— y ademas se filtra por el encabezado Referer.
+             *      Un token de sesion en texto plano dentro de un log es un
+             *      token regalado, y los logs viven mucho mas que el token.
+             *
+             *   2. #token=... Mejor: el navegador nunca manda el fragmento al
+             *      servidor, asi que desaparece el problema de los registros y
+             *      del Referer. Pero el token seguia pasando por la barra de
+             *      direcciones, a la vista y en el historial.
+             *
+             *   3. La cookie, que es esto. El secreto va en un encabezado
+             *      Set-Cookie, no en la URL, y con HttpOnly ni el propio
+             *      JavaScript de la pagina lo puede leer. La URL de retorno
+             *      queda limpia: no lleva nada.
+             *
+             * La variable token se sigue usando arriba, para crear la cookie.
+             */
+            respuesta.sendRedirect(UriComponentsBuilder.fromUriString(urlExito)
+                    .build().toUriString());
 
         } catch (ServicioUsuarioGoogle.CuentaGoogleException ex) {
             log.warn("Acceso con Google rechazado: {}", ex.getMessage());
