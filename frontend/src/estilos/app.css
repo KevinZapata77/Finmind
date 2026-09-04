@@ -500,20 +500,101 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .tarjeta-dato__valor--negativo { color: var(--color-error-600); }
 .tarjeta-dato__nota { font: var(--font-etiqueta); color: var(--color-neutral-500); margin: var(--space-2) 0 0; }
 
-/* ==================================================================
-   Resumen del período, en jerarquía enfocada (ADSO-UXUI-02, opción B).
+/* ---------------------------------------- Cabecera del panel
+   Saludo a la izquierda, selector de mes a la derecha. El saludo situa a la
+   persona en un segundo; un titulo que dice "Inicio" no dice nada. */
+.panel__cabecera {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+.panel__saludo { font: var(--font-seccion); color: var(--color-neutral-900); margin: 0; }
+.panel__periodo { font: var(--font-etiqueta); color: var(--color-neutral-700); margin: 2px 0 0; }
 
-   Reemplaza las cuatro tarjetas iguales que había antes. Cuatro cifras del
-   mismo tamaño en cuatro cajas idénticas equivalen a ninguna: el ojo las
-   recorre y no se queda con nada. Aquí hay una sola cifra grande y el resto
-   es contexto.
+/* ==================================================================
+   Fila de metricas — cuatro tarjetas del mismo tamano.
+
+   POR QUE CUATRO IGUALES Y NO UNA CIFRA GRANDE
+   En ADSO-UXUI-02 se argumento lo contrario, y ese argumento era correcto
+   para un panel claro y sin bordes: cuatro cifras del mismo tamano equivalen
+   a ninguna. Lo que lo resuelve aqui es el BORDE SEMANTICO — cada tarjeta
+   queda clasificada por color antes de leerse, asi que la jerarquia la dan el
+   color y la posicion, no el tamano. "Te queda" va primera, y su cifra va un
+   punto mas grande.
+
+   auto-fit deja que el navegador decida cuantas caben: cuatro en escritorio,
+   dos en tableta, una en movil. Sin media queries.
    ================================================================== */
-.resumen {
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.metrica {
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 0;
   background: var(--color-tarjeta);
   border: 1px solid var(--color-neutral-400);
   border-radius: var(--radio-lg);
-  padding: var(--space-4);
+  padding: var(--space-3);
+  text-decoration: none;
+  transition: border-color .15s ease, background .15s ease;
+}
+/* El borde toma el color del significado. Nunca es la unica senal: el rotulo
+   y el signo siguen escritos (RNF-008). */
+.metrica--marca    { border-color: var(--color-primary-600); }
+.metrica--positiva { border-color: var(--color-success-600); }
+.metrica--negativa { border-color: var(--color-error-600); }
+.metrica--aviso    { border-color: var(--color-warning-600); }
+
+.metrica__rotulo { font: var(--font-etiqueta); color: var(--color-neutral-700); }
+.metrica__valor {
+  font: 700 20px/1.2 var(--font-familia);
+  color: var(--color-neutral-900);
+  font-variant-numeric: tabular-nums;
+}
+/* La primera tarjeta responde la pregunta con la que se abre la aplicacion,
+   asi que su cifra pesa mas sin romper la retícula. */
+.metrica__valor--grande { font-size: 25px; }
+.metrica__nota { font: var(--font-ayuda); color: var(--color-neutral-500); }
+
+/* Solo las que enlazan reaccionan: una mano sobre algo que no responde es una
+   promesa falsa. */
+a.metrica:hover { background: var(--color-neutral-200); }
+a.metrica:hover .metrica__nota { color: var(--color-primary-700); }
+a.metrica:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 2px; }
+
+/* Linea de apoyo bajo las metricas: la lectura del servidor y el patrimonio.
+   Van aqui y no en tarjeta porque son contexto, no cifras de consulta diaria
+   — pero se perderian si no estuvieran. */
+.panel__lectura {
+  font: var(--font-ayuda); color: var(--color-neutral-700);
+  margin: 0 0 var(--space-4);
+  font-variant-numeric: tabular-nums;
+}
+.panel__lectura-patrimonio { color: var(--color-neutral-900); font-weight: 600; }
+
+/* Curva y dona lado a lado. La curva se lleva mas ancho porque tiene un eje
+   de tiempo: comprimirla aplasta la forma, que es justo el dato que aporta.
+   Bajo 900px se apilan — dos graficos en 400px no se leen ni con lupa. */
+.panel__graficos {
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: var(--space-2); align-items: start;
   margin-bottom: var(--space-4);
+}
+@media (max-width: 900px) {
+  .panel__graficos { grid-template-columns: 1fr; }
+}
+/* El bloque pasa a tarjeta cuando va dentro de la reticula de graficos: sin
+   fondo propio, los dos graficos se leerian como uno solo muy ancho. */
+.bloque--tarjeta {
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-neutral-400);
+  border-radius: var(--radio-lg);
+  padding: var(--space-3);
+  margin-bottom: 0;
+  min-width: 0;
 }
 
 /* ------------------------------------- Bordes semánticos en las tarjetas
@@ -546,43 +627,10 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .chip-icono--negativa { background: var(--color-error-100); color: var(--color-error-600); }
 .chip-icono--aviso    { background: var(--color-warning-100); color: var(--color-warning-600); }
 .chip-icono--marca    { background: var(--color-primary-100); color: var(--color-primary-700); }
-.resumen__rotulo {
-  font: var(--font-etiqueta); color: var(--color-neutral-700);
-  margin: 0 0 2px;
-}
 /* 34px y no el token --font-display (28px): esta cifra tiene que ganarle a
    todo lo demás de la pantalla, y a 28 competía con los títulos de sección. */
-.resumen__cifra {
-  font: 700 34px/1.1 var(--font-familia);
-  color: var(--color-neutral-900);
-  font-variant-numeric: tabular-nums;
-  margin: 0 0 4px;
-}
-.resumen__cifra--negativa { color: var(--color-error-600); }
-.resumen__contexto {
-  font: var(--font-cuerpo); color: var(--color-neutral-700); margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-.resumen__lectura {
-  font: var(--font-etiqueta); color: var(--color-neutral-500);
-  margin: 4px 0 0;
-}
-
 /* El desglose del patrimonio: presente, pero replegado. La cifra importa; de
    qué está hecha importa solo cuando alguien la cuestiona. */
-.resumen__desglose { margin: var(--space-2) 0 0; }
-.resumen__desglose summary {
-  font: var(--font-etiqueta); color: var(--color-primary-700);
-  cursor: pointer; padding: 4px 0;
-}
-.resumen__desglose summary:focus-visible {
-  outline: 2px solid var(--color-primary-600); outline-offset: 2px;
-}
-.resumen__desglose p {
-  font: var(--font-etiqueta); color: var(--color-neutral-700);
-  margin: 4px 0 0; font-variant-numeric: tabular-nums;
-}
-
 .bloque { margin-bottom: var(--space-6); }
 .bloque__titulo { font: var(--font-seccion); color: var(--color-neutral-900); margin: 0 0 var(--space-4); }
 
@@ -1238,3 +1286,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   .termometro__dato--destacado { margin-left: 0; text-align: left; }
   .fijo, .aviso { flex-direction: column; align-items: flex-start; }
 }
+
+/* La composicion sin dona ocupa una sola columna: el grid de dos columnas
+   dejaria la mitad vacia ahora que la dona vive arriba con la curva. */
+.composicion--solo-barras { grid-template-columns: 1fr; }

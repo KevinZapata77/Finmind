@@ -10,12 +10,14 @@ import Dona from '../componentes/Dona'
 import CurvaDelMes from '../componentes/CurvaDelMes'
 import TendenciaMeses from '../componentes/TendenciaMeses'
 import ComparacionConElMesPasado from '../componentes/ComparacionConElMesPasado'
+import { useAuth } from '../auth/AuthContext'
 import {
   IconoDinero, IconoAviso, IconoEntra, IconoSale, IconoPatrimonio, IconoListo,
 } from '../componentes/Iconos'
 
 /** UI-003 — Panel. Implementa HU-018, HU-019 / RF-021, RF-022, RF-038. */
 export default function Panel() {
+  const { usuario } = useAuth()
   const hoy = new Date()
   const [anio, setAnio] = useState(hoy.getFullYear())
   const [mes, setMes] = useState(hoy.getMonth() + 1)
@@ -151,8 +153,21 @@ export default function Panel() {
 
       {esMesActual && <ComparacionConElMesPasado comparacion={historico?.comparacion} />}
 
-      <div className="contenido__encabezado">
-        <h2 className="bloque__titulo">{tituloDelPeriodo}</h2>
+      {/*
+        Cabecera del panel: saludo a la izquierda, buscador a la derecha.
+
+        El saludo no es decoración. Un panel que empieza con "Inicio" no dice
+        nada; uno que empieza con el nombre y el mes sitúa a la persona en un
+        segundo. Es lo primero que hace cualquier aplicación de finanzas.
+      */}
+      <div className="panel__cabecera">
+        <div>
+          <p className="panel__saludo">Hola, {usuario?.nombre ?? 'de nuevo'}</p>
+          <p className="panel__periodo">
+            {esMesActual ? `Así va tu ${nombreDelMes.toLowerCase()}`
+              : `Así te fue en ${nombreDelMes.toLowerCase()}`}
+          </p>
+        </div>
         <SelectorDeMes anio={anio} mes={mes} onCambiar={cambiar} />
       </div>
 
@@ -172,70 +187,43 @@ export default function Panel() {
         alcanza?". Ingresos y gastos siguen ahí, más pequeños, y siguen abriendo
         su detalle (RF-049).
       */}
-      <section className={`resumen ${balance.diferencia < 0 ? 'tarjeta--negativa' : 'tarjeta--marca'}`}
-        aria-label="Balance del período">
-        {/*
-          El borde y el chip cambian con el signo: teal cuando queda dinero,
-          rojo cuando no. Es la misma información que ya da la cifra, dicha
-          también en color y forma — quien no distinga los colores sigue
-          leyendo el número y su signo (RNF-008).
-        */}
-        <span className={`chip-icono ${balance.diferencia < 0 ? 'chip-icono--negativa' : 'chip-icono--marca'}`}>
-          {balance.diferencia < 0 ? <IconoAviso /> : <IconoDinero />}
-        </span>
-        <p className="resumen__rotulo">
-          {esMesActual ? 'Te queda este mes' : `Te quedó en ${nombreDelMes}`}
-        </p>
-        <p className={`resumen__cifra${balance.diferencia < 0 ? ' resumen__cifra--negativa' : ''}`}>
-          {formatearDinero(balance.diferencia)}
-        </p>
-        <p className="resumen__contexto">
-          de {formatearDinero(balance.ingresos)} que entraron
-          {/* Los días que faltan salen de la curva, que ya se pidió. Solo tienen
-              sentido en el mes en curso: en uno cerrado no falta nada. El día 31
-              la resta da 0, y "quedan 0 días" se lee como un error. */}
-          {esMesActual && diasQueQuedan != null && (
-            <> · {diasQueQuedan === 0 ? 'hoy cierra el mes'
-              : `${diasQueQuedan === 1 ? 'queda 1 día' : `quedan ${diasQueQuedan} días`}`}</>
-          )}
-        </p>
-        {/* El texto viene del servidor: el signo solo es fácil de pasar por alto. */}
-        <p className="resumen__lectura">{balance.lectura}</p>
-
-        {/*
-          El desglose del patrimonio pasa a un detalle desplegable en vez de
-          ocupar una tarjeta entera. La cifra importa; de qué está hecha importa
-          solo cuando alguien la cuestiona — y entonces tiene que estar.
-        */}
-        <details className="resumen__desglose">
-          <summary>Cómo se calcula el patrimonio</summary>
-          <p>
-            {formatearDinero(patrimonio.activos)} en cuentas −{' '}
-            {formatearDinero(patrimonio.deudaTotal ?? patrimonio.obligaciones)} en deudas.
-            {Number(patrimonio.deudaEnTarjetas ?? 0) > 0 && (
-              <> De la deuda, {formatearDinero(patrimonio.deudaEnTarjetas)} son
-                tarjetas de crédito y {formatearDinero(patrimonio.obligaciones)} son
-                préstamos.</>
-            )}
-          </p>
-        </details>
-      </section>
-
       {/*
-        Fila de métricas, FUERA de la tarjeta del resumen y no dentro.
+        Cuatro tarjetas del mismo tamaño, con "Te queda" primera.
 
-        POR QUE ESTAN AQUI Y NO ANIDADAS
-        Estaban dentro de la tarjeta del resumen, y en tema oscuro eso las
-        volvía invisibles: el fondo de la métrica y el de la tarjeta que la
-        contenía eran el mismo valor, así que solo un borde de 1,35:1 las
-        separaba. En papel se disimula; sobre negro no.
+        NOTA SOBRE UN CAMBIO DE CRITERIO
+        En ADSO-UXUI-02 se argumentó lo contrario: una cifra grande y el resto
+        como contexto, porque cuatro cifras iguales equivalen a ninguna. Ese
+        argumento sigue siendo válido para un panel de tema claro y sin bordes.
 
-        Sobre el lienzo funcionan porque recuperan la relación de elevación que
-        usa el resto de la aplicación: tarjeta clara sobre fondo oscuro. Y es
-        además la estructura de la referencia visual — una fila de tarjetas de
-        métrica, no cifras apiladas dentro de otra tarjeta.
+        Lo que lo resuelve aquí es el BORDE SEMÁNTICO. En la referencia visual
+        las cuatro tarjetas no compiten porque cada una está clasificada por
+        color antes de leerse: teal es lo que queda, verde lo que entró, rojo lo
+        que salió, ámbar lo que pide atención. La jerarquía la da el color y la
+        posición, no el tamaño. Y "Te queda" va primera, que es donde el ojo
+        empieza.
       */}
-      <section className="metricas" aria-label="Ingresos, gastos y patrimonio">
+      <section className="metricas" aria-label="Balance del período">
+        <div className={`metrica ${balance.diferencia < 0 ? 'metrica--negativa' : 'metrica--marca'}`}>
+          <span className={`chip-icono ${balance.diferencia < 0 ? 'chip-icono--negativa' : 'chip-icono--marca'}`}>
+            {balance.diferencia < 0 ? <IconoAviso /> : <IconoDinero />}
+          </span>
+          <span className="metrica__rotulo">
+            {esMesActual ? 'Te queda' : `Te quedó en ${nombreDelMes}`}
+          </span>
+          <span className={`metrica__valor metrica__valor--grande${balance.diferencia < 0 ? ' negativo' : ''}`}>
+            {formatearDinero(balance.diferencia)}
+          </span>
+          {/* Los días que faltan salen de la curva, que ya se pidió. Solo tienen
+              sentido en el mes en curso. El día 31 la resta da 0, y "quedan 0
+              días" se lee como un error. */}
+          <span className="metrica__nota">
+            {esMesActual && diasQueQuedan != null
+              ? (diasQueQuedan === 0 ? 'Hoy cierra el mes'
+                : diasQueQuedan === 1 ? 'Queda 1 día' : `Quedan ${diasQueQuedan} días`)
+              : 'Mes cerrado'}
+          </span>
+        </div>
+
         <Link className="metrica metrica--positiva"
           to={enlaceMovimientos({ tipo: 'INGRESO', ...rangoDelMes(anio, mes) })}>
           <span className="chip-icono chip-icono--positiva"><IconoEntra /></span>
@@ -249,24 +237,20 @@ export default function Panel() {
           <span className="chip-icono chip-icono--negativa"><IconoSale /></span>
           <span className="metrica__rotulo">Salió</span>
           <span className="metrica__valor negativo">{formatearDinero(balance.gastos)}</span>
-          <span className="metrica__nota">Ver los movimientos</span>
+          {/* La variación viene del histórico: es la cifra que la referencia
+              pone aquí, y la que más significa de un vistazo. */}
+          <span className="metrica__nota">
+            {historico?.comparacion?.variacionPorcentaje != null
+              ? `${historico.comparacion.variacion > 0 ? '+' : ''}${historico.comparacion.variacionPorcentaje}% vs. el mes pasado`
+              : 'Ver los movimientos'}
+          </span>
         </Link>
 
-        {/* El patrimonio no enlaza: es una cifra derivada, no existe "la lista
-            de movimientos de tu patrimonio". */}
-        <div className="metrica">
-          <span className="chip-icono chip-icono--marca"><IconoPatrimonio /></span>
-          <span className="metrica__rotulo">Patrimonio</span>
-          <span className={`metrica__valor${patrimonio.patrimonioNeto < 0 ? ' negativo' : ''}`}>
-            {formatearDinero(patrimonio.patrimonioNeto)}
-          </span>
-          <span className="metrica__nota">Cuentas menos deudas</span>
-        </div>
-
-        {/* La cuarta métrica es el conteo de avisos, como en la referencia. Solo
-            en el mes en curso, que es cuando las alertas existen. */}
-        {esMesActual && (
-          <div className={`metrica${(alertas?.alertas?.length ?? 0) > 0 ? ' metrica--aviso' : ''}`}>
+        {/* La cuarta es alertas en el mes en curso, y patrimonio cuando se mira
+            un mes cerrado — ahí las alertas no existen y la tarjeta quedaría
+            vacía. */}
+        {esMesActual ? (
+          <div className={`metrica${(alertas?.alertas?.length ?? 0) > 0 ? ' metrica--aviso' : ' metrica--positiva'}`}>
             <span className={`chip-icono ${(alertas?.alertas?.length ?? 0) > 0 ? 'chip-icono--aviso' : 'chip-icono--positiva'}`}>
               {(alertas?.alertas?.length ?? 0) > 0 ? <IconoAviso /> : <IconoListo />}
             </span>
@@ -277,8 +261,30 @@ export default function Panel() {
                 : `${alertas.alertas.filter((a) => a.severidad === 'ALTA').length} urgente(s)`}
             </span>
           </div>
+        ) : (
+          <div className="metrica">
+            <span className="chip-icono chip-icono--marca"><IconoPatrimonio /></span>
+            <span className="metrica__rotulo">Patrimonio</span>
+            <span className={`metrica__valor${patrimonio.patrimonioNeto < 0 ? ' negativo' : ''}`}>
+              {formatearDinero(patrimonio.patrimonioNeto)}
+            </span>
+            <span className="metrica__nota">Cuentas menos deudas</span>
+          </div>
         )}
       </section>
+
+      {/* La lectura del servidor y el patrimonio quedan como línea de apoyo:
+          siguen siendo datos reales y no se pierden al compactar las tarjetas. */}
+      <p className="panel__lectura">
+        {balance.lectura}
+        {' · '}
+        <span className="panel__lectura-patrimonio">
+          Patrimonio {formatearDinero(patrimonio.patrimonioNeto)}
+        </span>
+        {' — '}
+        {formatearDinero(patrimonio.activos)} en cuentas menos{' '}
+        {formatearDinero(patrimonio.deudaTotal ?? patrimonio.obligaciones)} en deudas.
+      </p>
 
       {/* Presupuestos que piden atención (RF-019) */}
       {presupuestosEnAlerta.length > 0 && (
@@ -306,17 +312,41 @@ export default function Panel() {
         La curva del mes (RF-048). Va antes de la composición porque responde
         una pregunta más urgente: no "en qué gasté" sino "voy bien o voy mal".
       */}
-      <section className="bloque" aria-label="Cómo se acumuló el mes">
-        <div className="bloque__cabecera">
-          <h2 className="bloque__titulo">Cómo se acumuló {esMesActual ? 'este mes' : nombreDelMes}</h2>
-          {curva?.proyeccionGasto != null && (
-            <span className="bloque__meta">
-              Proyección al día {curva.diasTranscurridos} de {curva.diasDelMes}
-            </span>
+      {/*
+        Curva y composición lado a lado, como en la referencia visual.
+
+        Apiladas, cada gráfico ocupaba el ancho entero y había que desplazarse
+        para pasar de "cómo voy" a "en qué se fue" — dos preguntas que se leen
+        mejor juntas. La curva se lleva más ancho (1,4 contra 1) porque tiene
+        un eje de tiempo: comprimirla aplasta la forma, que es justo el dato.
+      */}
+      <div className="panel__graficos">
+        <section className="bloque bloque--tarjeta" aria-label="Cómo se acumuló el mes">
+          <div className="bloque__cabecera">
+            <h2 className="bloque__titulo">Cómo se acumuló {esMesActual ? 'este mes' : nombreDelMes}</h2>
+            {curva?.proyeccionGasto != null && (
+              <span className="bloque__meta">
+                Día {curva.diasTranscurridos} de {curva.diasDelMes}
+              </span>
+            )}
+          </div>
+          <CurvaDelMes ritmo={curva} nombreDelMes={nombreDelMes} />
+        </section>
+
+        <section className="bloque bloque--tarjeta" aria-label="Composición del gasto">
+          <h2 className="bloque__titulo">En qué se fue</h2>
+          {gastoPorCategoria.porciones.length === 0 ? (
+            <p className="grafico__vacio">
+              {sinDatos
+                ? `Sin movimientos ${esMesActual ? 'este mes' : `en ${nombreDelMes}`}.`
+                : `Sin gastos ${esMesActual ? 'este mes' : `en ${nombreDelMes}`}.`}
+            </p>
+          ) : (
+            <Dona porciones={gastoPorCategoria.porciones} total={gastoPorCategoria.total}
+              enlaceDe={(categoriaId) => enlaceCategoriaDelMes(categoriaId, anio, mes)} />
           )}
-        </div>
-        <CurvaDelMes ritmo={curva} nombreDelMes={nombreDelMes} />
-      </section>
+        </section>
+      </div>
 
       {/*
         RF-050. La tendencia de varios meses va después de la curva del mes y
@@ -337,9 +367,18 @@ export default function Panel() {
         </section>
       )}
 
-      {/* Composición del gasto (RF-022) */}
-      <section className="bloque" aria-label="Composición del gasto">
-        <h2 className="bloque__titulo">En qué se fue tu dinero</h2>
+      {/*
+        Detalle por categoría (RF-022).
+
+        La dona subió al bloque de arriba, junto a la curva. Aquí queda la
+        lista con la cifra exacta de cada categoría y su variación contra el mes
+        pasado. Las dos cosas muestran el mismo dato a propósito: la dona
+        responde de un vistazo "¿hay una categoría comiéndose el mes?", y la
+        lista da el número. Y un gráfico no se puede leer con un lector de
+        pantalla, así que la lista no es redundancia: es la versión accesible.
+      */}
+      <section className="bloque" aria-label="Detalle del gasto por categoría">
+        <h2 className="bloque__titulo">El detalle, categoría por categoría</h2>
 
         {gastoPorCategoria.porciones.length === 0 ? (
           <div className="vacio">
@@ -355,17 +394,7 @@ export default function Panel() {
             <Link className="boton-enlace" to="/movimientos">Registrar un movimiento</Link>
           </div>
         ) : (
-          <div className="composicion">
-            {/*
-              La dona y las barras muestran lo mismo, y eso es intencional. La
-              dona responde de un vistazo "¿hay una categoría que se está
-              comiendo el mes?"; las barras dan la cifra exacta de cada una.
-              Quitar las barras dejaría el dato solo en un gráfico, y un gráfico
-              no se puede leer con un lector de pantalla.
-            */}
-            <Dona porciones={gastoPorCategoria.porciones} total={gastoPorCategoria.total}
-              enlaceDe={(categoriaId) => enlaceCategoriaDelMes(categoriaId, anio, mes)} />
-
+          <div className="composicion composicion--solo-barras">
             <ul className="barras">
             {gastoPorCategoria.porciones.map((p) => (
               <li key={p.categoriaId} className="barra">
