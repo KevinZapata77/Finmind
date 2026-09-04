@@ -18,16 +18,27 @@ export default function CallbackGoogle() {
     if (yaCorrio.current) return
     yaCorrio.current = true
 
-    const token = params.get('token')
-    if (!token) {
-      setError(params.get('error') || 'No recibimos la confirmación de Google.')
+    /*
+      SEG-08. Ya no llega ningun token por la URL, ni en la consulta ni en el
+      fragmento. El backend abrio la cookie HttpOnly antes de devolver el
+      navegador, asi que aqui solo queda confirmar quien es.
+
+      Es la version buena del recorrido que hicimos: primero el token venia como
+      ?token=..., que queda en el historial y en el registro de todo lo que este
+      en el camino. Despues se movio al fragmento, que el navegador no manda al
+      servidor. Con la cookie no hace falta ninguno de los dos: el secreto nunca
+      pasa por la barra de direcciones.
+
+      Solo se sigue leyendo ?error=..., que no es secreto y conviene que el
+      servidor lo pueda registrar.
+    */
+    const fallo = params.get('error')
+    if (fallo) {
+      setError(fallo)
       return
     }
-    // Se borra el token de la barra de direcciones antes de cualquier otra cosa,
-    // para que no quede guardado en el historial del navegador.
-    window.history.replaceState({}, '', '/oauth2/callback')
 
-    entrarConToken(token)
+    entrarConToken()
       .then(() => navegar('/panel', { replace: true }))
       .catch((err) => setError(err.message))
   }, [params, entrarConToken, navegar])

@@ -84,7 +84,7 @@ export default function RegistroRapido({ onRegistrado }) {
     setError(null)
     try {
       const c = await api.crearCategoria({
-        nombre: nuevaCategoria, tipo, icono: null, colorHex: '#0E8368',
+        nombre: nuevaCategoria, tipo, icono: null, colorHex: '#2DD4BF',
       })
       await cargarCategorias()
       setCategoriaId(String(c.id))

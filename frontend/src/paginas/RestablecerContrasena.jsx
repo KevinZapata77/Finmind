@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
+import { IconoMarca } from '../componentes/Iconos'
 
 /** UI-012 — Restablecer contraseña. Implementa HU-024 / RF-028. */
 export default function RestablecerContrasena() {
@@ -38,7 +39,7 @@ export default function RestablecerContrasena() {
   return (
     <div className="pantalla-auth">
       <aside className="pantalla-auth__lateral">
-        <div className="marca"><span className="marca__logo">F</span> FinMind</div>
+        <div className="marca"><span className="marca__logo"><IconoMarca /></span> FinMind</div>
         <h1 className="pantalla-auth__lema">Nueva contraseña.</h1>
       </aside>
 

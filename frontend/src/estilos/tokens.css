@@ -1,76 +1,89 @@
 /*
-  Tokens del sistema de diseño de FinMind.
+  Tokens del sistema de diseño de FinMind — TEMA OSCURO.
   Son los mismos valores del documento de diseño UX/UI (docs/diseno).
-  Los contrastes fueron verificados contra WCAG AA 4.5:1.
+  Los contrastes fueron verificados contra WCAG AA 4.5:1 sobre la superficie
+  en la que cada color se usa de verdad, no sobre blanco.
   Ningún color se escribe suelto en los componentes: todo sale de aquí.
+
+  POR QUE OSCURO
+  El tema claro cumplía, pero se leía como un formulario. El lenguaje visual
+  de las aplicaciones financieras de 2026 es oscuro: deja que las cifras y los
+  gráficos sean lo único que emite luz, que es exactamente donde debe ir la
+  atención en una pantalla de dinero.
+
+  DOS REGLAS QUE HACEN LA DIFERENCIA ENTRE UN OSCURO BUENO Y UNO AMATEUR
+  1. Nunca blanco puro sobre negro puro. Vibra y cansa. El texto es #E6E8EC y
+     el fondo #0B0E14; a 15,75:1 sobra contraste sin el zumbido del #FFF/#000.
+  2. Los colores saturados no sobreviven al fondo oscuro. El rojo #EF4444 que
+     usa la mitad de las plantillas da 3,89:1 y NO cumple AA. Aquí el rojo es
+     #F87171 (6,31:1). Es el error más común de los tableros oscuros bonitos.
+
+  LA ESCALA NEUTRAL ESTA INVERTIDA respecto al tema claro: neutral-900 es el
+  texto (casi blanco) y neutral-100 el fondo tenue (casi negro). Se conservan
+  los nombres para no reescribir las mil líneas de app.css: lo que cambia es
+  el valor, no el significado de "900 = lo que más contrasta con el fondo".
 */
 :root {
-  /* Color: el número indica intensidad, no orden de uso */
-  --color-primary-700: #0A5647;  /* 8.62:1 sobre blanco */
-  --color-primary-600: #0B6B57;  /* 6.45:1 */
-  --color-primary-500: #0E8368;  /* 4.62:1 */
-  --color-primary-100: #DCF2EC;
-  --color-success-600: #15803D;  /* 5.02:1 */
+  /* --- Marca. Teal: legible como texto sobre tarjeta Y como relleno --- */
+  --color-primary-700: #2DD4BF;  /* 9,37:1 sobre tarjeta — enlaces y acentos */
+  --color-primary-600: #14B8A6;  /* relleno principal, texto oscuro encima 7,76:1 */
+  --color-primary-500: #0D9488;  /* relleno secundario, encima 5,16:1 */
+  --color-primary-100: #0F2E27;  /* tinte oscuro de fondo, teal encima 7,83:1 */
+
+  /* --- Semánticos. Aclarados para el fondo oscuro --- */
+  --color-success-600: #22C55E;  /* rellenos y barras (mínimo 3:1) */
   /*
-    Verde para TEXTO PEQUENO sobre fondos tenidos.
-    Mismo caso que obligo a oscurecer neutral-500: success-600 da 5.02:1 sobre
-    blanco, pero al ponerlo sobre el gris de un elemento resaltado (neutral-200,
-    el hover de una fila) cae a 4.05:1 y deja de cumplir AA. Con este valor
-    cumple sobre los tres fondos: neutral-200 5.33:1, tarjeta 5.94:1 y blanco
-    6.60:1. El 600 se sigue usando para rellenos y barras, donde el minimo
-    aplicable es 3:1 y no 4.5:1.
+    En el tema claro el 700 era MAS OSCURO que el 600, para texto pequeño
+    sobre fondos teñidos. Aquí es al revés: sobre oscuro, "más legible"
+    significa más claro. 10,01:1 sobre tarjeta y 8,84:1 sobre el hover.
   */
-  --color-success-700: #146B34;  /* 6.60:1 sobre blanco */
-  --color-success-100: #DCFCE7;
-  --color-warning-600: #B45309;  /* 5.02:1 */
-  --color-warning-100: #FEF3C7;
-  --color-error-600:   #B91C1C;  /* 6.47:1 */
-  --color-error-100:   #FEE2E2;
-  --color-neutral-900: #111827;  /* 17.74:1 */
-  --color-neutral-700: #374151;  /* 10.31:1 */
-  /*
-    Se oscurecio de #6B7280 a #626976 al pasar las tarjetas a fondo gris.
-    Sobre blanco daba 4.83:1, pero sobre el gris de la tarjeta caia a 4.35:1
-    y dejaba de cumplir el minimo AA de 4.5:1. Con este valor cumple sobre
-    los tres fondos: tarjeta 4.97:1, pagina 5.20:1 y campo blanco 5.52:1.
-  */
-  --color-neutral-500: #626976;  /* 5.52:1 sobre blanco */
-  --color-neutral-400: #C3C8D0;  /* borde de las tarjetas */
-  --color-neutral-300: #D1D5DB;
-  --color-neutral-200: #E5E7EB;
-  --color-neutral-100: #F3F4F6;
+  --color-success-700: #4ADE80;
+  --color-success-100: #0F2E1B;
+
+  --color-warning-600: #FBBF24;  /* 10,45:1 sobre tarjeta */
+  --color-warning-100: #2E2410;
+
+  --color-error-600:   #F87171;  /* 6,31:1. El #EF4444 habitual daba 3,89:1 */
+  --color-error-100:   #2E1414;
+
+  /* --- Neutrales, invertidos: 900 contrasta, 100 es fondo --- */
+  --color-neutral-900: #E6E8EC;  /* texto principal, 14,22:1 sobre tarjeta */
+  --color-neutral-700: #9BA3AF;  /* texto de apoyo, 6,85:1 */
+  --color-neutral-500: #7C8493;  /* texto de ayuda, 4,63:1 — el más justo */
+  --color-neutral-400: #2A3240;  /* borde de tarjeta, 1,35:1 sobre tarjeta */
+  --color-neutral-300: #252C38;  /* bordes suaves y divisores */
+  --color-neutral-200: #1E2530;  /* fondo de hover */
+  --color-neutral-100: #151A23;  /* fondos tenues */
 
   /*
-    Tres niveles de superficie. El lienzo es el mas oscuro y las tarjetas el
-    mas claro, que es como funciona la elevacion: lo que esta "encima" recibe
-    mas luz.
+    Tres superficies. En oscuro la elevación funciona al revés que en papel:
+    lo que está "encima" es más CLARO, y lo que recibe entrada se HUNDE.
 
-      --color-canvas     el fondo de la pagina, azul muy tenue
-      --color-tarjeta    las tarjetas, blancas, flotando sobre el lienzo
-      --color-surface    los campos de formulario, blancos con borde
+      --color-canvas     la página, lo más oscuro
+      --color-tarjeta    las tarjetas, un paso más claro
+      --color-surface    los campos, más oscuros que la tarjeta
 
-    ESTO ESTUVO AL REVES Y SE MIDIO
-    Antes la tarjeta (#F1F3F7) era mas OSCURA que el lienzo (#F7F8FA), con una
-    separacion de 1,045:1 — indistinguible. Las tarjetas se veian hundidas y
-    toda la aplicacion parecia un formulario plano. El intento anterior fue
-    oscurecer la tarjeta, que empeoraba el problema: apilaba gris sobre gris.
-
-    La solucion fue invertir la relacion y dar color al lienzo. Con #DDE7F2 la
-    separacion sube a 1,25:1 y las tarjetas por fin se despegan.
-
-    EFECTO SECUNDARIO QUE CONVIENE SABER
-    Al pasar las tarjetas a blanco, TODO el texto gana contraste, porque el
-    blanco es el mejor fondo posible: success-600 pasa de 4,51:1 a 5,02:1 y
-    neutral-500 de 4,97:1 a 5,52:1. El azul del lienzo se eligio con el texto
-    mas claro que se apoya en el (neutral-700) a 8,24:1, con margen de sobra.
-
-    El azul es tenue a proposito. Un fondo saturado obligaria a revisar la
-    paleta entera y no es lo que pide una aplicacion de finanzas: el color
-    tiene que enmarcar los numeros, no competir con ellos.
+    El campo hundido es la convención del modo oscuro y es lo contrario del
+    tema claro, donde el campo blanco resaltaba dentro de la tarjeta gris.
+    Su separación de fondo es sutil (1,07:1) a propósito: quien lo delimita
+    es el borde, que da 1,45:1.
   */
-  --color-surface:     #FFFFFF;
-  --color-canvas:      #DDE7F2;  /* tarjeta blanca encima: 1.25:1 */
-  --color-tarjeta:     #FFFFFF;
+  --color-surface:     #0E121A;
+  --color-canvas:      #0B0E14;
+  --color-tarjeta:     #151A23;
+
+  /*
+    TRES TOKENS QUE NO EXISTIAN EN EL TEMA CLARO
+
+    Hicieron falta porque tres tokens se usaban a la vez como fondo y como
+    color de texto, y en oscuro esos dos papeles piden valores opuestos.
+    Antes funcionaba por casualidad: `surface` era blanco, y el blanco sirve
+    de fondo de campo y de texto sobre un relleno de color. Al invertir el
+    tema esa coincidencia se rompe.
+  */
+  --color-barra:        #12171F;  /* barra lateral: era neutral-900 */
+  --color-texto-barra:  #9BA3AF;  /* menú: era neutral-300, 7,06:1 sobre la barra */
+  --color-sobre-lleno:  #0B0E14;  /* texto sobre relleno de acento: era surface */
 
   /* Tipografía */
   --font-familia: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { formatearDinero, PESO_SEVERIDAD, SEVERIDADES } from '../api/cliente'
+import { IconoAviso, IconoSube, IconoPendiente } from './Iconos'
 
 /**
  * Avisos del mes y las cifras que los sustentan (RF-047).
@@ -70,6 +71,18 @@ export default function Alertas({ resumen }) {
             const pinta = SEVERIDADES[a.severidad] ?? SEVERIDADES.BAJA
             return (
               <li key={`${a.tipo}-${i}`} className={`aviso aviso--${pinta.clase}`}>
+                {/*
+                  Chip con ícono por severidad, como en la referencia visual.
+                  El ícono es la señal más rápida en una columna de avisos: se
+                  distingue un triángulo de un reloj antes de leer la palabra.
+                  Pero la palabra sigue ahí — "Urgente", "Atención" — porque un
+                  ícono solo obliga a aprender un código (RNF-008).
+                */}
+                <span className={`aviso__chip aviso__chip--${pinta.clase}`} aria-hidden="true">
+                  {a.severidad === 'ALTA' ? <IconoAviso size={15} />
+                    : a.severidad === 'MEDIA' ? <IconoSube size={15} />
+                      : <IconoPendiente size={15} />}
+                </span>
                 <div className="aviso__cuerpo">
                   <p className="aviso__severidad">{pinta.texto}</p>
                   <p className="aviso__titulo">{a.titulo}</p>

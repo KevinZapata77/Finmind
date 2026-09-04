@@ -5,8 +5,53 @@ import Layout from '../componentes/Layout'
 import Campo from '../componentes/Campo'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
+import { IconoEntra, IconoSale } from '../componentes/Iconos'
 
 const VACIO = { cuentaId: '', categoriaId: '', monto: '', fecha: hoyISO(), descripcion: '' }
+
+/**
+ * RF-053. Parte la página en días, conservando el orden que trae el servidor.
+ *
+ * No reordena nada: el backend ya devuelve por fecha descendente, así que
+ * recorrer y cortar cuando cambia la fecha basta. Ordenar aquí otra vez sería
+ * una segunda fuente de verdad sobre el orden, y las dos se acabarían
+ * separando.
+ *
+ * El neto suma ingresos y resta todo lo demás — gastos y transferencias que
+ * salen— igual que el balance.
+ */
+function agruparPorDia(movimientos) {
+  const dias = []
+  for (const m of movimientos) {
+    let dia = dias[dias.length - 1]
+    if (!dia || dia.fecha !== m.fecha) {
+      dia = { fecha: m.fecha, movimientos: [], neto: 0 }
+      dias.push(dia)
+    }
+    dia.movimientos.push(m)
+    dia.neto += m.tipo === 'INGRESO' ? Number(m.monto) : -Number(m.monto)
+  }
+  return dias
+}
+
+/** "Miércoles 12 de agosto", o "Hoy" y "Ayer" cuando aplica. */
+function formatearDiaLargo(iso) {
+  const [a, m, d] = iso.split('-').map(Number)
+  const fecha = new Date(a, m - 1, d)
+  const hoy = new Date()
+  const soloDia = (f) => new Date(f.getFullYear(), f.getMonth(), f.getDate()).getTime()
+  const DIA = 24 * 60 * 60 * 1000
+
+  // "Hoy" y "Ayer" se leen más rápido que la fecha, y son los dos días que
+  // más se consultan.
+  if (soloDia(fecha) === soloDia(hoy)) return 'Hoy'
+  if (soloDia(fecha) === soloDia(hoy) - DIA) return 'Ayer'
+
+  const texto = fecha.toLocaleDateString('es-CO', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  })
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
 
 /** Los filtros que viven en la URL (RF-049). */
 const CAMPOS_FILTRO = ['desde', 'hasta', 'cuentaId', 'categoriaId', 'tipo']
@@ -32,7 +77,18 @@ export default function Movimientos() {
   const [cuentas, setCuentas] = useState([])
   const [categorias, setCategorias] = useState([])
   const [cargando, setCargando] = useState(true)
+  /*
+    Dos errores separados y no uno.
+
+    Antes la carga de movimientos y la de los catalogos (cuentas y categorias,
+    que llenan los desplegables de filtro) escribian en el mismo estado, y el
+    aviso llevaba el titulo "No pudimos cargar tus movimientos" fijo en el
+    codigo. Si lo que fallaba eran los catalogos, la pantalla culpaba a los
+    movimientos: un mensaje que apunta al sitio equivocado hace perder mas
+    tiempo que no tener mensaje.
+  */
   const [error, setError] = useState(null)
+  const [errorCatalogos, setErrorCatalogos] = useState(null)
 
   const filtros = useMemo(
     () => Object.fromEntries(CAMPOS_FILTRO.map((c) => [c, params.get(c) ?? ''])),
@@ -64,7 +120,7 @@ export default function Movimientos() {
   useEffect(() => {
     Promise.all([api.cuentas(), api.categorias()])
       .then(([c, k]) => { setCuentas(c); setCategorias(k) })
-      .catch((err) => setError(err.message))
+      .catch((err) => setErrorCatalogos(err.message))
   }, [])
 
   function abrirNuevo() {
@@ -141,7 +197,14 @@ export default function Movimientos() {
 
   return (
     <Layout titulo="Movimientos" acciones={<Boton onClick={abrirNuevo}>Nuevo movimiento</Boton>}>
-      {error && <Alerta tipo="error" titulo="No pudimos cargar tus movimientos">{error}</Alerta>}
+      {/* Los catalogos alimentan los desplegables de filtro. Si fallan, los
+          movimientos igual se ven: el aviso lo dice y no bloquea la pantalla. */}
+      {errorCatalogos && (
+        <Alerta tipo="aviso" titulo="No pudimos cargar las listas de filtro">
+          Puedes ver tus movimientos, pero los desplegables de cuenta y categoría
+          van a salir vacíos. {errorCatalogos}
+        </Alerta>
+      )}
 
       {abierto && (
         <form className="tarjeta tarjeta--formulario" onSubmit={guardar} noValidate>
@@ -271,38 +334,89 @@ export default function Movimientos() {
 
       {cargando ? (
         <p className="estado-carga">Cargando…</p>
+      ) : error ? (
+        /*
+          El error va AQUI y no arriba, en el lugar donde iria la lista.
+          Antes se pintaba el aviso rojo arriba y ademas el estado vacio
+          debajo, porque al fallar la consulta la pagina queda nula y el
+          vacio no distinguia "no hay nada" de "no pude preguntar". Las dos
+          cosas dicen lo contrario y la de abajo es falsa: no sabemos si hay
+          movimientos o no.
+        */
+        <Alerta tipo="error" titulo="No pudimos cargar tus movimientos">
+          {error}
+          <br />
+          <button type="button" className="enlace" onClick={cargar}>Reintentar</button>
+        </Alerta>
       ) : !pagina || pagina.contenido.length === 0 ? (
         <div className="vacio">
           <h2 className="vacio__titulo">No hay movimientos con estos filtros</h2>
-          <p className="vacio__texto">Cambia los filtros o registra tu primer movimiento.</p>
-          <Boton onClick={abrirNuevo}>Registrar un movimiento</Boton>
+          <p className="vacio__texto">
+            {hayFiltro
+              ? 'Prueba a quitar el filtro o a ampliar el rango de fechas.'
+              : 'Registra tu primer movimiento para empezar.'}
+          </p>
+          {hayFiltro
+            ? <Boton tipo="secundario" onClick={limpiarFiltros}>Ver todos mis movimientos</Boton>
+            : <Boton onClick={abrirNuevo}>Registrar un movimiento</Boton>}
         </div>
       ) : (
         <>
-          <ul className="lista-movimientos">
-            {pagina.contenido.map((m) => (
-              <li key={m.id} className="movimiento">
-                <span className="movimiento__punto" aria-hidden="true"
-                  style={{ background: m.categoriaColor || 'var(--color-neutral-300)' }} />
-                <div className="movimiento__datos">
-                  <span className="movimiento__descripcion">
-                    {m.descripcion || m.categoriaNombre}
-                  </span>
-                  <span className="movimiento__meta">
-                    {m.fecha} · {m.categoriaNombre} · {m.cuentaNombre}
-                  </span>
-                </div>
-                {/* El signo va escrito, no solo el color. */}
-                <span className={`movimiento__monto ${m.tipo === 'INGRESO' ? 'positivo' : 'negativo'}`}>
-                  {m.tipo === 'INGRESO' ? '+' : '−'} {formatearDinero(m.monto)}
+          {/*
+            RF-053. Los movimientos van agrupados por día, con el neto del día
+            en el encabezado.
+
+            Antes eran veinte filas seguidas repitiendo la misma fecha dentro
+            del texto pequeño de cada una. La fecha es lo que la gente usa para
+            orientarse en una lista de movimientos —"¿qué gasté el sábado?"— y
+            estaba escondida como un dato más. Sacarla a un encabezado y sumar
+            el día responde esa pregunta sin leer fila por fila.
+          */}
+          {agruparPorDia(pagina.contenido).map((dia) => (
+            <section key={dia.fecha} className="dia">
+              <header className="dia__cabecera">
+                <h2 className="dia__fecha">{formatearDiaLargo(dia.fecha)}</h2>
+                <span className={`dia__neto ${dia.neto < 0 ? 'negativo' : dia.neto > 0 ? 'positivo' : ''}`}>
+                  {dia.neto > 0 ? '+' : dia.neto < 0 ? '−' : ''} {formatearDinero(Math.abs(dia.neto))}
                 </span>
-                <div className="movimiento__acciones">
-                  <button type="button" className="enlace" onClick={() => abrirEdicion(m)}>Editar</button>
-                  <button type="button" className="enlace" onClick={() => borrar(m)}>Borrar</button>
-                </div>
-              </li>
-            ))}
-          </ul>
+              </header>
+
+              <ul className="lista-movimientos">
+                {dia.movimientos.map((m) => (
+                  <li key={m.id} className="movimiento">
+                    {/*
+                      Flecha de dirección con el punto de color de la categoría
+                      detrás. Antes solo estaba el punto: un círculo de 10px que
+                      obliga a distinguir tonos para saber si el dinero entró o
+                      salió. La flecha lo dice por forma, y el signo del monto
+                      lo repite por texto (RNF-008).
+                    */}
+                    <span className={`movimiento__flecha movimiento__flecha--${m.tipo === 'INGRESO' ? 'entra' : 'sale'}`}
+                      aria-hidden="true">
+                      {m.tipo === 'INGRESO' ? <IconoEntra size={15} /> : <IconoSale size={15} />}
+                    </span>
+                    <div className="movimiento__datos">
+                      <span className="movimiento__descripcion">
+                        {m.descripcion || m.categoriaNombre}
+                      </span>
+                      {/* La fecha ya no va aquí: la dice el encabezado del día. */}
+                      <span className="movimiento__meta">
+                        {m.categoriaNombre} · {m.cuentaNombre}
+                      </span>
+                    </div>
+                    {/* El signo va escrito, no solo el color. */}
+                    <span className={`movimiento__monto ${m.tipo === 'INGRESO' ? 'positivo' : 'negativo'}`}>
+                      {m.tipo === 'INGRESO' ? '+' : '−'} {formatearDinero(m.monto)}
+                    </span>
+                    <div className="movimiento__acciones">
+                      <button type="button" className="enlace" onClick={() => abrirEdicion(m)}>Editar</button>
+                      <button type="button" className="enlace" onClick={() => borrar(m)}>Borrar</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
 
           {pagina.totalPaginas > 1 && (
             <nav className="paginacion" aria-label="Paginación">

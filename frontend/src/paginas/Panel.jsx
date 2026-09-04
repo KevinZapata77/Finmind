@@ -10,9 +10,14 @@ import Dona from '../componentes/Dona'
 import CurvaDelMes from '../componentes/CurvaDelMes'
 import TendenciaMeses from '../componentes/TendenciaMeses'
 import ComparacionConElMesPasado from '../componentes/ComparacionConElMesPasado'
+import { useAuth } from '../auth/AuthContext'
+import {
+  IconoDinero, IconoAviso, IconoEntra, IconoSale, IconoPatrimonio, IconoListo,
+} from '../componentes/Iconos'
 
 /** UI-003 — Panel. Implementa HU-018, HU-019 / RF-021, RF-022, RF-038. */
 export default function Panel() {
+  const { usuario } = useAuth()
   const hoy = new Date()
   const [anio, setAnio] = useState(hoy.getFullYear())
   const [mes, setMes] = useState(hoy.getMonth() + 1)
@@ -36,43 +41,57 @@ export default function Panel() {
 
   const cargar = useCallback(async () => {
     setCargando(true); setError(null)
+
+    /*
+      PERF-03. Los cinco pedidos salen a la vez.
+
+      Antes salían en tres oleadas: primero un Promise.all de tres, y solo
+      cuando ese terminaba se pedían las alertas, y solo cuando ESAS terminaban
+      se pedía el histórico. Cada `await` encadenado es un viaje completo de ida
+      y vuelta que empieza cuando el anterior ya acabó.
+
+      La base está en Ohio y desde Medellín cada viaje son 70-100 ms de red,
+      más lo que tarde la consulta. Encadenar tres oleadas multiplicaba por tres
+      esa espera sin ninguna razón: ninguno de los tres bloques necesita la
+      respuesta del anterior para poder pedirse.
+
+      Ahora los cinco arrancan juntos y la pantalla espera lo que tarde el más
+      lento, no la suma de todos.
+
+      El .catch(() => null) va PEGADO a la promesa, no en un try/await más
+      abajo. Dos razones:
+
+        - alertas e histórico son bloques secundarios. Si fallan, el panel tiene
+          que dibujarse igual: nadie debe perder su balance porque no se pudo
+          calcular un aviso. Con el catch propio devuelven null y el resto sigue.
+
+        - si se lanzan sin catch y el Promise.all de abajo revienta primero,
+          quedan dos promesas rechazadas que nadie observa. Eso es un
+          unhandled rejection, y en producción es un error en consola por cada
+          carga fallida.
+
+      Las alertas siguen siendo solo del mes en curso: avisar "no te alcanza"
+      sobre un mes que ya cerró no significa nada. Y el histórico sigue sin
+      depender del selector — la tendencia de los últimos 6 meses es la misma
+      se esté mirando agosto o febrero.
+    */
+    const pedidoAlertas = esMesActual
+      ? api.alertas().catch(() => null)
+      : Promise.resolve(null)
+    const pedidoHistorico = api.historico(6).catch(() => null)
+
     try {
-      // El panel, el resumen de hoy/semana y la curva del mes elegido.
+      // El panel, el resumen de hoy/semana y la curva del mes elegido. Estos
+      // tres sí son el panel: si uno falla, no hay pantalla que mostrar.
       const [p, r, c] = await Promise.all([
         api.panel(anio, mes), api.resumenRapido(), api.ritmo(anio, mes),
       ])
       setDatos(p); setRapido(r); setCurva(c)
 
-      /*
-        Las alertas van en una llamada aparte y con su propio catch a propósito.
-        Siempre son del mes en curso —no tiene sentido avisar "no te alcanza"
-        sobre un mes que ya cerró—, así que no dependen del selector. Y si
-        fallaran, el panel entero se caería por un bloque secundario: el usuario
-        perdería su balance por no poder calcular un aviso.
-      */
-      if (esMesActual) {
-        try {
-          setAlertas(await api.alertas())
-        } catch {
-          setAlertas(null)
-        }
-      } else {
-        setAlertas(null)
-      }
-
-      /*
-        El histórico va aparte y con su propio catch, por el mismo motivo que
-        las alertas: es un bloque secundario y no debe poder tumbar el panel.
-        Además NO depende del selector de mes — la tendencia de los últimos 6
-        meses es la misma se esté mirando agosto o febrero, así que volver a
-        pedirla al cambiar de mes sería una llamada de más contra una base que
-        se duerme.
-      */
-      try {
-        setHistorico(await api.historico(6))
-      } catch {
-        setHistorico(null)
-      }
+      // Ya vienen en camino desde arriba; a esta altura casi siempre están
+      // resueltas, así que estos dos await no agregan espera.
+      setAlertas(await pedidoAlertas)
+      setHistorico(await pedidoHistorico)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -107,47 +126,69 @@ export default function Panel() {
 
   return (
     <Layout titulo="Inicio">
-      {/* RF-040: lo primero es anotar, no consultar. */}
-      <RegistroRapido onRegistrado={cargar} />
-
-      {/* Una tira compacta, no tres tarjetas: el resumen del mes tiene que
-          quedar a la vista sin desplazarse. */}
-      {rapido && (
-        <section className="tira" aria-label="Lo que llevas">
-          {[['Hoy', rapido.hoy], ['Esta semana', rapido.semana], ['Este mes', rapido.mes]]
-            .map(([rot, p]) => (
-              <div key={rot} className="tira__dato">
-                <span className="tira__rotulo">{rot}</span>
-                <strong className={`tira__valor ${p.neto < 0 ? 'negativo' : p.neto > 0 ? 'positivo' : ''}`}>
-                  {formatearDinero(p.neto)}
-                </strong>
-                <span className="tira__detalle">
-                  +{formatearDinero(p.ingresos)} · −{formatearDinero(p.gastos)}
-                </span>
-              </div>
-            ))}
-        </section>
-      )}
-
       {/*
-        Los avisos van arriba, antes del balance. El balance dice qué pasó; los
-        avisos dicen qué va a pasar, y eso es lo que todavía se puede cambiar.
-        Solo aparecen en el mes en curso: sobre un mes cerrado, "no te alcanza"
-        no sirve de nada.
-      */}
-      {esMesActual && <Alertas resumen={alertas} />}
+        El panel va en dos columnas: el contenido a la izquierda y los avisos
+        en un riel a la derecha.
 
-      {/*
-        RF-050. La comparación va arriba, junto a los avisos y antes de
-        cualquier gráfico. Es una sola frase y es la que más mueve: dice si la
-        persona va mejor o peor que el mes pasado, que es la pregunta con la que
-        llega. Solo en el mes en curso: "vas gastando" en pasado no significa
-        nada.
+        POR QUE LOS AVISOS SE MUEVEN A UN LADO
+        Antes iban intercalados arriba, empujando hacia abajo el balance y los
+        gráficos. Eso obligaba a elegir entre dos cosas que compiten: los
+        avisos son lo más urgente, pero el balance es lo que la persona vino a
+        ver. En una columna propia dejan de competir: se leen de un vistazo sin
+        empujar nada.
+
+        El riel se desplaza con la página. Antes quedaba pegado arriba, y eso
+        era un defecto: el riel mide más que la ventana, y sticky no puede
+        desplazar algo más alto que la ventana — clavaba el borde de arriba y
+        dejaba el último aviso fuera de alcance. Está explicado en .panel, en
+        app.css. Que los avisos no queden pegados no los deja desatendidos: la
+        cuarta tarjeta de métricas ya dice cuántos hay y cuántos son urgentes.
+
+        En pantallas angostas el riel se va abajo (ver .panel en app.css): en
+        móvil una columna de 300px al lado no cabe, y partir el ancho haría
+        ilegibles las dos.
       */}
+      <div className="panel">
+        <div className="panel__principal">
+          {/* RF-040: lo primero es anotar, no consultar. */}
+          <RegistroRapido onRegistrado={cargar} />
+
+          {/* Una tira compacta, no tres tarjetas: el resumen del mes tiene que
+              quedar a la vista sin desplazarse. */}
+          {rapido && (
+            <section className="tira" aria-label="Lo que llevas">
+              {[['Hoy', rapido.hoy], ['Esta semana', rapido.semana], ['Este mes', rapido.mes]]
+                .map(([rot, p]) => (
+                  <div key={rot} className="tira__dato">
+                    <span className="tira__rotulo">{rot}</span>
+                    <strong className={`tira__valor ${p.neto < 0 ? 'negativo' : p.neto > 0 ? 'positivo' : ''}`}>
+                      {formatearDinero(p.neto)}
+                    </strong>
+                    <span className="tira__detalle">
+                      +{formatearDinero(p.ingresos)} · −{formatearDinero(p.gastos)}
+                    </span>
+                  </div>
+                ))}
+            </section>
+          )}
+
       {esMesActual && <ComparacionConElMesPasado comparacion={historico?.comparacion} />}
 
-      <div className="contenido__encabezado">
-        <h2 className="bloque__titulo">{tituloDelPeriodo}</h2>
+      {/*
+        Cabecera del panel: saludo a la izquierda, buscador a la derecha.
+
+        El saludo no es decoración. Un panel que empieza con "Inicio" no dice
+        nada; uno que empieza con el nombre y el mes sitúa a la persona en un
+        segundo. Es lo primero que hace cualquier aplicación de finanzas.
+      */}
+      <div className="panel__cabecera">
+        <div>
+          <p className="panel__saludo">Hola, {usuario?.nombre ?? 'de nuevo'}</p>
+          <p className="panel__periodo">
+            {esMesActual ? `Así va tu ${nombreDelMes.toLowerCase()}`
+              : `Así te fue en ${nombreDelMes.toLowerCase()}`}
+          </p>
+        </div>
         <SelectorDeMes anio={anio} mes={mes} onCambiar={cambiar} />
       </div>
 
@@ -167,65 +208,104 @@ export default function Panel() {
         alcanza?". Ingresos y gastos siguen ahí, más pequeños, y siguen abriendo
         su detalle (RF-049).
       */}
-      <section className="resumen" aria-label="Balance del período">
-        <p className="resumen__rotulo">
-          {esMesActual ? 'Te queda este mes' : `Te quedó en ${nombreDelMes}`}
-        </p>
-        <p className={`resumen__cifra${balance.diferencia < 0 ? ' resumen__cifra--negativa' : ''}`}>
-          {formatearDinero(balance.diferencia)}
-        </p>
-        <p className="resumen__contexto">
-          de {formatearDinero(balance.ingresos)} que entraron
-          {/* Los días que faltan salen de la curva, que ya se pidió. Solo tienen
-              sentido en el mes en curso: en uno cerrado no falta nada. El día 31
-              la resta da 0, y "quedan 0 días" se lee como un error. */}
-          {esMesActual && diasQueQuedan != null && (
-            <> · {diasQueQuedan === 0 ? 'hoy cierra el mes'
-              : `${diasQueQuedan === 1 ? 'queda 1 día' : `quedan ${diasQueQuedan} días`}`}</>
-          )}
-        </p>
-        {/* El texto viene del servidor: el signo solo es fácil de pasar por alto. */}
-        <p className="resumen__lectura">{balance.lectura}</p>
+      {/*
+        Cuatro tarjetas del mismo tamaño, con "Te queda" primera.
 
-        <div className="resumen__secundarios">
-          <Link className="resumen__dato resumen__dato--enlace"
-            to={enlaceMovimientos({ tipo: 'INGRESO', ...rangoDelMes(anio, mes) })}>
-            <span className="resumen__dato-rotulo">Entró</span>
-            <span className="resumen__dato-valor positivo">{formatearDinero(balance.ingresos)}</span>
-          </Link>
-          <Link className="resumen__dato resumen__dato--enlace"
-            to={enlaceMovimientos({ tipo: 'GASTO', ...rangoDelMes(anio, mes) })}>
-            <span className="resumen__dato-rotulo">Salió</span>
-            <span className="resumen__dato-valor negativo">{formatearDinero(balance.gastos)}</span>
-          </Link>
-          {/* El patrimonio no enlaza: es una cifra derivada, no existe "la lista
-              de movimientos de tu patrimonio". */}
-          <div className="resumen__dato">
-            <span className="resumen__dato-rotulo">Patrimonio</span>
-            <span className={`resumen__dato-valor${patrimonio.patrimonioNeto < 0 ? ' negativo' : ''}`}>
-              {formatearDinero(patrimonio.patrimonioNeto)}
-            </span>
-          </div>
+        NOTA SOBRE UN CAMBIO DE CRITERIO
+        En ADSO-UXUI-02 se argumentó lo contrario: una cifra grande y el resto
+        como contexto, porque cuatro cifras iguales equivalen a ninguna. Ese
+        argumento sigue siendo válido para un panel de tema claro y sin bordes.
+
+        Lo que lo resuelve aquí es el BORDE SEMÁNTICO. En la referencia visual
+        las cuatro tarjetas no compiten porque cada una está clasificada por
+        color antes de leerse: teal es lo que queda, verde lo que entró, rojo lo
+        que salió, ámbar lo que pide atención. La jerarquía la da el color y la
+        posición, no el tamaño. Y "Te queda" va primera, que es donde el ojo
+        empieza.
+      */}
+      <section className="metricas" aria-label="Balance del período">
+        <div className={`metrica ${balance.diferencia < 0 ? 'metrica--negativa' : 'metrica--marca'}`}>
+          <span className={`chip-icono ${balance.diferencia < 0 ? 'chip-icono--negativa' : 'chip-icono--marca'}`}>
+            {balance.diferencia < 0 ? <IconoAviso /> : <IconoDinero />}
+          </span>
+          <span className="metrica__rotulo">
+            {esMesActual ? 'Te queda' : `Te quedó en ${nombreDelMes}`}
+          </span>
+          <span className={`metrica__valor metrica__valor--grande${balance.diferencia < 0 ? ' negativo' : ''}`}>
+            {formatearDinero(balance.diferencia)}
+          </span>
+          {/* Los días que faltan salen de la curva, que ya se pidió. Solo tienen
+              sentido en el mes en curso. El día 31 la resta da 0, y "quedan 0
+              días" se lee como un error. */}
+          <span className="metrica__nota">
+            {esMesActual && diasQueQuedan != null
+              ? (diasQueQuedan === 0 ? 'Hoy cierra el mes'
+                : diasQueQuedan === 1 ? 'Queda 1 día' : `Quedan ${diasQueQuedan} días`)
+              : 'Mes cerrado'}
+          </span>
         </div>
 
-        {/*
-          El desglose del patrimonio pasa a un detalle desplegable en vez de
-          ocupar una tarjeta entera. La cifra importa; de qué está hecha importa
-          solo cuando alguien la cuestiona — y entonces tiene que estar.
-        */}
-        <details className="resumen__desglose">
-          <summary>Cómo se calcula el patrimonio</summary>
-          <p>
-            {formatearDinero(patrimonio.activos)} en cuentas −{' '}
-            {formatearDinero(patrimonio.deudaTotal ?? patrimonio.obligaciones)} en deudas.
-            {Number(patrimonio.deudaEnTarjetas ?? 0) > 0 && (
-              <> De la deuda, {formatearDinero(patrimonio.deudaEnTarjetas)} son
-                tarjetas de crédito y {formatearDinero(patrimonio.obligaciones)} son
-                préstamos.</>
-            )}
-          </p>
-        </details>
+        <Link className="metrica metrica--positiva"
+          to={enlaceMovimientos({ tipo: 'INGRESO', ...rangoDelMes(anio, mes) })}>
+          <span className="chip-icono chip-icono--positiva"><IconoEntra /></span>
+          <span className="metrica__rotulo">Entró</span>
+          <span className="metrica__valor positivo">{formatearDinero(balance.ingresos)}</span>
+          <span className="metrica__nota">Ver los movimientos</span>
+        </Link>
+
+        <Link className="metrica metrica--negativa"
+          to={enlaceMovimientos({ tipo: 'GASTO', ...rangoDelMes(anio, mes) })}>
+          <span className="chip-icono chip-icono--negativa"><IconoSale /></span>
+          <span className="metrica__rotulo">Salió</span>
+          <span className="metrica__valor negativo">{formatearDinero(balance.gastos)}</span>
+          {/* La variación viene del histórico: es la cifra que la referencia
+              pone aquí, y la que más significa de un vistazo. */}
+          <span className="metrica__nota">
+            {historico?.comparacion?.variacionPorcentaje != null
+              ? `${historico.comparacion.variacion > 0 ? '+' : ''}${historico.comparacion.variacionPorcentaje}% vs. el mes pasado`
+              : 'Ver los movimientos'}
+          </span>
+        </Link>
+
+        {/* La cuarta es alertas en el mes en curso, y patrimonio cuando se mira
+            un mes cerrado — ahí las alertas no existen y la tarjeta quedaría
+            vacía. */}
+        {esMesActual ? (
+          <div className={`metrica${(alertas?.alertas?.length ?? 0) > 0 ? ' metrica--aviso' : ' metrica--positiva'}`}>
+            <span className={`chip-icono ${(alertas?.alertas?.length ?? 0) > 0 ? 'chip-icono--aviso' : 'chip-icono--positiva'}`}>
+              {(alertas?.alertas?.length ?? 0) > 0 ? <IconoAviso /> : <IconoListo />}
+            </span>
+            <span className="metrica__rotulo">Alertas</span>
+            <span className="metrica__valor">{alertas?.alertas?.length ?? 0}</span>
+            <span className="metrica__nota">
+              {(alertas?.alertas?.length ?? 0) === 0 ? 'Todo en orden'
+                : `${alertas.alertas.filter((a) => a.severidad === 'ALTA').length} urgente(s)`}
+            </span>
+          </div>
+        ) : (
+          <div className="metrica">
+            <span className="chip-icono chip-icono--marca"><IconoPatrimonio /></span>
+            <span className="metrica__rotulo">Patrimonio</span>
+            <span className={`metrica__valor${patrimonio.patrimonioNeto < 0 ? ' negativo' : ''}`}>
+              {formatearDinero(patrimonio.patrimonioNeto)}
+            </span>
+            <span className="metrica__nota">Cuentas menos deudas</span>
+          </div>
+        )}
       </section>
+
+      {/* La lectura del servidor y el patrimonio quedan como línea de apoyo:
+          siguen siendo datos reales y no se pierden al compactar las tarjetas. */}
+      <p className="panel__lectura">
+        {balance.lectura}
+        {' · '}
+        <span className="panel__lectura-patrimonio">
+          Patrimonio {formatearDinero(patrimonio.patrimonioNeto)}
+        </span>
+        {' — '}
+        {formatearDinero(patrimonio.activos)} en cuentas menos{' '}
+        {formatearDinero(patrimonio.deudaTotal ?? patrimonio.obligaciones)} en deudas.
+      </p>
 
       {/* Presupuestos que piden atención (RF-019) */}
       {presupuestosEnAlerta.length > 0 && (
@@ -253,17 +333,41 @@ export default function Panel() {
         La curva del mes (RF-048). Va antes de la composición porque responde
         una pregunta más urgente: no "en qué gasté" sino "voy bien o voy mal".
       */}
-      <section className="bloque" aria-label="Cómo se acumuló el mes">
-        <div className="bloque__cabecera">
-          <h2 className="bloque__titulo">Cómo se acumuló {esMesActual ? 'este mes' : nombreDelMes}</h2>
-          {curva?.proyeccionGasto != null && (
-            <span className="bloque__meta">
-              Proyección al día {curva.diasTranscurridos} de {curva.diasDelMes}
-            </span>
+      {/*
+        Curva y composición lado a lado, como en la referencia visual.
+
+        Apiladas, cada gráfico ocupaba el ancho entero y había que desplazarse
+        para pasar de "cómo voy" a "en qué se fue" — dos preguntas que se leen
+        mejor juntas. La curva se lleva más ancho (1,4 contra 1) porque tiene
+        un eje de tiempo: comprimirla aplasta la forma, que es justo el dato.
+      */}
+      <div className="panel__graficos">
+        <section className="bloque bloque--tarjeta" aria-label="Cómo se acumuló el mes">
+          <div className="bloque__cabecera">
+            <h2 className="bloque__titulo">Cómo se acumuló {esMesActual ? 'este mes' : nombreDelMes}</h2>
+            {curva?.proyeccionGasto != null && (
+              <span className="bloque__meta">
+                Día {curva.diasTranscurridos} de {curva.diasDelMes}
+              </span>
+            )}
+          </div>
+          <CurvaDelMes ritmo={curva} nombreDelMes={nombreDelMes} />
+        </section>
+
+        <section className="bloque bloque--tarjeta" aria-label="Composición del gasto">
+          <h2 className="bloque__titulo">En qué se fue</h2>
+          {gastoPorCategoria.porciones.length === 0 ? (
+            <p className="grafico__vacio">
+              {sinDatos
+                ? `Sin movimientos ${esMesActual ? 'este mes' : `en ${nombreDelMes}`}.`
+                : `Sin gastos ${esMesActual ? 'este mes' : `en ${nombreDelMes}`}.`}
+            </p>
+          ) : (
+            <Dona porciones={gastoPorCategoria.porciones} total={gastoPorCategoria.total}
+              enlaceDe={(categoriaId) => enlaceCategoriaDelMes(categoriaId, anio, mes)} />
           )}
-        </div>
-        <CurvaDelMes ritmo={curva} nombreDelMes={nombreDelMes} />
-      </section>
+        </section>
+      </div>
 
       {/*
         RF-050. La tendencia de varios meses va después de la curva del mes y
@@ -284,9 +388,18 @@ export default function Panel() {
         </section>
       )}
 
-      {/* Composición del gasto (RF-022) */}
-      <section className="bloque" aria-label="Composición del gasto">
-        <h2 className="bloque__titulo">En qué se fue tu dinero</h2>
+      {/*
+        Detalle por categoría (RF-022).
+
+        La dona subió al bloque de arriba, junto a la curva. Aquí queda la
+        lista con la cifra exacta de cada categoría y su variación contra el mes
+        pasado. Las dos cosas muestran el mismo dato a propósito: la dona
+        responde de un vistazo "¿hay una categoría comiéndose el mes?", y la
+        lista da el número. Y un gráfico no se puede leer con un lector de
+        pantalla, así que la lista no es redundancia: es la versión accesible.
+      */}
+      <section className="bloque" aria-label="Detalle del gasto por categoría">
+        <h2 className="bloque__titulo">El detalle, categoría por categoría</h2>
 
         {gastoPorCategoria.porciones.length === 0 ? (
           <div className="vacio">
@@ -302,17 +415,7 @@ export default function Panel() {
             <Link className="boton-enlace" to="/movimientos">Registrar un movimiento</Link>
           </div>
         ) : (
-          <div className="composicion">
-            {/*
-              La dona y las barras muestran lo mismo, y eso es intencional. La
-              dona responde de un vistazo "¿hay una categoría que se está
-              comiendo el mes?"; las barras dan la cifra exacta de cada una.
-              Quitar las barras dejaría el dato solo en un gráfico, y un gráfico
-              no se puede leer con un lector de pantalla.
-            */}
-            <Dona porciones={gastoPorCategoria.porciones} total={gastoPorCategoria.total}
-              enlaceDe={(categoriaId) => enlaceCategoriaDelMes(categoriaId, anio, mes)} />
-
+          <div className="composicion composicion--solo-barras">
             <ul className="barras">
             {gastoPorCategoria.porciones.map((p) => (
               <li key={p.categoriaId} className="barra">
@@ -356,6 +459,19 @@ export default function Panel() {
           </div>
         )}
       </section>
+        </div>
+
+        {/*
+          El riel de avisos. Solo existe en el mes en curso: sobre un mes
+          cerrado, "no te alcanza" no significa nada, y una columna vacía a la
+          derecha desequilibraría la pantalla sin aportar.
+        */}
+        {esMesActual && (
+          <aside className="panel__riel" aria-label="Tus alertas">
+            <Alertas resumen={alertas} />
+          </aside>
+        )}
+      </div>
     </Layout>
   )
 }

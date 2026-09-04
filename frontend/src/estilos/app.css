@@ -4,18 +4,22 @@ body { margin: 0; font: var(--font-cuerpo); color: var(--color-neutral-900); bac
 a { color: var(--color-primary-600); font-weight: 600; }
 
 /* Foco visible en todo elemento interactivo: criterio de accesibilidad, no decoración */
-:focus-visible { outline: 3px solid var(--color-primary-100); outline-offset: 2px; border-radius: var(--radio-sm); }
+/* El anillo va en teal brillante, no en el tinte: al invertir el tema
+   primary-100 paso de ser un verde claro a un verde casi negro, y el foco
+   quedaba invisible sobre el fondo oscuro. Un foco que no se ve deja la
+   aplicacion inusable con teclado. */
+:focus-visible { outline: 3px solid var(--color-primary-700); outline-offset: 2px; border-radius: var(--radio-sm); }
 
 /* ---------- pantallas de autenticación (UI-001, UI-002) ---------- */
 .pantalla-auth { display: grid; grid-template-columns: 40% 60%; min-height: 100vh; }
-.pantalla-auth__lateral { background: var(--color-primary-700); color: var(--color-surface);
+.pantalla-auth__lateral { background: var(--color-barra); color: var(--color-neutral-900);
   padding: var(--space-6); display: flex; flex-direction: column; justify-content: center; }
 .pantalla-auth__lema { font: var(--font-display); font-size: 34px; margin: 0 0 var(--space-2); }
-.pantalla-auth__bajada { color: var(--color-primary-100); margin: 0; max-width: 34ch; }
+.pantalla-auth__bajada { color: var(--color-neutral-700); margin: 0; max-width: 34ch; }
 .pantalla-auth__panel { display: flex; align-items: center; justify-content: center; padding: var(--space-3); }
 
 .marca { display: flex; align-items: center; gap: var(--space-1); font: var(--font-seccion);
-  color: var(--color-surface); margin-bottom: var(--space-6); }
+  color: var(--color-neutral-900); margin-bottom: var(--space-6); }
 .marca--clara { margin-bottom: var(--space-4); }
 .marca__logo { display: grid; place-items: center; width: 30px; height: 30px; border-radius: var(--radio-sm);
   background: var(--color-primary-500); font-weight: 700; }
@@ -44,14 +48,14 @@ a { color: var(--color-primary-600); font-weight: 600; }
 /* ---------- botones ---------- */
 .boton { font: var(--font-cuerpo); font-weight: 600; padding: 12px 16px; border-radius: var(--radio-md);
   border: 1px solid transparent; cursor: pointer; }
-.boton--primario { background: var(--color-primary-600); color: var(--color-surface); }
+.boton--primario { background: var(--color-primary-600); color: var(--color-sobre-lleno); }
 .boton--primario:hover:not(:disabled) { background: var(--color-primary-700); }
 .boton--secundario { background: var(--color-surface); color: var(--color-neutral-700); border-color: var(--color-neutral-300); }
 .boton--peligro { background: var(--color-surface); color: var(--color-error-600); border-color: var(--color-error-600); }
 .boton:disabled { background: var(--color-neutral-200); color: var(--color-neutral-500); cursor: not-allowed; }
 .enlace-boton { background: none; border: none; padding: 0; font: var(--font-ayuda); font-weight: 600;
   color: var(--color-primary-600); cursor: pointer; text-decoration: underline; }
-.enlace-boton--claro { color: var(--color-neutral-300); }
+.enlace-boton--claro { color: var(--color-texto-barra); }
 
 /* ---------- alertas: icono y texto, nunca solo color ---------- */
 .alerta { display: flex; gap: var(--space-1); padding: 12px; border-radius: var(--radio-md); border: 1px solid; }
@@ -66,7 +70,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .fuerza { background: var(--color-neutral-100); border-radius: var(--radio-md); padding: 10px 12px;
   display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; }
 .fuerza__rotulo { font: var(--font-ayuda); font-weight: 600; color: var(--color-neutral-700); grid-column: 1 / -1; }
-.fuerza__barra { height: 6px; background: var(--color-neutral-300); border-radius: 3px; overflow: hidden; }
+.fuerza__barra { height: 6px; background: var(--color-neutral-200); border-radius: 3px; overflow: hidden; }
 .fuerza__relleno { height: 100%; border-radius: 3px; }
 .fuerza__relleno--error { background: var(--color-error-600); }
 .fuerza__relleno--aviso { background: var(--color-warning-600); }
@@ -81,16 +85,74 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 /* ---------- aplicación autenticada (UI-003) ---------- */
 .aplicacion { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
-.barra-lateral { background: var(--color-neutral-900); color: var(--color-surface);
-  padding: var(--space-3) var(--space-2); display: flex; flex-direction: column; }
+
+/* La barra lateral se queda quieta mientras el contenido se desplaza.
+   Antes subía con la página: en una lista larga la navegación desaparecía y
+   "Cerrar sesión" quedaba fuera de la pantalla, cuando al lado sobraba
+   espacio vacío. El menú es lo que siempre tiene que estar a mano.
+
+   position: sticky y no fixed, para que siga ocupando su columna del grid;
+   con fixed habría que reservar el hueco a mano y se descuadra al cambiar el
+   ancho. El alto fijo en 100vh es lo que permite que el pie se vaya al fondo
+   y que, si algún día el menú crece, se desplace solo por dentro. */
+.barra-lateral {
+  background: var(--color-barra); color: var(--color-neutral-900);
+  padding: var(--space-3) var(--space-2);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
 .navegacion { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.navegacion__item { padding: 10px 14px; border-radius: var(--radio-md); color: var(--color-neutral-300);
+.navegacion__item { padding: 10px 14px; border-radius: var(--radio-md); color: var(--color-texto-barra);
   text-decoration: none; font: var(--font-cuerpo); }
-.navegacion__item--activo { background: var(--color-primary-700); color: var(--color-surface); font-weight: 600; }
+.navegacion__item--activo { background: var(--color-primary-700); color: var(--color-sobre-lleno); font-weight: 600; }
 .navegacion__item--inactivo { color: var(--color-neutral-500); }
-.barra-lateral__pie { border-top: 1px solid var(--color-neutral-700); padding-top: var(--space-2); }
+.barra-lateral__pie { border-top: 1px solid var(--color-neutral-400); padding-top: var(--space-2); }
 .barra-lateral__usuario { font: var(--font-ayuda); font-weight: 600; margin: 0 0 4px; }
 .contenido { padding: var(--space-3); }
+
+/* ------------------------------------------- Panel en dos columnas
+   Contenido a la izquierda, riel de avisos a la derecha.
+
+   EL RIEL YA NO ES STICKY, Y ESE ARGUMENTO ERA MIO Y ESTABA MAL
+   Aqui habia "position: sticky; top: var(--space-3)", justificado asi: los
+   avisos son lo que hay que tener presente mientras se mira todo lo demas.
+   El argumento suena bien y es falso en esta pantalla, por una razon medible:
+
+     sticky solo puede desplazar un elemento MAS CORTO que la ventana. Si es
+     mas alto, el navegador clava su borde superior en el "top" indicado y el
+     resto queda inalcanzable para siempre.
+
+   Y el riel es mas alto. Sumando el CSS de sus partes en una columna de
+   300px: cabecera ~50px, termometro ~220px (cuatro cifras que se parten en
+   tres filas), lectura ~100px y tres avisos de ~204px cada uno. Total del
+   orden de 1000px, contra 650-900px de ventana util en un portatil.
+
+   El resultado era el defecto que se reporto: la columna derecha se queda
+   congelada mientras la del medio se desplaza, el tercer aviso nunca se
+   alcanza, y al final del recorrido el riel se suelta de golpe. Se ve como un
+   salto. No era un bug del navegador: era pedirle a sticky algo que no hace.
+
+   La alternativa habria sido max-height mas overflow-y:auto, que es correcta
+   segun la especificacion. Se descarto: crea una segunda zona de desplazamiento
+   dentro de la pagina, asi que la rueda del raton deja de mover la pagina
+   cuando el puntero pasa por encima del riel. Cambiar un salto visible por una
+   trampa de scroll silenciosa es un mal negocio, y peor en una demostracion.
+
+   Ahora el riel se desplaza con la pagina. Y los avisos no quedan
+   desatendidos: la cuarta tarjeta de metricas ya dice cuantos hay y cuantos
+   son urgentes, arriba y en la columna principal.
+
+   300px es el ancho minimo para que un aviso de dos lineas no se parta en
+   cinco. Por debajo de 1100px de ventana el riel se va abajo: partir el
+   ancho en dos haria ilegibles las dos columnas. */
+.panel { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--space-3); align-items: start; }
+.panel__principal { min-width: 0; }
+
+@media (max-width: 1100px) {
+  .panel { grid-template-columns: 1fr; }
+}
 .contenido__titulo { font: var(--font-titulo); margin: 0 0 var(--space-3); }
 .vacio__titulo { font: var(--font-titulo); margin: 0 0 var(--space-1); }
 .vacio__texto { color: var(--color-neutral-500); margin: 0 auto var(--space-2); max-width: 52ch; }
@@ -107,7 +169,15 @@ a { color: var(--color-primary-600); font-weight: 600; }
   .pantalla-auth__lema { font-size: 26px; }
   .fila-doble { grid-template-columns: 1fr; }
   .aplicacion { grid-template-columns: 1fr; }
-  .barra-lateral { flex-direction: row; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-2); }
+  /* En móvil la barra es una tira horizontal arriba: fijarla a 100vh de alto
+     se comería la pantalla entera. Se vuelve al comportamiento normal y solo
+     se mantiene pegada arriba. */
+  .barra-lateral {
+    flex-direction: row; align-items: center; gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    height: auto; overflow-y: visible;
+    position: sticky; top: 0; z-index: 2;
+  }
   .navegacion { flex-direction: row; overflow-x: auto; }
 }
 
@@ -199,7 +269,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--color-neutral-300);
+  background: var(--color-neutral-400);
 }
 
 .captcha { margin: var(--space-4) 0; min-height: 65px; }
@@ -263,6 +333,8 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .tarjeta--formulario { margin-bottom: var(--space-6); }
 
 .acciones { display: flex; gap: var(--space-3); align-items: center; }
+/* En un estado vacío los botones van al centro, bajo el texto que los explica. */
+.acciones--centradas { justify-content: center; flex-wrap: wrap; margin-bottom: var(--space-2); }
 
 .boton--secundario {
   padding: var(--space-3) var(--space-4);
@@ -392,7 +464,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radio-md);
-  color: var(--color-neutral-300);
+  color: var(--color-texto-barra);
   font: var(--font-cuerpo);
   text-decoration: none;
 }
@@ -404,11 +476,11 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .navegacion__item:hover .navegacion__icono,
 .navegacion__item--activo .navegacion__icono { opacity: 1; }
 
-.navegacion__item:hover { background: var(--color-neutral-700); color: var(--color-surface); }
+.navegacion__item:hover { background: var(--color-neutral-200); color: var(--color-neutral-900); }
 
 .navegacion__item--activo {
   background: var(--color-primary-700);
-  color: var(--color-surface);
+  color: var(--color-sobre-lleno);
   font-weight: 600;
 }
 
@@ -416,12 +488,12 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 .usuario__avatar {
   width: 32px; height: 32px; border-radius: 16px;
-  background: var(--color-primary-500); color: var(--color-surface);
+  background: var(--color-primary-500); color: var(--color-sobre-lleno);
   display: flex; align-items: center; justify-content: center;
   font: var(--font-etiqueta); font-weight: 700;
 }
 
-.usuario__nombre { font: var(--font-ayuda); color: var(--color-surface); margin: 0; font-weight: 600; }
+.usuario__nombre { font: var(--font-ayuda); color: var(--color-neutral-900); margin: 0; font-weight: 600; }
 
 /* Tarjetas de dato */
 .tarjetas {
@@ -451,94 +523,137 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .tarjeta-dato__valor--negativo { color: var(--color-error-600); }
 .tarjeta-dato__nota { font: var(--font-etiqueta); color: var(--color-neutral-500); margin: var(--space-2) 0 0; }
 
-/* ==================================================================
-   Resumen del período, en jerarquía enfocada (ADSO-UXUI-02, opción B).
+/* ---------------------------------------- Cabecera del panel
+   Saludo a la izquierda, selector de mes a la derecha. El saludo situa a la
+   persona en un segundo; un titulo que dice "Inicio" no dice nada. */
+.panel__cabecera {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+.panel__saludo { font: var(--font-seccion); color: var(--color-neutral-900); margin: 0; }
+.panel__periodo { font: var(--font-etiqueta); color: var(--color-neutral-700); margin: 2px 0 0; }
 
-   Reemplaza las cuatro tarjetas iguales que había antes. Cuatro cifras del
-   mismo tamaño en cuatro cajas idénticas equivalen a ninguna: el ojo las
-   recorre y no se queda con nada. Aquí hay una sola cifra grande y el resto
-   es contexto.
+/* ==================================================================
+   Fila de metricas — cuatro tarjetas del mismo tamano.
+
+   POR QUE CUATRO IGUALES Y NO UNA CIFRA GRANDE
+   En ADSO-UXUI-02 se argumento lo contrario, y ese argumento era correcto
+   para un panel claro y sin bordes: cuatro cifras del mismo tamano equivalen
+   a ninguna. Lo que lo resuelve aqui es el BORDE SEMANTICO — cada tarjeta
+   queda clasificada por color antes de leerse, asi que la jerarquia la dan el
+   color y la posicion, no el tamano. "Te queda" va primera, y su cifra va un
+   punto mas grande.
+
+   auto-fit deja que el navegador decida cuantas caben: cuatro en escritorio,
+   dos en tableta, una en movil. Sin media queries.
    ================================================================== */
-.resumen {
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.metrica {
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 0;
   background: var(--color-tarjeta);
   border: 1px solid var(--color-neutral-400);
   border-radius: var(--radio-lg);
-  padding: var(--space-4);
-  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  text-decoration: none;
+  transition: border-color .15s ease, background .15s ease;
 }
-.resumen__rotulo {
-  font: var(--font-etiqueta); color: var(--color-neutral-700);
-  margin: 0 0 2px;
-}
-/* 34px y no el token --font-display (28px): esta cifra tiene que ganarle a
-   todo lo demás de la pantalla, y a 28 competía con los títulos de sección. */
-.resumen__cifra {
-  font: 700 34px/1.1 var(--font-familia);
+/* El borde toma el color del significado. Nunca es la unica senal: el rotulo
+   y el signo siguen escritos (RNF-008). */
+.metrica--marca    { border-color: var(--color-primary-600); }
+.metrica--positiva { border-color: var(--color-success-600); }
+.metrica--negativa { border-color: var(--color-error-600); }
+.metrica--aviso    { border-color: var(--color-warning-600); }
+
+.metrica__rotulo { font: var(--font-etiqueta); color: var(--color-neutral-700); }
+.metrica__valor {
+  font: 700 20px/1.2 var(--font-familia);
   color: var(--color-neutral-900);
   font-variant-numeric: tabular-nums;
-  margin: 0 0 4px;
 }
-.resumen__cifra--negativa { color: var(--color-error-600); }
-.resumen__contexto {
-  font: var(--font-cuerpo); color: var(--color-neutral-700); margin: 0;
+/* La primera tarjeta responde la pregunta con la que se abre la aplicacion,
+   asi que su cifra pesa mas sin romper la retícula. */
+.metrica__valor--grande { font-size: 25px; }
+.metrica__nota { font: var(--font-ayuda); color: var(--color-neutral-500); }
+
+/* Solo las que enlazan reaccionan: una mano sobre algo que no responde es una
+   promesa falsa. */
+a.metrica:hover { background: var(--color-neutral-200); }
+a.metrica:hover .metrica__nota { color: var(--color-primary-700); }
+a.metrica:focus-visible { outline: 2px solid var(--color-primary-700); outline-offset: 2px; }
+
+/* Linea de apoyo bajo las metricas: la lectura del servidor y el patrimonio.
+   Van aqui y no en tarjeta porque son contexto, no cifras de consulta diaria
+   — pero se perderian si no estuvieran. */
+.panel__lectura {
+  font: var(--font-ayuda); color: var(--color-neutral-700);
+  margin: 0 0 var(--space-4);
   font-variant-numeric: tabular-nums;
 }
-.resumen__lectura {
-  font: var(--font-etiqueta); color: var(--color-neutral-500);
-  margin: 4px 0 0;
+.panel__lectura-patrimonio { color: var(--color-neutral-900); font-weight: 600; }
+
+/* Curva y dona lado a lado. La curva se lleva mas ancho porque tiene un eje
+   de tiempo: comprimirla aplasta la forma, que es justo el dato que aporta.
+   Bajo 900px se apilan — dos graficos en 400px no se leen ni con lupa. */
+.panel__graficos {
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: var(--space-2); align-items: start;
+  margin-bottom: var(--space-4);
+}
+@media (max-width: 900px) {
+  .panel__graficos { grid-template-columns: 1fr; }
+}
+/* El bloque pasa a tarjeta cuando va dentro de la reticula de graficos: sin
+   fondo propio, los dos graficos se leerian como uno solo muy ancho. */
+.bloque--tarjeta {
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-neutral-400);
+  border-radius: var(--radio-lg);
+  padding: var(--space-3);
+  margin-bottom: 0;
+  min-width: 0;
 }
 
-/* Los tres datos de apoyo, en fila y sin caja propia. Sin borde ni fondo se
-   leen como lo que son: contexto de la cifra de arriba, no cuatro cosas
-   compitiendo entre sí. */
-.resumen__secundarios {
-  display: flex; flex-wrap: wrap; gap: var(--space-4);
-  margin: var(--space-3) 0 0;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-neutral-300);
-}
-.resumen__dato { display: flex; flex-direction: column; gap: 2px; }
-.resumen__dato-rotulo { font: var(--font-etiqueta); color: var(--color-neutral-700); }
-.resumen__dato-valor {
-  font: var(--font-seccion); color: var(--color-neutral-900);
-  font-variant-numeric: tabular-nums;
-}
-/* RF-049. La pista de que se puede pulsar aparece al acercarse: si los tres
-   datos gritaran "púlsame" de entrada, volveríamos al tablero de botones. El
-   subrayado en hover es lo que distingue el enlace del dato que no lo es. */
-.resumen__dato--enlace {
-  text-decoration: none; color: inherit;
-  border-radius: var(--radio-sm);
-  padding: 4px; margin: -4px;
-  transition: background .15s ease;
-}
-.resumen__dato--enlace:hover { background: var(--color-neutral-200); }
-.resumen__dato--enlace:hover .resumen__dato-rotulo {
-  color: var(--color-primary-700); text-decoration: underline;
-}
-/* Mismo caso que .barra__variacion: este valor queda sobre el gris del hover,
-   donde .positivo (success-600) cae a 4.05:1 y no cumple AA. Se pisa con el
-   700. Ver el comentario de --color-success-700 en tokens.css. */
-.resumen__dato-valor.positivo { color: var(--color-success-700); }
-.resumen__dato--enlace:focus-visible {
-  outline: 2px solid var(--color-primary-600); outline-offset: 1px;
-}
+/* ------------------------------------- Bordes semánticos en las tarjetas
+   El borde toma el color de lo que la tarjeta significa: teal para lo que
+   queda, verde para lo que entró, rojo para lo que salió, ámbar para lo que
+   pide atención.
 
+   Sobre fondo oscuro el borde de color hace un trabajo que en tema claro
+   hacía la sombra: separa la tarjeta del fondo y de paso la clasifica antes
+   de leer una sola palabra. Es lo que distingue un tablero de una lista de
+   cajas grises.
+
+   El borde NO es la única señal: cada tarjeta lleva su rótulo escrito y su
+   cifra con signo, así que quien no distinga los colores no pierde nada
+   (RNF-008). */
+.tarjeta--neutra  { border-color: var(--color-neutral-400); }
+.tarjeta--positiva { border-color: var(--color-success-600); }
+.tarjeta--negativa { border-color: var(--color-error-600); }
+.tarjeta--aviso    { border-color: var(--color-warning-600); }
+.tarjeta--marca    { border-color: var(--color-primary-600); }
+
+/* El chip del ícono: un cuadrado redondeado con el tinte de su color. Da
+   un punto de entrada visual a la tarjeta sin agregar texto. */
+.chip-icono {
+  width: 30px; height: 30px; border-radius: var(--radio-md);
+  display: grid; place-items: center;
+  margin-bottom: var(--space-2);
+}
+.chip-icono--positiva { background: var(--color-success-100); color: var(--color-success-700); }
+.chip-icono--negativa { background: var(--color-error-100); color: var(--color-error-600); }
+.chip-icono--aviso    { background: var(--color-warning-100); color: var(--color-warning-600); }
+.chip-icono--marca    { background: var(--color-primary-100); color: var(--color-primary-700); }
+/* 34px y no el token --font-display (28px): esta cifra tiene que ganarle a
+   todo lo demás de la pantalla, y a 28 competía con los títulos de sección. */
 /* El desglose del patrimonio: presente, pero replegado. La cifra importa; de
    qué está hecha importa solo cuando alguien la cuestiona. */
-.resumen__desglose { margin: var(--space-2) 0 0; }
-.resumen__desglose summary {
-  font: var(--font-etiqueta); color: var(--color-primary-700);
-  cursor: pointer; padding: 4px 0;
-}
-.resumen__desglose summary:focus-visible {
-  outline: 2px solid var(--color-primary-600); outline-offset: 2px;
-}
-.resumen__desglose p {
-  font: var(--font-etiqueta); color: var(--color-neutral-700);
-  margin: 4px 0 0; font-variant-numeric: tabular-nums;
-}
-
 .bloque { margin-bottom: var(--space-6); }
 .bloque__titulo { font: var(--font-seccion); color: var(--color-neutral-900); margin: 0 0 var(--space-4); }
 
@@ -580,6 +695,31 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 .barra__relleno { height: 100%; border-radius: 5px; transition: width .25s ease; }
 
+/* RF-052. Marca de ritmo: dónde debería ir el consumo a esta altura del
+   período. La pista necesita position:relative para poder anclarla, y algo
+   más de alto para que la marca sobresalga y no se confunda con el relleno. */
+.barra__pista--con-marca { position: relative; overflow: visible; }
+.barra__marca {
+  position: absolute;
+  top: -3px; bottom: -3px;
+  width: 2px;
+  /* left viene en línea con el porcentaje; este translate la centra sobre el
+     punto exacto en vez de dejarla empezando ahí. */
+  transform: translateX(-1px);
+  background: var(--color-neutral-900);
+  border-radius: 1px;
+}
+/* La marca es negra y no de color: tiene que leerse encima del relleno sea
+   verde, ámbar o rojo, y un color propio competiría con el semáforo. */
+
+.presupuesto__ritmo {
+  font: var(--font-ayuda);
+  margin: 6px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+.presupuesto__ritmo--bien { color: var(--color-success-700); }
+.presupuesto__ritmo--alerta { color: var(--color-warning-600); }
+
 /* RF-049. Aviso de filtro heredado de otra pantalla.
    Va en verde de marca y no en ámbar: llegar aquí con un filtro puesto no es un
    problema ni un error, es lo que el usuario pidió. El ámbar está reservado
@@ -619,21 +759,52 @@ a { color: var(--color-primary-600); font-weight: 600; }
 .positivo { color: var(--color-success-600); }
 .negativo { color: var(--color-error-600); }
 
+/* Chip de la flecha de dirección. El tinte dice de un vistazo si el dinero
+   entró o salió, sin depender de distinguir dos tonos de un punto de 10px. */
+.movimiento__flecha {
+  width: 30px; height: 30px; border-radius: var(--radio-md);
+  display: grid; place-items: center; flex: none;
+}
+.movimiento__flecha--entra { background: var(--color-success-100); color: var(--color-success-700); }
+.movimiento__flecha--sale  { background: var(--color-error-100); color: var(--color-error-600); }
+
+/* RF-053. Agrupación por día en Movimientos.
+   El encabezado es pegajoso: al bajar por una lista larga, saber en qué día
+   se está mirando es justo lo que se pierde. */
+.dia { margin-bottom: var(--space-3); }
+.dia__cabecera {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-2);
+  padding: 6px var(--space-2);
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-neutral-300);
+  margin-bottom: 2px;
+}
+.dia__fecha {
+  font: var(--font-etiqueta); color: var(--color-neutral-700);
+  margin: 0; text-transform: none;
+}
+.dia__neto { font: var(--font-etiqueta); font-variant-numeric: tabular-nums; }
+
 /* Movimientos */
 .lista-movimientos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 
 .movimiento {
   display: grid;
-  grid-template-columns: 10px 1fr auto auto;
-  gap: var(--space-4);
+  /* La primera columna pasa de 10px a 30px: ahora lleva la flecha de
+     dirección dentro de su chip, no un punto de color suelto. */
+  grid-template-columns: 30px 1fr auto auto;
+  gap: var(--space-3);
   align-items: center;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-tarjeta);
   border: 1px solid var(--color-neutral-400);
   border-radius: var(--radio-md);
 }
 
-.movimiento__punto { width: 10px; height: 10px; border-radius: 5px; }
+/* .movimiento__punto se eliminó: lo reemplazó .movimiento__flecha, que dice la
+   dirección por forma y no solo por color. */
 .movimiento__datos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .movimiento__descripcion { font: var(--font-cuerpo); color: var(--color-neutral-900); }
 .movimiento__meta { font: var(--font-etiqueta); color: var(--color-neutral-500); margin: 0; }
@@ -695,7 +866,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   display: inline-block;
   padding: var(--space-3) var(--space-4);
   background: var(--color-primary-600);
-  color: var(--color-surface);
+  color: var(--color-sobre-lleno);
   border-radius: var(--radio-md);
   font: var(--font-cuerpo);
   font-weight: 600;
@@ -851,7 +1022,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   border: 0; border-radius: var(--radio-sm); cursor: pointer;
 }
 
-.atajo:hover { background: var(--color-primary-500); color: var(--color-surface); }
+.atajo:hover { background: var(--color-primary-500); color: var(--color-sobre-lleno); }
 
 /* Tira de resumen: tres datos en una linea, no tres tarjetas altas. */
 .tira {
@@ -933,17 +1104,31 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 /* --- Avisos --- */
 .avisos { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+/* El aviso pasa de tira con franja izquierda a tarjeta con borde completo del
+   color de su severidad, más el chip del ícono. En el riel derecho, una franja
+   lateral se pierde contra el borde de la columna; el borde entero clasifica
+   la tarjeta de un vistazo. */
 .aviso {
-  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
-  padding: var(--space-3); border-radius: var(--radio-md);
-  border-left: 4px solid; background: var(--color-tarjeta);
-  border-top: 1px solid var(--color-neutral-400);
-  border-right: 1px solid var(--color-neutral-400);
-  border-bottom: 1px solid var(--color-neutral-400);
+  display: grid; grid-template-columns: auto 1fr; gap: var(--space-2);
+  align-items: start;
+  padding: var(--space-2); border-radius: var(--radio-md);
+  background: var(--color-tarjeta);
+  border: 1px solid var(--color-neutral-400);
 }
-.aviso--error { border-left-color: var(--color-error-600); }
-.aviso--aviso { border-left-color: var(--color-warning-600); }
-.aviso__cuerpo { flex: 1; min-width: 220px; }
+.aviso--error { border-color: var(--color-error-600); }
+.aviso--aviso { border-color: var(--color-warning-600); }
+
+/* Chip del ícono: cuadrado redondeado con el tinte de su severidad. */
+.aviso__chip {
+  width: 28px; height: 28px; border-radius: var(--radio-md);
+  display: grid; place-items: center; flex: none;
+}
+.aviso__chip--error { background: var(--color-error-100); color: var(--color-error-600); }
+.aviso__chip--aviso { background: var(--color-warning-100); color: var(--color-warning-600); }
+
+.aviso__cuerpo { min-width: 0; }
+/* La acción va debajo del cuerpo, alineada con el texto y no con el chip. */
+.aviso .aviso__accion { grid-column: 2; justify-self: start; margin-top: 6px; }
 /* La severidad va escrita: el borde de color no basta (RNF-008). */
 .aviso__severidad {
   font: var(--font-etiqueta); text-transform: uppercase; letter-spacing: .04em;
@@ -951,15 +1136,18 @@ a { color: var(--color-primary-600); font-weight: 600; }
 }
 .aviso--error .aviso__severidad { color: var(--color-error-600); }
 .aviso--aviso .aviso__severidad { color: var(--color-warning-600); }
-.aviso__titulo { font: var(--font-seccion); color: var(--color-neutral-900); margin: 0 0 4px; }
-.aviso__mensaje { font: var(--font-cuerpo); color: var(--color-neutral-700); margin: 0; }
+/* En el riel de 300px el tamaño de sección (17px) hacía que cada título
+   ocupara tres renglones. Baja a cuerpo con peso, que es lo que la referencia
+   hace: el título destaca por peso, no por tamaño. */
+.aviso__titulo { font: var(--font-cuerpo); font-weight: 700; color: var(--color-neutral-900); margin: 0 0 3px; }
+.aviso__mensaje { font: var(--font-ayuda); color: var(--color-neutral-700); margin: 0; line-height: 1.5; }
 .aviso__accion {
   font: var(--font-cuerpo); font-weight: 600; color: var(--color-primary-600);
   text-decoration: none; padding: var(--space-1) var(--space-2);
   border: 1px solid var(--color-primary-600); border-radius: var(--radio-md);
   white-space: nowrap;
 }
-.aviso__accion:hover { background: var(--color-primary-600); color: var(--color-surface); }
+.aviso__accion:hover { background: var(--color-primary-600); color: var(--color-sobre-lleno); }
 
 /* --- Curva del mes --- */
 .grafico {
@@ -1121,3 +1309,7 @@ a { color: var(--color-primary-600); font-weight: 600; }
   .termometro__dato--destacado { margin-left: 0; text-align: left; }
   .fijo, .aviso { flex-direction: column; align-items: flex-start; }
 }
+
+/* La composicion sin dona ocupa una sola columna: el grid de dos columnas
+   dejaria la mitad vacia ahora que la dona vive arriba con la curva. */
+.composicion--solo-barras { grid-template-columns: 1fr; }
