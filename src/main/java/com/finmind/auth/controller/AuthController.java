@@ -32,16 +32,31 @@ public class AuthController {
         this.cookieDeSesion = cookieDeSesion;
     }
 
+    /*
+      EL REGISTRO NO ABRE SESION, Y NO ES UN OLVIDO.
+
+      Al aplicar SEG-08 se le puso aqui una cookie "por simetria con el login".
+      Estaba mal por dos razones, y la segunda es grave:
+
+        1. AuthService.registrar devuelve AuthResponse.de(null, 0, ...) — sin
+           token, a proposito. Crear una cookie con valor null no tiene sentido.
+
+        2. Peor: si hubiera funcionado, habria abierto sesion para una cuenta
+           RECIEN CREADA Y SIN VERIFICAR. Eso salta por encima de la
+           verificacion por correo (RF-025), que es justamente lo que impide
+           registrarse con el correo de otra persona y usar la cuenta.
+
+      El acceso llega DESPUES de verificar el codigo, y ahi si se emite la
+      cookie: en IdentidadController.verificar.
+    */
     @PostMapping("/registro")
     @Operation(summary = "Crear una cuenta de usuario",
-            description = "Registra un usuario final y devuelve un token de acceso. "
-                    + "El rol se asigna en el servidor, no se acepta del cliente. "
-                    + "Ademas abre la sesion en una cookie HttpOnly (SEG-08).")
+            description = "Registra un usuario final. NO devuelve token ni abre sesion: "
+                    + "la cuenta nace sin verificar y el acceso llega tras confirmar el "
+                    + "codigo enviado al correo (RF-025). El rol se asigna en el servidor, "
+                    + "no se acepta del cliente.")
     public ResponseEntity<AuthResponse> registrar(@Valid @RequestBody RegistroRequest peticion) {
-        AuthResponse respuesta = authService.registrar(peticion);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .header(HttpHeaders.SET_COOKIE, cookieDeSesion.crear(respuesta.token()).toString())
-                .body(respuesta);
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registrar(peticion));
     }
 
     /*
