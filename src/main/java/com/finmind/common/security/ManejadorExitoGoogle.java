@@ -54,10 +54,34 @@ public class ManejadorExitoGoogle implements AuthenticationSuccessHandler {
 
             String token = jwtService.generarToken(new UsuarioPrincipal(usuario));
 
-            // El token viaja en la URL de retorno. El frontend lo guarda y limpia
-            // la barra de direcciones de inmediato para que no quede en el historial.
+            /*
+             * SEG-06. El token vuelve en el FRAGMENTO de la URL, no en la cadena
+             * de consulta.
+             *
+             * Antes iba como ?token=... El frontend lo borraba de la barra de
+             * direcciones de inmediato, y eso resolvia el historial del
+             * navegador, pero solo eso. Lo que quedaba abierto:
+             *
+             *   - La cadena de consulta viaja en la LINEA DE PETICION HTTP. La
+             *     escribe en su registro cualquier cosa que este en el camino:
+             *     el servidor, un proxy inverso, un balanceador, la consola de
+             *     la plataforma donde se despliegue. Un token de sesion completo
+             *     en texto plano dentro de un log es un token regalado, y los
+             *     logs se guardan mucho mas tiempo que la vigencia del token.
+             *
+             *   - El encabezado Referer. Cualquier recurso que la pagina pida
+             *     antes de que corra el replaceState se lleva la URL entera —con
+             *     el token— hacia un tercero.
+             *
+             * El fragmento no tiene ninguno de los dos problemas: el navegador
+             * NUNCA lo manda al servidor. Se queda del lado del cliente, que es
+             * justo donde tiene que quedarse.
+             *
+             * No hace falta codificar: un JWT es base64url y un punto, todos
+             * caracteres validos en un fragmento.
+             */
             String destino = UriComponentsBuilder.fromUriString(urlExito)
-                    .queryParam("token", token)
+                    .fragment("token=" + token)
                     .build().toUriString();
 
             respuesta.sendRedirect(destino);

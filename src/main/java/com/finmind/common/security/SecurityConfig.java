@@ -37,15 +37,35 @@ public class SecurityConfig {
             "/api/v1/auth/reenviar-codigo",
             "/api/v1/auth/recuperar",
             "/api/v1/auth/restablecer",
-            "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger-ui.html",
             // RF-029 y RF-030: el usuario todavia no tiene sesion cuando pasa por aqui
             "/oauth2/**",
             "/login/oauth2/**",
             // OPS-03: permite verificar disponibilidad sin credenciales.
             // Solo se expone health; el resto de actuator queda cerrado.
             "/actuator/health"
+    };
+
+    /*
+     * SEG-07. La documentacion de la API, en su propia lista y con interruptor.
+     *
+     * Estas tres rutas estaban mezcladas con las de autenticacion, abiertas en
+     * todos los perfiles y sin manera de cerrarlas sin recompilar. /v3/api-docs
+     * entrega el contrato completo: cada endpoint, cada parametro, cada forma de
+     * respuesta. Para quien quiera atacar la API es el mapa, servido.
+     *
+     * En ESTE proyecto se dejan abiertas a proposito, y no es un descuido: el
+     * profesor tiene que poder probar la API sin credenciales (DOC-04, API-08).
+     * Cerrarlas por seguridad teorica costaria la evaluacion.
+     *
+     * Lo que cambia es que ahora la decision es explicita y reversible sin
+     * tocar codigo: finmind.swagger.publico=false y quedan detras del token.
+     * Un riesgo aceptado a conciencia y con el interruptor a la vista no es lo
+     * mismo que un riesgo que nadie miro.
+     */
+    private static final String[] RUTAS_SWAGGER = {
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -56,19 +76,22 @@ public class SecurityConfig {
     // no crea este bean y el acceso con Google simplemente queda deshabilitado.
     private final ObjectProvider<ClientRegistrationRepository> registrosOAuth2;
     private final String origenesPermitidos;
+    private final boolean swaggerPublico;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           UsuarioDetallesService usuarioDetallesService,
                           RespuestaNoAutorizada respuestaNoAutorizada,
                           ManejadorExitoGoogle manejadorExitoGoogle,
                           ObjectProvider<ClientRegistrationRepository> registrosOAuth2,
-                          @Value("${finmind.cors.allowed-origins}") String origenesPermitidos) {
+                          @Value("${finmind.cors.allowed-origins}") String origenesPermitidos,
+                          @Value("${finmind.swagger.publico:true}") boolean swaggerPublico) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.usuarioDetallesService = usuarioDetallesService;
         this.respuestaNoAutorizada = respuestaNoAutorizada;
         this.manejadorExitoGoogle = manejadorExitoGoogle;
         this.registrosOAuth2 = registrosOAuth2;
         this.origenesPermitidos = origenesPermitidos;
+        this.swaggerPublico = swaggerPublico;
     }
 
     @Bean
@@ -79,12 +102,21 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(RUTAS_PUBLICAS).permitAll()
-                        // Todo lo demas exige token. Por defecto se deniega:
-                        // agregar un endpoint nuevo no lo deja abierto por descuido.
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .requestMatchers(RUTAS_PUBLICAS).permitAll();
+
+                    // SEG-07. Con finmind.swagger.publico=false, la documentacion
+                    // pasa a exigir token como cualquier otro endpoint. No se
+                    // borra la ruta: cae en anyRequest().authenticated().
+                    if (swaggerPublico) {
+                        auth.requestMatchers(RUTAS_SWAGGER).permitAll();
+                    }
+
+                    // Todo lo demas exige token. Por defecto se deniega:
+                    // agregar un endpoint nuevo no lo deja abierto por descuido.
+                    auth.anyRequest().authenticated();
+                })
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(respuestaNoAutorizada)
                         .accessDeniedHandler(respuestaNoAutorizada))
