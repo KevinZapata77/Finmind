@@ -107,26 +107,44 @@ export const IconoBuscar      = icono(Search)
  * Decorativo: al lado siempre está escrito "FinMind", así que anunciarlo al
  * lector de pantalla lo repetiría dos veces.
  */
-export function IconoMarca({ size = 20 }) {
+export function IconoMarca({ size = 21 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24"
       aria-hidden="true" focusable="false">
       {/*
-        Cinco tramos: sube, baja, sube, baja, sube. La primera versión tenía uno
-        solo —una bajada y una subida larga— y quedaba más cerca de una flecha
-        que de una cotización. Con dos valles se lee el vaivén, que es lo que
-        hace reconocible un gráfico de mercado.
+        DOS CAPAS, COMO UN TERMINAL DE BOLSA DE VERDAD
 
-        No van más de cinco: a 20px cada tramo mide unos 3px, y a partir de ahí
-        los picos se empastan y la forma se vuelve una línea gruesa temblorosa.
+        Atrás las barras —el volumen— y encima la línea de la cotización. Es la
+        composición que usa cualquier pantalla de mercado, y por eso se
+        reconoce sin leer nada.
 
-        El trazo baja de 2,6 a 2,2 justo por eso — con cinco tramos, un trazo
-        grueso cierra los valles.
+        Se llegó aquí después de descartar dos versiones más simples: una sola
+        subida (quedaba como flecha de crecimiento, no como cotización) y una
+        línea en zigzag sola (la usa igual cualquier aplicación de analítica).
+        Lo que hace financiero al dibujo no es que suba y baje: es tener las
+        dos capas.
+
+        POR QUÉ LAS BARRAS VAN CON opacity Y NO CON UN TOKEN DE COLOR
+        Podrían ser --color-primary-100, que es un token real. Se usa opacity
+        porque las barras tienen que quedar por DEBAJO de la línea en peso
+        visual: si compiten, el dibujo se convierte en una mancha a 21px. El
+        0,32 sobre el teal del chip da un tono intermedio que se lee como fondo.
+
+        Las barras están alineadas por abajo (todas terminan en y=21) porque un
+        gráfico de volumen crece desde el eje, no flota.
+
+        La línea va a opacidad completa porque es el elemento que identifica la
+        marca: es la que tiene que cumplir contraste, y lo cumple con 5,16:1.
+        Las barras son textura de fondo.
       */}
-      <polyline points="2,15 6.5,9.5 10,14 14,6 17.5,10 21,3.5"
+      <g fill="var(--color-sobre-lleno)" opacity="0.32">
+        <rect x="2.5" y="12" width="5" height="9" rx="1.1" />
+        <rect x="9.5" y="9" width="5" height="12" rx="1.1" />
+        <rect x="16.5" y="14" width="5" height="7" rx="1.1" />
+      </g>
+      <polyline points="2,14 7,8.5 12,12 16,5 21.5,2.5"
         fill="none" stroke="var(--color-sobre-lleno)" strokeWidth="2.2"
         strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="21" cy="3.5" r="2.3" fill="var(--color-sobre-lleno)" />
     </svg>
   )
 }
