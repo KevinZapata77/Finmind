@@ -41,43 +41,57 @@ export default function Panel() {
 
   const cargar = useCallback(async () => {
     setCargando(true); setError(null)
+
+    /*
+      PERF-03. Los cinco pedidos salen a la vez.
+
+      Antes salían en tres oleadas: primero un Promise.all de tres, y solo
+      cuando ese terminaba se pedían las alertas, y solo cuando ESAS terminaban
+      se pedía el histórico. Cada `await` encadenado es un viaje completo de ida
+      y vuelta que empieza cuando el anterior ya acabó.
+
+      La base está en Ohio y desde Medellín cada viaje son 70-100 ms de red,
+      más lo que tarde la consulta. Encadenar tres oleadas multiplicaba por tres
+      esa espera sin ninguna razón: ninguno de los tres bloques necesita la
+      respuesta del anterior para poder pedirse.
+
+      Ahora los cinco arrancan juntos y la pantalla espera lo que tarde el más
+      lento, no la suma de todos.
+
+      El .catch(() => null) va PEGADO a la promesa, no en un try/await más
+      abajo. Dos razones:
+
+        - alertas e histórico son bloques secundarios. Si fallan, el panel tiene
+          que dibujarse igual: nadie debe perder su balance porque no se pudo
+          calcular un aviso. Con el catch propio devuelven null y el resto sigue.
+
+        - si se lanzan sin catch y el Promise.all de abajo revienta primero,
+          quedan dos promesas rechazadas que nadie observa. Eso es un
+          unhandled rejection, y en producción es un error en consola por cada
+          carga fallida.
+
+      Las alertas siguen siendo solo del mes en curso: avisar "no te alcanza"
+      sobre un mes que ya cerró no significa nada. Y el histórico sigue sin
+      depender del selector — la tendencia de los últimos 6 meses es la misma
+      se esté mirando agosto o febrero.
+    */
+    const pedidoAlertas = esMesActual
+      ? api.alertas().catch(() => null)
+      : Promise.resolve(null)
+    const pedidoHistorico = api.historico(6).catch(() => null)
+
     try {
-      // El panel, el resumen de hoy/semana y la curva del mes elegido.
+      // El panel, el resumen de hoy/semana y la curva del mes elegido. Estos
+      // tres sí son el panel: si uno falla, no hay pantalla que mostrar.
       const [p, r, c] = await Promise.all([
         api.panel(anio, mes), api.resumenRapido(), api.ritmo(anio, mes),
       ])
       setDatos(p); setRapido(r); setCurva(c)
 
-      /*
-        Las alertas van en una llamada aparte y con su propio catch a propósito.
-        Siempre son del mes en curso —no tiene sentido avisar "no te alcanza"
-        sobre un mes que ya cerró—, así que no dependen del selector. Y si
-        fallaran, el panel entero se caería por un bloque secundario: el usuario
-        perdería su balance por no poder calcular un aviso.
-      */
-      if (esMesActual) {
-        try {
-          setAlertas(await api.alertas())
-        } catch {
-          setAlertas(null)
-        }
-      } else {
-        setAlertas(null)
-      }
-
-      /*
-        El histórico va aparte y con su propio catch, por el mismo motivo que
-        las alertas: es un bloque secundario y no debe poder tumbar el panel.
-        Además NO depende del selector de mes — la tendencia de los últimos 6
-        meses es la misma se esté mirando agosto o febrero, así que volver a
-        pedirla al cambiar de mes sería una llamada de más contra una base que
-        se duerme.
-      */
-      try {
-        setHistorico(await api.historico(6))
-      } catch {
-        setHistorico(null)
-      }
+      // Ya vienen en camino desde arriba; a esta altura casi siempre están
+      // resueltas, así que estos dos await no agregan espera.
+      setAlertas(await pedidoAlertas)
+      setHistorico(await pedidoHistorico)
     } catch (err) {
       setError(err.message)
     } finally {
