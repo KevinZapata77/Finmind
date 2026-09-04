@@ -107,14 +107,26 @@ export const IconoBuscar      = icono(Search)
  * Decorativo: al lado siempre está escrito "FinMind", así que anunciarlo al
  * lector de pantalla lo repetiría dos veces.
  */
-export function IconoMarca({ size = 19 }) {
+export function IconoMarca({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24"
       aria-hidden="true" focusable="false">
-      <polyline points="2.5,13 9,17.5 14,8 20,3.5"
-        fill="none" stroke="var(--color-sobre-lleno)" strokeWidth="2.6"
+      {/*
+        Cinco tramos: sube, baja, sube, baja, sube. La primera versión tenía uno
+        solo —una bajada y una subida larga— y quedaba más cerca de una flecha
+        que de una cotización. Con dos valles se lee el vaivén, que es lo que
+        hace reconocible un gráfico de mercado.
+
+        No van más de cinco: a 20px cada tramo mide unos 3px, y a partir de ahí
+        los picos se empastan y la forma se vuelve una línea gruesa temblorosa.
+
+        El trazo baja de 2,6 a 2,2 justo por eso — con cinco tramos, un trazo
+        grueso cierra los valles.
+      */}
+      <polyline points="2,15 6.5,9.5 10,14 14,6 17.5,10 21,3.5"
+        fill="none" stroke="var(--color-sobre-lleno)" strokeWidth="2.2"
         strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="20" cy="3.5" r="2.6" fill="var(--color-sobre-lleno)" />
+      <circle cx="21" cy="3.5" r="2.3" fill="var(--color-sobre-lleno)" />
     </svg>
   )
 }
