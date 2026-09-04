@@ -32,9 +32,34 @@ public interface TransaccionRepository extends JpaRepository<Transaccion, Long> 
      * "Los movimientos de esta cuenta" incluye lo que salio y lo que entro.
      * Filtrar solo por origen respondia a como esta guardado el dato, no a lo
      * que la pregunta significa.
+     *
+     * PERF-01. LEFT JOIN FETCH de cuenta, categoria y cuentaDestino.
+     *
+     * Sin esto habia N+1. MovimientoResponse.de() lee cuenta.nombre,
+     * categoria.nombre, categoria.colorHex y cuentaDestino.nombre, y las tres
+     * relaciones son LAZY: cada cuenta y cada categoria distinta de la pagina
+     * costaba su propia consulta. En una base local eso no se nota. Contra Neon
+     * en Ohio, con 70-100 ms por viaje de ida y vuelta desde Medellin, una
+     * pagina con ocho categorias y tres cuentas sumaba mas de un segundo de
+     * pura red antes de escribir la primera fila.
+     *
+     * Ahora todo viaja en una consulta. La paginacion sigue siendo correcta
+     * porque las tres son relaciones a-uno: el fetch join no multiplica filas.
+     * Con una coleccion (@OneToMany) esto no se podria hacer — Hibernate
+     * tendria que traerlo todo y paginar en memoria.
+     *
+     * El countQuery va escrito a mano y a proposito: Spring Data no puede
+     * derivarlo de una consulta con fetch joins.
+     *
+     * El WHERE no se toco. t.cuentaDestino.id compara la llave foranea, asi
+     * que no fuerza un join interno y las filas sin cuenta de destino siguen
+     * apareciendo — que es justo lo que DEF-18 vino a arreglar.
      */
-    @Query("""
+    @Query(value = """
            SELECT t FROM Transaccion t
+                LEFT JOIN FETCH t.cuenta
+                LEFT JOIN FETCH t.categoria
+                LEFT JOIN FETCH t.cuentaDestino
            WHERE t.usuario.id = :usuarioId
              AND (:desde       IS NULL OR t.fecha >= :desde)
              AND (:hasta       IS NULL OR t.fecha <= :hasta)
@@ -43,6 +68,16 @@ public interface TransaccionRepository extends JpaRepository<Transaccion, Long> 
              AND (:categoriaId IS NULL OR t.categoria.id = :categoriaId)
              AND (:tipo        IS NULL OR t.tipo = :tipo)
            ORDER BY t.fecha DESC, t.id DESC
+           """,
+           countQuery = """
+           SELECT COUNT(t) FROM Transaccion t
+           WHERE t.usuario.id = :usuarioId
+             AND (:desde       IS NULL OR t.fecha >= :desde)
+             AND (:hasta       IS NULL OR t.fecha <= :hasta)
+             AND (:cuentaId    IS NULL OR t.cuenta.id = :cuentaId
+                                       OR t.cuentaDestino.id = :cuentaId)
+             AND (:categoriaId IS NULL OR t.categoria.id = :categoriaId)
+             AND (:tipo        IS NULL OR t.tipo = :tipo)
            """)
     Page<Transaccion> buscar(@Param("usuarioId") Long usuarioId,
                              @Param("desde") LocalDate desde,

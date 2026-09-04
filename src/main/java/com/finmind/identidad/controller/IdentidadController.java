@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
+import com.finmind.common.security.CookieDeSesion;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -19,16 +21,25 @@ import org.springframework.web.bind.annotation.*;
 public class IdentidadController {
 
     private final ServicioIdentidad servicio;
+    private final CookieDeSesion cookieDeSesion;
 
-    public IdentidadController(ServicioIdentidad servicio) {
+    public IdentidadController(ServicioIdentidad servicio, CookieDeSesion cookieDeSesion) {
         this.servicio = servicio;
+        this.cookieDeSesion = cookieDeSesion;
     }
 
     @PostMapping("/verificar")
     @Operation(summary = "Verificar el correo con el codigo recibido",
             description = "RF-025. Si el codigo es valido la cuenta queda verificada y se devuelve un token.")
     public ResponseEntity<AuthResponse> verificar(@Valid @RequestBody VerificarRequest peticion) {
-        return ResponseEntity.ok(servicio.verificar(peticion.correo(), peticion.codigo()));
+        // SEG-08. Este endpoint deja al usuario autenticado, asi que tiene que
+        // abrir la cookie igual que el login. Si no, verificar el correo dejaria
+        // una sesion a medias: token en el cuerpo y ninguna cookie, o sea que la
+        // siguiente peticion del navegador saldria sin autenticar.
+        AuthResponse respuesta = servicio.verificar(peticion.correo(), peticion.codigo());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookieDeSesion.crear(respuesta.token()).toString())
+                .body(respuesta);
     }
 
     @PostMapping("/reenviar-codigo")
@@ -53,7 +64,11 @@ public class IdentidadController {
     @Operation(summary = "Definir una contrasena nueva con el codigo",
             description = "RF-028. La contrasena anterior deja de servir y el usuario queda autenticado.")
     public ResponseEntity<AuthResponse> restablecer(@Valid @RequestBody RestablecerRequest peticion) {
-        return ResponseEntity.status(HttpStatus.OK).body(
-                servicio.restablecer(peticion.correo(), peticion.codigo(), peticion.contrasenaNueva()));
+        // SEG-08. Misma razon que en verificar: aqui el usuario queda autenticado.
+        AuthResponse respuesta = servicio.restablecer(
+                peticion.correo(), peticion.codigo(), peticion.contrasenaNueva());
+        return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.SET_COOKIE, cookieDeSesion.crear(respuesta.token()).toString())
+                .body(respuesta);
     }
 }

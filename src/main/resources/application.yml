@@ -10,10 +10,35 @@ spring:
       # Neon en plan gratuito escala a cero y tiene limite de conexiones.
       # Un pool grande la satura; 5 alcanza de sobra para este proyecto.
       maximum-pool-size: 5
-      minimum-idle: 1
+      # PERF-02. Dos conexiones tibias en vez de una.
+      #
+      # Con minimum-idle en 1, la segunda peticion simultanea tenia que abrir
+      # una conexion nueva, y abrir contra Neon no es gratis: handshake TLS mas
+      # el enrutamiento hasta el compute. El panel dispara cinco peticiones a
+      # la vez, asi que eso pasaba en cada carga.
+      minimum-idle: 2
       connection-timeout: 20000
       idle-timeout: 300000
       max-lifetime: 900000
+      # PERF-02. Latido cada dos minutos sobre las conexiones que estan quietas.
+      #
+      # Hace dos cosas. La primera: una conexion inactiva se muere sola por el
+      # camino —cortafuegos, NAT, el propio Neon— y el pool no se entera hasta
+      # que alguien la usa y falla; el latido la mantiene sana.
+      #
+      # La segunda es la que importaba para la demostracion. Neon en plan
+      # gratuito suspende el compute a los ~5 minutos sin actividad, y
+      # despertarlo tarda segundos: es lo que vio el profesor al abrir la
+      # aplicacion despues de un rato quieta. Con el latido, MIENTRAS EL
+      # BACKEND ESTE ARRIBA la base no se duerme nunca.
+      #
+      # El costo, dicho claro: eso consume horas de compute del plan gratuito
+      # todo el tiempo que la aplicacion este corriendo. Es aceptable porque el
+      # backend solo se levanta para trabajar o para mostrar el proyecto, no
+      # 24/7. Si algun dia se despliega de verdad, esto hay que quitarlo.
+      #
+      # Tiene que ser menor que max-lifetime, o Hikari no arranca.
+      keepalive-time: 120000
   jpa:
     hibernate:
       ddl-auto: validate
@@ -85,7 +110,28 @@ finmind:
     max-por-ip: ${LOGIN_MAX_POR_IP:20}
     ventana-minutos: ${LOGIN_VENTANA_MINUTOS:15}
   jwt:
-    secret: ${JWT_SECRET:clave_de_desarrollo_solo_local_minimo_32_caracteres}
+    # SEG-01. Sin valor por defecto utilizable, a proposito.
+    #
+    # Aqui habia ${JWT_SECRET:clave_de_desarrollo_solo_local_minimo_32_caracteres}.
+    # Ese texto esta publicado en GitHub, asi que cualquiera que leyera el
+    # repositorio y encontrara una instancia levantada SIN la variable de
+    # entorno podia firmar un token valido para cualquier correo, con el rol que
+    # quisiera —incluido ADMIN— y entrar como esa persona. No hacia falta
+    # adivinar ninguna contrasena: la llave con la que se firman las sesiones
+    # estaba en el codigo fuente.
+    #
+    # Lo peligroso de un valor por defecto que funciona es justo que funciona:
+    # la aplicacion arranca sin quejarse y nada avisa de que esta usando la
+    # clave publica.
+    #
+    # Ahora queda vacio si no hay variable, y JwtService rechaza cualquier clave
+    # de menos de 32 bytes al construirse: la aplicacion no arranca y dice por
+    # que. Se prefiere el default vacio sobre no poner nada porque asi el error
+    # que sale es el mensaje de JwtService, que explica que hacer, en vez del
+    # "Could not resolve placeholder" de Spring.
+    #
+    # Las pruebas no se ven afectadas: application-test.yml trae su propia clave.
+    secret: ${JWT_SECRET:}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
