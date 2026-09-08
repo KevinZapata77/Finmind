@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Generador de mockups FinMind. Las pantallas se derivan de tokens.py."""
 import os
-from tokens import TOKENS as T, FONT, TYPO, RADIUS
+from tokens import TOKENS as T, FONT, TYPO, RADIUS, MARCA_GOOGLE
 
 OUT = os.environ.get("OUT", ".")
 S = T["color.surface"]; C = T["color.canvas"]
@@ -10,6 +10,12 @@ P7, P6, P5, P1 = T["color.primary.700"], T["color.primary.600"], T["color.primar
 OK6, OK1 = T["color.success.600"], T["color.success.100"]
 WA6, WA1 = T["color.warning.600"], T["color.warning.100"]
 ER6, ER1 = T["color.error.600"], T["color.error.100"]
+# Texto sobre un relleno de acento, y velo de los modales. En la paleta
+# clara el primero era blanco; sobre teal brillante tiene que ser oscuro.
+SOBRE, VELO = T["color.sobre-lleno"], T["color.velo"]
+# Barra lateral y lateral de identidad. Salen de app.css, no de una
+# suposicion: las dos superficies usan --color-barra.
+BARRA, TXTBARRA, N4 = T["color.barra"], T["color.texto-barra"], T["color.neutral.400"]
 RS, RM, RL = RADIUS["radius.sm"], RADIUS["radius.md"], RADIUS["radius.lg"]
 
 
@@ -67,11 +73,18 @@ def separador(x, y, w, palabra="o"):
 
 
 def boton_google(x, y, w, label="Continuar con Google"):
-    """Fondo blanco y borde: es la presentacion que exigen las condiciones de marca."""
+    """Fondo blanco y borde: es la presentacion que exigen las condiciones de marca.
+
+    El fondo va explicitamente en blanco y NO en el token de superficie. Antes
+    usaba S, y al pasar la paleta a oscuro S se volvio #151A23: el texto
+    #1F1F1F de Google quedaba negro sobre negro, invisible. Google admite una
+    variante oscura de su boton, pero el blanco resalta mejor sobre este lienzo
+    y es igual de valido segun sus condiciones.
+    """
     return "".join([
-        rect(x, y, w, 44, S, RM, N3),
-        txt(x + 34, y + 29, "G", "font.heading.md", "#4285F4", "middle", weight=700),
-        txt(x + w / 2 + 16, y + 28, label, "font.body.md", "#1F1F1F", "middle", weight=600),
+        rect(x, y, w, 44, MARCA_GOOGLE["fondo"], RM, N3),
+        txt(x + 34, y + 29, "G", "font.heading.md", MARCA_GOOGLE["azul"], "middle", weight=700),
+        txt(x + w / 2 + 16, y + 28, label, "font.body.md", MARCA_GOOGLE["texto"], "middle", weight=600),
     ])
 
 
@@ -111,32 +124,59 @@ def aviso(x, y, w, titulo, cuerpo, tono="info"):
 
 # Refleja la navegacion real de Layout.jsx, en su mismo orden: primero lo que se
 # usa a diario, despues lo que se configura una vez. Si alli cambia, aqui tambien.
+# El menu, en el mismo orden que Layout.jsx. Se compara con SECCIONES de ese
+# archivo, no con la memoria: primero lo que se usa a diario y despues lo que se
+# configura una vez.
+#
+# DOS CORRECCIONES DEL 08/09/2026:
+#   - "Obligaciones" pasa a "Creditos y prestamos". El modulo se renombro y el
+#     menu de los mockups se quedo con el nombre viejo, asi que las doce
+#     pantallas mostraban una opcion que en la aplicacion no existe.
+#   - Faltaba "Gastos fijos", que es un modulo entero (RF-046). No estaba en el
+#     menu de ninguna pantalla.
 NAV = [("Inicio", "UI-003"), ("Movimientos", "UI-004"), ("Presupuestos", "UI-006"),
-       ("Obligaciones", "UI-014"), ("Metas", "UI-007"),
-       ("Cuentas", "UI-008"), ("Categorias", "UI-015")]
+       ("Gastos fijos", "UI-016"), ("Creditos y prestamos", "UI-014"),
+       ("Metas", "UI-007"), ("Cuentas", "UI-008"), ("Categorias", "UI-015")]
 
 
 def shell(titulo, activo, ancho=1280, alto=800):
+    """Barra lateral y cabecera, calcadas de app.css.
+
+    LO QUE ESTABA MAL: la barra se dibujaba con N9 y su texto con S. En la
+    paleta clara eso daba un navy oscuro con letras blancas. Al invertir a
+    oscuro, N9 paso a ser el color del TEXTO —claro— y S una superficie
+    oscura, asi que la barra salio casi blanca con letras negras encima de
+    otro negro. Es el riesgo de usar un token por el color que tiene hoy en
+    vez de por lo que significa.
+
+    Ahora sale de --color-barra, que es lo que usa el CSS de verdad, y el texto
+    de --color-texto-barra. El destino activo lleva relleno teal con texto
+    oscuro (--color-sobre-lleno), igual que .navegacion__item--activo.
+    """
     o = [rect(0, 0, ancho, alto, C)]
-    o.append(rect(0, 0, 240, alto, N9))
+    o.append(rect(0, 0, 240, alto, BARRA))
     o.append(rect(24, 28, 26, 26, P5, RS))
-    o.append(txt(37, 46, "F", "font.heading.md", S, "middle"))
-    o.append(txt(60, 47, "FinMind", "font.heading.md", S))
+    # El logo de la aplicacion es una linea de cotizacion sobre barras de
+    # volumen (CHG-UX-009). Aqui se dibuja simplificado: a este tamano las dos
+    # capas se empastan, y el mockup no es el sitio para reproducir el detalle.
+    o.append(f'<polyline points="28,46 33,40 37,44 42,34" fill="none" '
+             f'stroke="{SOBRE}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>')
+    o.append(txt(60, 47, "FinMind", "font.heading.md", N9))
     y = 96
     for nombre, _ in NAV:
         act = nombre == activo
         if act:
             o.append(rect(12, y - 20, 216, 38, P7, RM))
-        o.append(txt(28, y + 5, nombre, "font.body.md", S if act else N3,
+        o.append(txt(28, y + 5, nombre, "font.body.md", SOBRE if act else TXTBARRA,
                      weight=600 if act else 400))
         y += 46
-    o.append(rect(12, alto - 72, 216, 1, N7))
+    o.append(rect(12, alto - 72, 216, 1, N4))
     o.append(rect(24, alto - 52, 28, 28, P5, 14))
-    o.append(txt(38, alto - 33, "KZ", "font.caption", S, "middle", weight=700))
-    o.append(txt(62, alto - 38, "Kevin Zapata", "font.caption", S, weight=600))
-    o.append(txt(62, alto - 24, "Cerrar sesion", "font.caption", N3))
-    o.append(rect(240, 0, ancho - 240, 68, S))
-    o.append(rect(240, 68, ancho - 240, 1, N2))
+    o.append(txt(38, alto - 33, "KZ", "font.caption", SOBRE, "middle", weight=700))
+    o.append(txt(62, alto - 38, "Kevin Zapata", "font.caption", N9, weight=600))
+    o.append(txt(62, alto - 24, "Cerrar sesion", "font.caption", TXTBARRA))
+    o.append(rect(240, 0, ancho - 240, 68, BARRA))
+    o.append(rect(240, 68, ancho - 240, 1, N4))
     o.append(txt(272, 42, titulo, "font.heading.lg"))
     return o
 
@@ -147,7 +187,8 @@ def svg(w, h, cuerpo, titulo, desc):
             f'<desc id="d">{esc(desc)}</desc>{"".join(cuerpo)}</svg>')
 
 
-FECHA = "2026-08-17"
+# Fecha de generacion de los mockups. Se actualiza al regenerar.
+FECHA = "2026-09-08"
 
 
 def pie(o, w, h, codigo, version="1.0"):

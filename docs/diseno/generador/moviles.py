@@ -27,9 +27,9 @@ def m003():
     o = []
     _mshell(o, "Panel")
     o.append(rect(20, 116, 350, 104, P7, RL))
-    o.append(txt(40, 148, "BALANCE DE AGOSTO", "font.label", "#DCF2EC"))
+    o.append(txt(40, 148, "BALANCE DE AGOSTO", "font.label", SOBRE))
     o.append(txt(40, 186, "$ 1.240.000", "font.numero.lg", S))
-    o.append(txt(40, 208, "+8% frente a julio", "font.caption", "#DCF2EC"))
+    o.append(txt(40, 208, "+8% frente a julio", "font.caption", SOBRE))
     for t_, v, col, x in [("Ingresos", "$ 3.100.000", OK6, 20), ("Gastos", "$ 1.860.000", ER6, 202)]:
         o.append(rect(x, 236, 168, 82, S, RL, N2))
         o.append(txt(x + 16, 264, t_, "font.label", N5))
