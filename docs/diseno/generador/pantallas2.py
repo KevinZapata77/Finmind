@@ -79,8 +79,13 @@ def ui005():
     o = shell("Movimientos", "Movimientos")
     o.append(rect(272, 150, 976, 64, S, RL, N2))
     _tabla(o, 236)
-    o.append(rect(0, 0, W, H, "#111827", 0))
-    o[-1] = f'<rect x="0" y="0" width="{W}" height="{H}" fill="#111827" opacity="0.55"/>'
+    # Velo del modal. Antes era "#111827" escrito a mano, que era el
+    # neutral.900 de la paleta clara. En oscuro ese valor queda casi igual al
+    # lienzo y el velo no se veia: el modal parecia flotar sin nada detras.
+    # Ahora sale del token, y la opacidad sube de 0,55 a 0,65 porque oscurecer
+    # algo que ya es oscuro necesita mas.
+    o.append(rect(0, 0, W, H, VELO, 0))
+    o[-1] = f'<rect x="0" y="0" width="{W}" height="{H}" fill="{VELO}" opacity="0.65"/>'
     x, y, w = 390, 96, 500
     o.append(rect(x, y, w, 620, S, RL))
     o.append(txt(x + 32, y + 52, "Registrar movimiento", "font.heading.lg"))

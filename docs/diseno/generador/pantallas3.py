@@ -7,16 +7,16 @@ W, H = 1280, 800
 
 def _lateral(o, lema1, lema2, bajada1="", bajada2=""):
     """Panel izquierdo verde, comun a las pantallas sin sesion."""
-    o.append(rect(0, 0, 520, H, P7))
+    o.append(rect(0, 0, 520, H, BARRA))
     o.append(rect(64, 72, 34, 34, P5, RS))
-    o.append(txt(81, 96, "F", "font.heading.lg", S, "middle"))
-    o.append(txt(110, 98, "FinMind", "font.heading.lg", S))
-    o.append(txt(64, 340, lema1, "font.display", S, size=34))
-    o.append(txt(64, 384, lema2, "font.display", S, size=34))
+    o.append(txt(81, 96, "F", "font.heading.lg", SOBRE, "middle"))
+    o.append(txt(110, 98, "FinMind", "font.heading.lg", N9))
+    o.append(txt(64, 340, lema1, "font.display", N9, size=34))
+    o.append(txt(64, 384, lema2, "font.display", N9, size=34))
     if bajada1:
-        o.append(txt(64, 426, bajada1, "font.body.md", P1))
+        o.append(txt(64, 426, bajada1, "font.body.md", N7))
     if bajada2:
-        o.append(txt(64, 450, bajada2, "font.body.md", P1))
+        o.append(txt(64, 450, bajada2, "font.body.md", N7))
 
 
 # --------------------------------------------- UI-010 Verificar correo
@@ -91,7 +91,7 @@ def ui013():
     o = [rect(0, 0, W, H, C)]
     o.append(rect(390, 250, 500, 300, S, RL, N2))
     o.append(rect(615, 300, 50, 50, P1, 25))
-    o.append(txt(640, 334, "G", "font.heading.lg", "#4285F4", "middle", weight=700))
+    o.append(txt(640, 334, "G", "font.heading.lg", MARCA_GOOGLE["azul"], "middle", weight=700))
     o.append(txt(640, 400, "Confirmando tu identidad...", "font.heading.md", N9, "middle"))
     o.append(txt(640, 428, "Volviendo desde Google. Esto toma un momento.", "font.body.md", N5, "middle"))
     o.append(rect(490, 462, 300, 6, N2, 3))
@@ -214,9 +214,9 @@ def ui007():
                "Incluye accion para crear una meta nueva y abonar a las existentes.")
 
 
-# --------------------------------------------- UI-014 Obligaciones
+# ------------------------------------ UI-014 Creditos y prestamos
 def ui014():
-    o = shell("Obligaciones", "Obligaciones")
+    o = shell("Creditos y prestamos", "Creditos y prestamos")
     for i, (rot, val, col) in enumerate([
             ("Debes en total", "$ 6.850.000", ER6),
             ("Cuotas de este mes", "$ 780.000", N9),
@@ -225,7 +225,7 @@ def ui014():
         o.append(rect(cx, 100, 300, 96, S, RL, N2))
         o.append(txt(cx + 20, 130, rot, "font.label", N7))
         o.append(txt(cx + 20, 166, val, "font.numero.lg", col))
-    o.append(boton(1020, 212, 200, 44, "Nueva obligacion"))
+    o.append(boton(1020, 212, 200, 44, "Nuevo credito"))
     o.append(aviso(272, 212, 700, "Cuotas por vencer",
                    "Tarjeta Visa el dia 15 y Credito de vehiculo el dia 20.", "warn"))
 
@@ -245,11 +245,11 @@ def ui014():
         o.append(rect(296, y + 68, int(900 * pct / 100), 10, P6, 5))
         o.append(txt(296, y + 98, f"Pagado {pct}% de {original}", "font.caption", N7))
         o.append(txt(700, y + 98, f"Interes de este mes: {interes}", "font.caption", WA6))
-        o.append(txt(1000, y + 98, "Registrar pago", "font.caption", P6, weight=600))
+        o.append(txt(1000, y + 98, "Aplicar pago", "font.caption", P6, weight=600))
         o.append(txt(1196, y + 98, "Cancelar", "font.caption", P6, "end", weight=600))
         y += 142
     pie(o, W, H, "MK-014 / UI-014")
-    return svg(W, H, o, "UI-014 Obligaciones",
+    return svg(W, H, o, "UI-014 Creditos y prestamos",
                "Listado de deudas con saldo pendiente, barra de avance, interes del mes y cuota. "
                "Arriba, el total adeudado, las cuotas del mes y el patrimonio neto en negativo.")
 
@@ -260,8 +260,10 @@ def ui015():
     o.append(boton(1020, 108, 200, 44, "Nueva categoria"))
     o.append(txt(272, 130, "Gastos", "font.heading.md"))
 
-    filas = [("Alimentacion", "#B45309", True, True), ("Transporte", "#0B6B57", True, True),
-             ("Mascotas", "#0E8368", False, True), ("Gimnasio", "#6B7280", False, False)]
+    # Colores de los chips desde los alias, no escritos a mano. Antes eran los
+    # hexadecimales de la paleta clara y en oscuro quedaban apagados.
+    filas = [("Alimentacion", WA6, True, True), ("Transporte", P6, True, True),
+             ("Mascotas", P5, False, True), ("Gimnasio", N5, False, False)]
     y = 156
     for nombre, color, sistema, activa in filas:
         o.append(rect(272, y, 948, 56, S if activa else N1, RM, N2))
@@ -283,7 +285,7 @@ def ui015():
 
     o.append(txt(272, y + 34, "Ingresos", "font.heading.md"))
     y += 60
-    for nombre, color, sistema in [("Salario", "#15803D", True), ("Freelance", "#0E8368", False)]:
+    for nombre, color, sistema in [("Salario", OK6, True), ("Freelance", P5, False)]:
         o.append(rect(272, y, 948, 56, S, RM, N2))
         o.append(rect(296, y + 22, 14, 14, color, 7))
         o.append(txt(324, y + 34, nombre, "font.body.md"))
@@ -304,3 +306,83 @@ def ui015():
     return svg(W, H, o, "UI-015 Categorias",
                "Categorias separadas en gastos e ingresos, con su color, las del sistema marcadas "
                "y sin acciones de edicion, y una propia desactivada en gris.")
+
+# ------------------------------------------------ UI-016 Gastos fijos
+def ui016():
+    """UI-016 Gastos fijos (RF-046, RN-025, RN-026).
+
+    PANTALLA NUEVA. El modulo existe desde el 27/08/2026 y no tenia mockup ni
+    aparecia en el Manual de Usuario: la palabra "gastos fijos" no salia en
+    todo el documento. Es la figura 13 del manual.
+
+    Lo que la pantalla tiene que dejar claro son las tres cosas que confunden:
+      - Que el monto MENSUAL no es el que se escribio. Un pago semanal de
+        50.000 pesos pesa unos 217.000 al mes (RN-025), y es esa cifra la que
+        usan las alertas.
+      - Que un compromiso quincenal muestra DOS fechas en el mes (DEF-021).
+      - Que "cubierto" no lo marca el usuario: se deduce del gasto real
+        registrado en la categoria del compromiso (RN-026).
+    """
+    o = shell("Gastos fijos", "Gastos fijos")
+
+    # Las dos cifras que la pantalla existe para responder.
+    o.append(rect(272, 96, 468, 88, S, RL, N2))
+    o.append(txt(296, 126, "Comprometido al mes", "font.label", N7))
+    o.append(txt(296, 162, "$ 2.117.000", "font.numero.lg", N9))
+    o.append(rect(752, 96, 468, 88, S, RL, WA6))
+    o.append(txt(776, 126, "Falta por pagar", "font.label", N7))
+    o.append(txt(776, 162, "$ 530.000", "font.numero.lg", WA6))
+    o.append(txt(776, 178, "Es el numero que usan las alertas", "font.caption", N5))
+
+    o.append(boton(1020, 204, 200, 44, "Anotar un compromiso"))
+    o.append(txt(272, 232, "Tus compromisos", "font.heading.md"))
+
+    filas = [
+        ("Arriendo", "Vivienda", "Cada mes", "el dia 5", "$ 1.100.000",
+         "$ 1.100.000", "cubierto"),
+        ("Sueldo de Elias", "Servicios", "Cada quince dias", "los dias 1 y 16",
+         "$ 400.000", "$ 800.000", "pendiente"),
+        ("Mercado de la semana", "Alimentacion", "Cada semana", "los martes",
+         "$ 50.000", "$ 217.000", "parcial"),
+    ]
+    y = 264
+    for nombre, cat, cada, dia, monto, mensual, estado in filas:
+        borde = OK6 if estado == "cubierto" else (WA6 if estado == "parcial" else N2)
+        o.append(rect(272, y, 948, 104, S, RL, borde))
+        o.append(txt(296, y + 32, nombre, "font.heading.md"))
+        o.append(rect(296, y + 46, 9, 9, P7, 4))
+        o.append(txt(312, y + 54, cat, "font.caption", N7))
+        o.append(txt(296, y + 82, "%s, %s" % (cada, dia), "font.caption", N5))
+
+        # El monto escrito y el monto mensual equivalente, uno al lado del otro:
+        # es la unica forma de que se entienda que no son lo mismo (RN-025).
+        o.append(txt(700, y + 32, "Se paga", "font.caption", N5, "end"))
+        o.append(txt(700, y + 54, monto, "font.body.md", N9, "end", weight=600))
+        o.append(txt(880, y + 32, "Al mes", "font.caption", N5, "end"))
+        o.append(txt(880, y + 54, mensual, "font.body.md", N9, "end", weight=600))
+        if mensual != monto:
+            o.append(txt(880, y + 74, "equivalente", "font.caption", N5, "end"))
+
+        if estado == "cubierto":
+            o.append(rect(920, y + 38, 132, 24, OK1, 12))
+            o.append(txt(986, y + 54, "Ya cubierto", "font.caption", OK6, "middle", weight=600))
+        elif estado == "parcial":
+            o.append(rect(920, y + 38, 132, 24, WA1, 12))
+            o.append(txt(986, y + 54, "Va a medias", "font.caption", WA6, "middle", weight=600))
+        else:
+            o.append(rect(920, y + 38, 132, 24, N1, 12))
+            o.append(txt(986, y + 54, "Pendiente", "font.caption", N7, "middle", weight=600))
+        o.append(txt(1196, y + 54, "Confirmar pago", "font.caption", P7, "end", weight=600))
+        y += 116
+
+    # El texto va corto a proposito: aviso() no parte lineas, asi que una
+    # frase larga se sale de la tarjeta. Se vio al mirar el PNG.
+    o.append(aviso(272, y + 12, 948, "Como sabe la aplicacion que ya pagaste",
+                   "Queda cubierto cuando el gasto real de su categoria en el mes alcanza "
+                   "el monto mensual (RN-026). Si pagaste sin anotarlo, usa Confirmar pago.",
+                   "info"))
+
+    pie(o, W, H, "MK-016 / UI-016")
+    return svg(W, H, o, "UI-016 Gastos fijos",
+               "Compromisos recurrentes con su periodicidad, el monto mensual equivalente "
+               "y si el gasto del mes ya los cubre.")
