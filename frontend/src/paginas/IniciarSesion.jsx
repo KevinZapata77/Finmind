@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { ErrorApi } from '../api/cliente'
 import Campo from '../componentes/Campo'
@@ -12,11 +12,38 @@ import { IconoMarca } from '../componentes/Iconos'
 export default function IniciarSesion() {
   const { iniciarSesion } = useAuth()
   const navegar = useNavigate()
+  const [params, setParams] = useSearchParams()
   const [datos, setDatos] = useState({ correo: '', contrasena: '' })
   const [errores, setErrores] = useState({})
   const [errorGeneral, setErrorGeneral] = useState(null)
   const [enviando, setEnviando] = useState(false)
   const [verClave, setVerClave] = useState(false)
+
+  /*
+    DEF-023. El error del acceso con Google se quedaba en la barra de
+    direcciones.
+
+    Cuando Google autentica pero FinMind rechaza —por ejemplo, porque ese
+    correo ya tiene una cuenta con contrasena (RN-013)—, el backend devuelve
+    el navegador a /iniciar-sesion?error=<mensaje>. Esta pantalla no leia ese
+    parametro, asi que el mensaje quedaba visible SOLO en la URL: el usuario
+    volvia al formulario sin ninguna explicacion de por que no entro.
+
+    Un mensaje de error que solo existe en la barra de direcciones es un
+    mensaje que nadie lee.
+
+    Se muestra en la misma alerta que los errores del formulario, y despues se
+    limpia el parametro de la URL: si no, al recargar la pagina volveria a
+    aparecer un error que ya no corresponde a nada.
+  */
+  useEffect(() => {
+    const deGoogle = params.get('error')
+    if (!deGoogle) return
+    setErrorGeneral(deGoogle)
+    const limpios = new URLSearchParams(params)
+    limpios.delete('error')
+    setParams(limpios, { replace: true })
+  }, [params, setParams])
 
   const cambiar = (e) => setDatos({ ...datos, [e.target.name]: e.target.value })
 
