@@ -69,6 +69,11 @@
     es el borde, que da 1,45:1.
   */
   --color-surface:     #0E121A;
+
+  /* Velo que atenúa el contenido cuando el menú móvil está abierto.
+     Va con transparencia a propósito: un color sólido taparía la aplicación y
+     el menú parecería otra pantalla en vez de una capa encima de esta. */
+  --color-velo:        rgba(3, 6, 12, .66);
   --color-canvas:      #0B0E14;
   --color-tarjeta:     #151A23;
 
