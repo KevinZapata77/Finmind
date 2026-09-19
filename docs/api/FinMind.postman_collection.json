@@ -8,24 +8,84 @@
   "auth": {
     "type": "bearer",
     "bearer": [
-      { "key": "token", "value": "{{token}}", "type": "string" }
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
     ]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080/api/v1", "type": "string" },
-    { "key": "correo", "value": "kevin@finmind.test", "type": "string" },
-    { "key": "contrasena", "value": "ClaveSegura123", "type": "string" },
-    { "key": "token", "value": "", "type": "string" },
-    { "key": "cuentaId", "value": "1", "type": "string" },
-    { "key": "categoriaId", "value": "1", "type": "string" },
-    { "key": "transaccionId", "value": "1", "type": "string" },
-    { "key": "presupuestoId", "value": "1", "type": "string" },
-    { "key": "gastoFijoId", "value": "1", "type": "string" },
-    { "key": "obligacionId", "value": "1", "type": "string" },
-    { "key": "metaId", "value": "1", "type": "string" },
-    { "key": "usuarioId", "value": "1", "type": "string" },
-    { "key": "anio", "value": "2026", "type": "string" },
-    { "key": "mes", "value": "9", "type": "string" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "correo",
+      "value": "kevin@finmind.test",
+      "type": "string"
+    },
+    {
+      "key": "contrasena",
+      "value": "ClaveSegura123",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cuentaId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "categoriaId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "transaccionId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "presupuestoId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "gastoFijoId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "obligacionId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "metaId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "usuarioId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "anio",
+      "value": "2026",
+      "type": "string"
+    },
+    {
+      "key": "mes",
+      "value": "9",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -35,17 +95,29 @@
         {
           "name": "Crear cuenta",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Kevin\",\n  \"apellido\": \"Zapata\",\n  \"correo\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\",\n  \"captchaToken\": \"XXXX.DUMMY.TOKEN.XXXX\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/registro",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "registro"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "registro"
+              ]
             },
             "description": "201. NO devuelve token y no abre sesion: la cuenta nace sin verificar (RF-025). El acceso llega despues de confirmar el codigo que llega al correo.\n\nEl rol se asigna en el servidor. No se acepta del cliente: si se aceptara, cualquiera podria registrarse como administrador.\n\ncaptchaToken solo se valida cuando CAPTCHA_ENABLED=true. Con el CAPTCHA apagado este campo se ignora."
           },
@@ -70,17 +142,29 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"correo\": \"{{correo}}\",\n  \"codigo\": \"123456\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/verificar",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "verificar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "verificar"
+              ]
             },
             "description": "RF-025. Confirma la cuenta con el codigo de un solo uso enviado al correo.\n\nEn desarrollo con MAIL_ENABLED=false el codigo no se envia: se escribe en el log del backend."
           },
@@ -89,17 +173,29 @@
         {
           "name": "Reenviar el codigo de verificacion",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"correo\": \"{{correo}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/reenviar-codigo",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "reenviar-codigo"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reenviar-codigo"
+              ]
             },
             "description": "Tiene tope de intentos: pasado el limite responde 429 con el encabezado Retry-After. Sin ese tope, este endpoint seria una forma de mandar correo gratis a cualquier direccion."
           },
@@ -134,36 +230,60 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+              "raw": "{\n  \"correo\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\",\n  \"captchaToken\": \"\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             },
-            "description": "EMPIEZA POR AQUI.\n\nAbre la sesion en una cookie HttpOnly y ademas devuelve el token en el cuerpo. Los dos caminos existen a proposito: la cookie es para el navegador (ningun script la lee, asi que un XSS no se lleva la sesion) y el token del cuerpo es para los clientes que no son navegador, como esta coleccion.\n\nCredenciales invalidas: 401 con mensaje generico, que no distingue entre correo que no existe y contrasena equivocada. Decir cual de las dos fallo permitiria averiguar que correos estan registrados.\n\nVarios intentos fallidos: 429 con Retry-After."
+            "description": "EMPIEZA POR AQUI.\n\nAbre la sesion en una cookie HttpOnly y ademas devuelve el token en el cuerpo. Los dos caminos existen a proposito: la cookie es para el navegador (ningun script la lee, asi que un XSS no se lleva la sesion) y el token del cuerpo es para los clientes que no son navegador, como esta coleccion.\n\nCredenciales invalidas: 401 con mensaje generico, que no distingue entre correo que no existe y contrasena equivocada. Decir cual de las dos fallo permitiria averiguar que correos estan registrados.\n\nVarios intentos fallidos: 429 con Retry-After.\n\nSOBRE captchaToken: desde el 16/09/2026 el inicio de sesion tambien pasa por el CAPTCHA, igual que el registro. Se verifica ANTES del tope de intentos, para que una peticion con el CAPTCHA malo no gaste un intento y no pueda usarse para bloquear la cuenta de otra persona.\n\nDesde Postman este campo va vacio y funciona mientras CAPTCHA_ENABLED sea false. Con el CAPTCHA encendido, iniciar sesion desde aqui deja de ser posible: un cliente que no es navegador no puede resolverlo. Es el precio de tener el control, y es el comportamiento correcto."
           },
           "response": []
         },
         {
           "name": "Recuperar contrasena (pedir codigo)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"correo\": \"{{correo}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/recuperar",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "recuperar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "recuperar"
+              ]
             },
             "description": "Responde lo mismo exista o no el correo. Si respondiera distinto, seria un buscador de cuentas registradas."
           },
@@ -172,17 +292,29 @@
         {
           "name": "Restablecer la contrasena",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"correo\": \"{{correo}}\",\n  \"codigo\": \"123456\",\n  \"contrasenaNueva\": \"ClaveNueva456\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/restablecer",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "restablecer"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "restablecer"
+              ]
             },
             "description": "Se restablece por codigo y no por enlace. Un enlace con token viaja en la barra del navegador, queda en el historial y se reenvia sin querer al compartir la URL."
           },
@@ -191,13 +323,20 @@
         {
           "name": "Cerrar sesion",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "logout"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
             },
             "description": "204. Borra la cookie de sesion del navegador.\n\nEs publico a proposito: cerrar sesion con un token ya vencido tiene que funcionar igual, o el usuario se quedaria con la cookie muerta pegada y sin forma de limpiarla.\n\nNo invalida el token en el servidor. Un JWT vive hasta que expira: no hay lista de revocados. Revocar de verdad exigiria guardar estado en el servidor, que es justo lo que una API sin estado no hace."
           },
@@ -210,8 +349,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/usuarios/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["usuarios", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                "me"
+              ]
             },
             "description": "Los datos del usuario del token. No recibe id: pedir el perfil por id permitiria leer el de otro cambiando un numero."
           },
@@ -230,11 +374,23 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/categorias?tipo=GASTO&soloActivas=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["categorias"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categorias"
+              ],
               "query": [
-                { "key": "tipo", "value": "GASTO", "description": "INGRESO o GASTO. Sin el parametro vienen las dos." },
-                { "key": "soloActivas", "value": "true", "description": "Por defecto true." }
+                {
+                  "key": "tipo",
+                  "value": "GASTO",
+                  "description": "INGRESO o GASTO. Sin el parametro vienen las dos."
+                },
+                {
+                  "key": "soloActivas",
+                  "value": "true",
+                  "description": "Por defecto true."
+                }
               ]
             },
             "description": "Devuelve las del sistema mas las propias del usuario."
@@ -258,15 +414,24 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Vivienda\",\n  \"tipo\": \"GASTO\",\n  \"icono\": \"home\",\n  \"colorHex\": \"#2DD4BF\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/categorias",
-              "host": ["{{baseUrl}}"],
-              "path": ["categorias"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categorias"
+              ]
             },
             "description": "201. Guarda el id devuelto en {{categoriaId}}."
           },
@@ -276,15 +441,25 @@
           "name": "Editar categoria",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Vivienda y servicios\",\n  \"icono\": \"home\",\n  \"colorHex\": \"#34D399\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/categorias/{{categoriaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["categorias", "{{categoriaId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categorias",
+                "{{categoriaId}}"
+              ]
             },
             "description": "El tipo no se puede cambiar: pasar una categoria de GASTO a INGRESO daria vuelta al signo de todos los movimientos ya registrados con ella."
           },
@@ -297,8 +472,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/categorias/{{categoriaId}}/desactivar",
-              "host": ["{{baseUrl}}"],
-              "path": ["categorias", "{{categoriaId}}", "desactivar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categorias",
+                "{{categoriaId}}",
+                "desactivar"
+              ]
             },
             "description": "No se borra. Los movimientos pasados siguen apuntando a ella y borrarla dejaria huecos en el historico."
           },
@@ -311,8 +492,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/categorias/{{categoriaId}}/activar",
-              "host": ["{{baseUrl}}"],
-              "path": ["categorias", "{{categoriaId}}", "activar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categorias",
+                "{{categoriaId}}",
+                "activar"
+              ]
             }
           },
           "response": []
@@ -340,15 +527,24 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Cuenta de ahorros\",\n  \"tipo\": \"AHORRO\",\n  \"saldoInicial\": 2500000,\n  \"moneda\": \"COP\",\n  \"cupo\": null\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/cuentas",
-              "host": ["{{baseUrl}}"],
-              "path": ["cuentas"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas"
+              ]
             },
             "description": "tipo: AHORRO, EFECTIVO o TARJETA_CREDITO.\n\ncupo solo aplica a TARJETA_CREDITO; en las demas va null. Para una tarjeta, cupo es el limite y saldoInicial es la deuda que ya trae."
           },
@@ -358,15 +554,24 @@
           "name": "Crear tarjeta de credito",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Tarjeta Visa\",\n  \"tipo\": \"TARJETA_CREDITO\",\n  \"saldoInicial\": 800000,\n  \"moneda\": \"COP\",\n  \"cupo\": 3000000\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/cuentas",
-              "host": ["{{baseUrl}}"],
-              "path": ["cuentas"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas"
+              ]
             },
             "description": "La respuesta presenta el saldo en negativo: en una tarjeta lo que hay no es dinero, es deuda. El patrimonio neto la resta."
           },
@@ -379,9 +584,18 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/cuentas?incluirInactivas=false",
-              "host": ["{{baseUrl}}"],
-              "path": ["cuentas"],
-              "query": [{ "key": "incluirInactivas", "value": "false" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas"
+              ],
+              "query": [
+                {
+                  "key": "incluirInactivas",
+                  "value": "false"
+                }
+              ]
             }
           },
           "response": []
@@ -393,8 +607,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/cuentas/{{cuentaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cuentas", "{{cuentaId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas",
+                "{{cuentaId}}"
+              ]
             },
             "description": "RN-005. Una cuenta de otro usuario responde 404 y no 403: un 403 confirmaria que ese id existe."
           },
@@ -404,15 +623,26 @@
           "name": "Abonar a la tarjeta",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"cuentaOrigenId\": {{cuentaId}},\n  \"monto\": 300000,\n  \"fecha\": \"2026-09-11\",\n  \"descripcion\": \"Abono a la Visa\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/cuentas/{{cuentaId}}/abonos",
-              "host": ["{{baseUrl}}"],
-              "path": ["cuentas", "{{cuentaId}}", "abonos"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas",
+                "{{cuentaId}}",
+                "abonos"
+              ]
             },
             "description": "Mueve dinero de una cuenta a la tarjeta. El id de la URL es el de la TARJETA; cuentaOrigenId es de donde sale la plata.\n\nEs una transferencia, no un gasto: baja la deuda y baja el saldo de origen, pero no cuenta como gasto del mes. Si contara, el balance mostraria un gasto que nunca salio del patrimonio."
           },
@@ -422,15 +652,25 @@
           "name": "Editar cuenta",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Ahorros Bancolombia\",\n  \"tipo\": \"AHORRO\",\n  \"cupo\": null\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/cuentas/{{cuentaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cuentas", "{{cuentaId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas",
+                "{{cuentaId}}"
+              ]
             },
             "description": "El saldo no se edita aqui. Un saldo que se puede escribir a mano deja de ser el resultado de los movimientos y el historico pierde sentido."
           },
@@ -443,8 +683,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/cuentas/{{cuentaId}}/desactivar",
-              "host": ["{{baseUrl}}"],
-              "path": ["cuentas", "{{cuentaId}}", "desactivar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas",
+                "{{cuentaId}}",
+                "desactivar"
+              ]
             }
           },
           "response": []
@@ -456,8 +702,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/cuentas/{{cuentaId}}/activar",
-              "host": ["{{baseUrl}}"],
-              "path": ["cuentas", "{{cuentaId}}", "activar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cuentas",
+                "{{cuentaId}}",
+                "activar"
+              ]
             }
           },
           "response": []
@@ -485,15 +737,24 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"cuentaId\": {{cuentaId}},\n  \"categoriaId\": {{categoriaId}},\n  \"monto\": 85000,\n  \"fecha\": \"2026-09-11\",\n  \"descripcion\": \"Mercado de la semana\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/transacciones",
-              "host": ["{{baseUrl}}"],
-              "path": ["transacciones"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transacciones"
+              ]
             },
             "description": "El monto siempre es positivo. La direccion la decide el tipo de la categoria: si la categoria es de GASTO el saldo baja, si es de INGRESO sube. Aceptar montos negativos permitiria registrar un 'gasto de -50.000', que es un ingreso disfrazado y rompe todos los reportes."
           },
@@ -506,16 +767,45 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/transacciones?desde=2026-09-01&hasta=2026-09-30&tipo=GASTO&page=0&size=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["transacciones"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transacciones"
+              ],
               "query": [
-                { "key": "desde", "value": "2026-09-01", "description": "ISO yyyy-MM-dd" },
-                { "key": "hasta", "value": "2026-09-30" },
-                { "key": "tipo", "value": "GASTO", "description": "INGRESO o GASTO" },
-                { "key": "cuentaId", "value": "{{cuentaId}}", "disabled": true },
-                { "key": "categoriaId", "value": "{{categoriaId}}", "disabled": true },
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" }
+                {
+                  "key": "desde",
+                  "value": "2026-09-01",
+                  "description": "ISO yyyy-MM-dd"
+                },
+                {
+                  "key": "hasta",
+                  "value": "2026-09-30"
+                },
+                {
+                  "key": "tipo",
+                  "value": "GASTO",
+                  "description": "INGRESO o GASTO"
+                },
+                {
+                  "key": "cuentaId",
+                  "value": "{{cuentaId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "categoriaId",
+                  "value": "{{categoriaId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
               ]
             },
             "description": "PERF-01. La cuenta, la categoria y la cuenta destino viajan en la misma consulta con LEFT JOIN FETCH. Antes cada fila disparaba tres consultas sueltas, y contra Neon en Ohio cada una cuesta entre 70 y 100 ms: una pagina de 20 movimientos eran 60 viajes de ida y vuelta."
@@ -529,8 +819,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/transacciones/{{transaccionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["transacciones", "{{transaccionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transacciones",
+                "{{transaccionId}}"
+              ]
             }
           },
           "response": []
@@ -539,15 +834,25 @@
           "name": "Editar movimiento",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"cuentaId\": {{cuentaId}},\n  \"categoriaId\": {{categoriaId}},\n  \"monto\": 92000,\n  \"fecha\": \"2026-09-11\",\n  \"descripcion\": \"Mercado de la semana (corregido)\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/transacciones/{{transaccionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["transacciones", "{{transaccionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transacciones",
+                "{{transaccionId}}"
+              ]
             },
             "description": "Editar recalcula el saldo de la cuenta: deshace el efecto del movimiento viejo y aplica el nuevo."
           },
@@ -560,8 +865,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/transacciones/{{transaccionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["transacciones", "{{transaccionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transacciones",
+                "{{transaccionId}}"
+              ]
             },
             "description": "204. Devuelve el saldo de la cuenta al estado anterior."
           },
@@ -590,15 +900,24 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"categoriaId\": {{categoriaId}},\n  \"montoLimite\": 600000,\n  \"anio\": {{anio}},\n  \"mes\": {{mes}},\n  \"periodo\": \"MENSUAL\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/presupuestos",
-              "host": ["{{baseUrl}}"],
-              "path": ["presupuestos"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "presupuestos"
+              ]
             },
             "description": "Un presupuesto por categoria y periodo. Dos limites distintos para la misma categoria en el mismo mes no significan nada."
           },
@@ -611,11 +930,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/presupuestos?anio={{anio}}&mes={{mes}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["presupuestos"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "presupuestos"
+              ],
               "query": [
-                { "key": "anio", "value": "{{anio}}" },
-                { "key": "mes", "value": "{{mes}}" }
+                {
+                  "key": "anio",
+                  "value": "{{anio}}"
+                },
+                {
+                  "key": "mes",
+                  "value": "{{mes}}"
+                }
               ]
             },
             "description": "Cada presupuesto trae lo gastado y el porcentaje del periodo que ya transcurrio. Un 60 por ciento el dia 10 y el dia 28 no significan lo mismo, y sin el ritmo la barra sola no lo dice."
@@ -629,8 +958,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/presupuestos/{{presupuestoId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["presupuestos", "{{presupuestoId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "presupuestos",
+                "{{presupuestoId}}"
+              ]
             }
           },
           "response": []
@@ -639,15 +973,25 @@
           "name": "Editar el limite",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"montoLimite\": 750000\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/presupuestos/{{presupuestoId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["presupuestos", "{{presupuestoId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "presupuestos",
+                "{{presupuestoId}}"
+              ]
             },
             "description": "Solo el monto. La categoria y el periodo no se cambian: cambiarlos convertiria el presupuesto en otro distinto y el historico dejaria de cuadrar."
           },
@@ -660,8 +1004,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/presupuestos/{{presupuestoId}}/desactivar",
-              "host": ["{{baseUrl}}"],
-              "path": ["presupuestos", "{{presupuestoId}}", "desactivar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "presupuestos",
+                "{{presupuestoId}}",
+                "desactivar"
+              ]
             }
           },
           "response": []
@@ -673,8 +1023,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/presupuestos/{{presupuestoId}}/activar",
-              "host": ["{{baseUrl}}"],
-              "path": ["presupuestos", "{{presupuestoId}}", "activar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "presupuestos",
+                "{{presupuestoId}}",
+                "activar"
+              ]
             }
           },
           "response": []
@@ -705,15 +1061,24 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Arriendo\",\n  \"categoriaId\": {{categoriaId}},\n  \"monto\": 1100000,\n  \"periodicidad\": \"MENSUAL\",\n  \"diaPago\": 2\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/gastos-fijos",
-              "host": ["{{baseUrl}}"],
-              "path": ["gastos-fijos"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gastos-fijos"
+              ]
             },
             "description": "Un gasto fijo es la INTENCION de un pago que vuelve, no un movimiento. Cuando el pago ocurre de verdad, el usuario lo registra como transaccion. Si el gasto fijo tambien contara como movimiento, el mismo dinero se restaria dos veces.\n\nLa categoria tiene que ser de GASTO. Un compromiso recurrente de tipo ingreso no significa nada: un sueldo que entra cada mes no es algo para lo que haya que reservar dinero.\n\nMENSUAL: diaPago es el dia del mes, de 1 a 28. El tope es 28 para que exista en cualquier mes."
           },
@@ -723,15 +1088,24 @@
           "name": "Crear gasto fijo semanal (DEF-19)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Mercado\",\n  \"categoriaId\": {{categoriaId}},\n  \"monto\": 50000,\n  \"periodicidad\": \"SEMANAL\",\n  \"diaPago\": 5\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/gastos-fijos",
-              "host": ["{{baseUrl}}"],
-              "path": ["gastos-fijos"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gastos-fijos"
+              ]
             },
             "description": "DEF-19. En SEMANAL, diaPago es el dia de la SEMANA: 1 lunes, 7 domingo. Un 20 aqui responde 400.\n\nRN-025. montoMensual sale en 217250.00: 50.000 x 4,345 semanas por mes. 50.000 semanales no son 50.000 al mes, y sin esa conversion la proyeccion subestimaria el gasto por cuatro."
           },
@@ -741,15 +1115,24 @@
           "name": "Crear gasto fijo quincenal (DEF-21)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Servicios\",\n  \"categoriaId\": {{categoriaId}},\n  \"monto\": 300000,\n  \"periodicidad\": \"QUINCENAL\",\n  \"diaPago\": 5\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/gastos-fijos",
-              "host": ["{{baseUrl}}"],
-              "path": ["gastos-fijos"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gastos-fijos"
+              ]
             },
             "description": "DEF-21. diaPago es el PRIMER pago, del 1 al 13. El segundo se calcula solo, quince dias despues, y sale en pagosDelMes.\n\nEl tope es 13 y no 15 porque con 13 el segundo pago cae como maximo el 28, que existe en todos los meses. Con 14 seria el 29 y en febrero no existiria: la pantalla se caeria una vez al año."
           },
@@ -762,9 +1145,18 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/gastos-fijos?incluirInactivos=false",
-              "host": ["{{baseUrl}}"],
-              "path": ["gastos-fijos"],
-              "query": [{ "key": "incluirInactivos", "value": "false" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gastos-fijos"
+              ],
+              "query": [
+                {
+                  "key": "incluirInactivos",
+                  "value": "false"
+                }
+              ]
             },
             "description": "RN-026. cubiertoEsteMes dice si el compromiso ya se pago, comparandolo con el gasto real de su categoria en el mes.\n\nEs una aproximacion y conviene decirlo: si el usuario registra el arriendo sin la categoria de Vivienda, la cuenta se equivoca. La alternativa era pedirle marcar a mano cada pago, y un aviso que exige mantenimiento manual deja de usarse en dos semanas."
           },
@@ -774,15 +1166,25 @@
           "name": "Editar gasto fijo",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Arriendo\",\n  \"categoriaId\": {{categoriaId}},\n  \"monto\": 1200000,\n  \"periodicidad\": \"MENSUAL\",\n  \"diaPago\": 2\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/gastos-fijos/{{gastoFijoId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["gastos-fijos", "{{gastoFijoId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gastos-fijos",
+                "{{gastoFijoId}}"
+              ]
             }
           },
           "response": []
@@ -794,8 +1196,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/gastos-fijos/{{gastoFijoId}}/desactivar",
-              "host": ["{{baseUrl}}"],
-              "path": ["gastos-fijos", "{{gastoFijoId}}", "desactivar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gastos-fijos",
+                "{{gastoFijoId}}",
+                "desactivar"
+              ]
             },
             "description": "No se borra, se apaga. Un compromiso que ya no aplica sigue explicando las alertas de los meses en que si aplicaba; borrarlo reescribiria el pasado."
           },
@@ -808,8 +1216,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/gastos-fijos/{{gastoFijoId}}/activar",
-              "host": ["{{baseUrl}}"],
-              "path": ["gastos-fijos", "{{gastoFijoId}}", "activar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "gastos-fijos",
+                "{{gastoFijoId}}",
+                "activar"
+              ]
             }
           },
           "response": []
@@ -837,15 +1251,24 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Credito de estudio\",\n  \"acreedor\": \"Banco de Bogota\",\n  \"tipo\": \"PRESTAMO\",\n  \"montoOriginal\": 6000000,\n  \"tasaAnual\": 18.5,\n  \"cuotaMensual\": 420000,\n  \"diaPago\": 15,\n  \"fechaInicio\": \"2026-03-01\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/obligaciones",
-              "host": ["{{baseUrl}}"],
-              "path": ["obligaciones"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "obligaciones"
+              ]
             },
             "description": "tasaAnual es el porcentaje nominal anual. El sistema lo lleva a tasa mensual para partir cada cuota."
           },
@@ -858,9 +1281,18 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/obligaciones?soloActivas=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["obligaciones"],
-              "query": [{ "key": "soloActivas", "value": "true" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "obligaciones"
+              ],
+              "query": [
+                {
+                  "key": "soloActivas",
+                  "value": "true"
+                }
+              ]
             }
           },
           "response": []
@@ -872,8 +1304,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/obligaciones/patrimonio",
-              "host": ["{{baseUrl}}"],
-              "path": ["obligaciones", "patrimonio"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "obligaciones",
+                "patrimonio"
+              ]
             },
             "description": "Lo que se tiene menos lo que se debe. Resta el saldo pendiente de los creditos Y la deuda de las tarjetas de credito. Sumar solo las cuentas daria una cifra que se ve bien y no es cierta."
           },
@@ -886,8 +1323,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/obligaciones/{{obligacionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["obligaciones", "{{obligacionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "obligaciones",
+                "{{obligacionId}}"
+              ]
             }
           },
           "response": []
@@ -896,15 +1338,25 @@
           "name": "Editar credito",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Credito de estudio\",\n  \"acreedor\": \"Banco de Bogota\",\n  \"cuotaMensual\": 450000,\n  \"diaPago\": 15\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/obligaciones/{{obligacionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["obligaciones", "{{obligacionId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "obligaciones",
+                "{{obligacionId}}"
+              ]
             },
             "description": "El monto original, la tasa y la fecha de inicio no se editan: cambiarlos invalidaria todos los pagos ya registrados, que se calcularon con esos numeros."
           },
@@ -914,15 +1366,26 @@
           "name": "Registrar un pago",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"monto\": 420000,\n  \"fecha\": \"2026-09-15\",\n  \"descripcion\": \"Cuota de septiembre\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/obligaciones/{{obligacionId}}/pagos",
-              "host": ["{{baseUrl}}"],
-              "path": ["obligaciones", "{{obligacionId}}", "pagos"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "obligaciones",
+                "{{obligacionId}}",
+                "pagos"
+              ]
             },
             "description": "La respuesta parte el pago en interes y capital. Es la cifra que explica por que una deuda baja tan despacio al principio: la mayor parte de la primera cuota es interes."
           },
@@ -935,8 +1398,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/obligaciones/{{obligacionId}}/pagos",
-              "host": ["{{baseUrl}}"],
-              "path": ["obligaciones", "{{obligacionId}}", "pagos"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "obligaciones",
+                "{{obligacionId}}",
+                "pagos"
+              ]
             }
           },
           "response": []
@@ -948,8 +1417,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/obligaciones/{{obligacionId}}/cancelar",
-              "host": ["{{baseUrl}}"],
-              "path": ["obligaciones", "{{obligacionId}}", "cancelar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "obligaciones",
+                "{{obligacionId}}",
+                "cancelar"
+              ]
             }
           },
           "response": []
@@ -977,15 +1452,24 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Viaje de fin de año\",\n  \"montoObjetivo\": 3000000,\n  \"fechaLimite\": \"2026-12-20\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/metas",
-              "host": ["{{baseUrl}}"],
-              "path": ["metas"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metas"
+              ]
             }
           },
           "response": []
@@ -997,9 +1481,19 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/metas?estado=ACTIVA",
-              "host": ["{{baseUrl}}"],
-              "path": ["metas"],
-              "query": [{ "key": "estado", "value": "ACTIVA", "description": "ACTIVA, LOGRADA o CANCELADA. Sin el parametro vienen todas." }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metas"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "ACTIVA",
+                  "description": "ACTIVA, LOGRADA o CANCELADA. Sin el parametro vienen todas."
+                }
+              ]
             }
           },
           "response": []
@@ -1011,8 +1505,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/metas/{{metaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["metas", "{{metaId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metas",
+                "{{metaId}}"
+              ]
             }
           },
           "response": []
@@ -1021,15 +1520,26 @@
           "name": "Abonar a la meta",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"monto\": 250000\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/metas/{{metaId}}/abonos",
-              "host": ["{{baseUrl}}"],
-              "path": ["metas", "{{metaId}}", "abonos"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metas",
+                "{{metaId}}",
+                "abonos"
+              ]
             },
             "description": "Cuando lo acumulado alcanza el objetivo, la meta pasa sola a LOGRADA. Exigir que el usuario la cierre a mano dejaria metas cumplidas apareciendo como pendientes."
           },
@@ -1039,15 +1549,25 @@
           "name": "Editar meta",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Viaje de fin de año\",\n  \"montoObjetivo\": 3500000,\n  \"fechaLimite\": \"2026-12-31\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/metas/{{metaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["metas", "{{metaId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metas",
+                "{{metaId}}"
+              ]
             }
           },
           "response": []
@@ -1059,8 +1579,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/metas/{{metaId}}/cancelar",
-              "host": ["{{baseUrl}}"],
-              "path": ["metas", "{{metaId}}", "cancelar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metas",
+                "{{metaId}}",
+                "cancelar"
+              ]
             }
           },
           "response": []
@@ -1078,8 +1604,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/alertas",
-              "host": ["{{baseUrl}}"],
-              "path": ["alertas"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "alertas"
+              ]
             },
             "description": "Se calculan en el momento, no se guardan. Una alerta guardada envejece: el usuario registra un ingreso y el aviso de 'no te alcanza' sigue ahi mintiendo.\n\nSeis reglas:\n- No alcanza para los compromisos que faltan (RN-026).\n- Al ritmo actual el mes cierra en rojo.\n- Un presupuesto se va a exceder antes de excederse.\n- Un presupuesto ya se excedio.\n- Una cuota de credito vence pronto.\n- Una tarjeta tiene el cupo casi agotado.\n\nCada aviso trae la cifra que lo sustenta y un enlace para actuar. Un aviso sin el numero que lo explica se lee como una opinion.\n\nLa proyeccion no corre antes del dia 5 del mes: con dos dias de datos, multiplicar por treinta da una cifra que asusta y no significa nada."
           },
@@ -1098,11 +1628,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reportes/panel?anio={{anio}}&mes={{mes}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["reportes", "panel"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "panel"
+              ],
               "query": [
-                { "key": "anio", "value": "{{anio}}" },
-                { "key": "mes", "value": "{{mes}}" }
+                {
+                  "key": "anio",
+                  "value": "{{anio}}"
+                },
+                {
+                  "key": "mes",
+                  "value": "{{mes}}"
+                }
               ]
             },
             "description": "Las cuatro cifras de la pantalla de inicio: Te queda, Entro, Salio y el numero de alertas.\n\n'Te queda' es el dinero libre real: lo que hay menos los compromisos que todavia no se han pagado. No es el saldo."
@@ -1116,11 +1657,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reportes/balance?anio={{anio}}&mes={{mes}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["reportes", "balance"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "balance"
+              ],
               "query": [
-                { "key": "anio", "value": "{{anio}}" },
-                { "key": "mes", "value": "{{mes}}" }
+                {
+                  "key": "anio",
+                  "value": "{{anio}}"
+                },
+                {
+                  "key": "mes",
+                  "value": "{{mes}}"
+                }
               ]
             }
           },
@@ -1133,11 +1685,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reportes/gasto-por-categoria?anio={{anio}}&mes={{mes}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["reportes", "gasto-por-categoria"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "gasto-por-categoria"
+              ],
               "query": [
-                { "key": "anio", "value": "{{anio}}" },
-                { "key": "mes", "value": "{{mes}}" }
+                {
+                  "key": "anio",
+                  "value": "{{anio}}"
+                },
+                {
+                  "key": "mes",
+                  "value": "{{mes}}"
+                }
               ]
             },
             "description": "Alimenta la dona del panel. El color viene de la categoria, no del grafico: asi la misma categoria se ve igual en toda la aplicacion."
@@ -1151,8 +1714,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reportes/resumen-rapido",
-              "host": ["{{baseUrl}}"],
-              "path": ["reportes", "resumen-rapido"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "resumen-rapido"
+              ]
             }
           },
           "response": []
@@ -1164,9 +1732,19 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reportes/historico?meses=6",
-              "host": ["{{baseUrl}}"],
-              "path": ["reportes", "historico"],
-              "query": [{ "key": "meses", "value": "6" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "historico"
+              ],
+              "query": [
+                {
+                  "key": "meses",
+                  "value": "6"
+                }
+              ]
             },
             "description": "Alimenta la grafica de tendencia. Los meses ya cerrados se nombran en pasado; el mes en curso, en presente."
           },
@@ -1179,11 +1757,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reportes/ritmo?anio={{anio}}&mes={{mes}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["reportes", "ritmo"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reportes",
+                "ritmo"
+              ],
               "query": [
-                { "key": "anio", "value": "{{anio}}" },
-                { "key": "mes", "value": "{{mes}}" }
+                {
+                  "key": "anio",
+                  "value": "{{anio}}"
+                },
+                {
+                  "key": "mes",
+                  "value": "{{mes}}"
+                }
               ]
             },
             "description": "El gasto acumulado dia a dia. Es la curva del panel y la base de la proyeccion de cierre de mes."
@@ -1203,8 +1792,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/admin/usuarios",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "usuarios"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "usuarios"
+              ]
             },
             "description": "No devuelve el hash de la contrasena ni ningun dato financiero. El administrador gestiona cuentas de acceso, no mira el dinero de nadie."
           },
@@ -1217,8 +1811,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/admin/resumen",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "resumen"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "resumen"
+              ]
             },
             "description": "Cifras agregadas: cuantos usuarios hay, cuantos estan activos, cuantos verificaron el correo. Agregadas a proposito: un total no identifica a nadie."
           },
@@ -1231,8 +1830,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/admin/usuarios/{{usuarioId}}/desactivar",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "usuarios", "{{usuarioId}}", "desactivar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "usuarios",
+                "{{usuarioId}}",
+                "desactivar"
+              ]
             },
             "description": "Bloquea el acceso sin borrar los datos. Borrar la cuenta se llevaria por delante el historico financiero de una persona."
           },
@@ -1245,8 +1851,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/admin/usuarios/{{usuarioId}}/activar",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "usuarios", "{{usuarioId}}", "activar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "usuarios",
+                "{{usuarioId}}",
+                "activar"
+              ]
             }
           },
           "response": []
@@ -1258,11 +1871,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/admin/auditoria?page=0&size=50",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "auditoria"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "auditoria"
+              ],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "50" }
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "50"
+                }
               ]
             },
             "description": "Registro de acciones sensibles. Viene paginado: sin paginar, una tabla que solo crece acabaria tumbando la respuesta."

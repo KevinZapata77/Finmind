@@ -162,24 +162,6 @@ a { color: var(--color-primary-600); font-weight: 600; }
    hay tarjeta debajo. */
 .estado-carga { padding: var(--space-4); color: var(--color-neutral-700); }
 
-/* ---------- responsive: móvil < 768 px ---------- */
-@media (max-width: 767px) {
-  .pantalla-auth { grid-template-columns: 1fr; }
-  .pantalla-auth__lateral { padding: var(--space-3); }
-  .pantalla-auth__lema { font-size: 26px; }
-  .fila-doble { grid-template-columns: 1fr; }
-  .aplicacion { grid-template-columns: 1fr; }
-  /* En móvil la barra es una tira horizontal arriba: fijarla a 100vh de alto
-     se comería la pantalla entera. Se vuelve al comportamiento normal y solo
-     se mantiene pegada arriba. */
-  .barra-lateral {
-    flex-direction: row; align-items: center; gap: var(--space-2);
-    padding: var(--space-1) var(--space-2);
-    height: auto; overflow-y: visible;
-    position: sticky; top: 0; z-index: 2;
-  }
-  .navegacion { flex-direction: row; overflow-x: auto; }
-}
 
 /* ---------------------------------------------------------------
    Verificación de identidad — UI-010, UI-011, UI-012
@@ -254,12 +236,19 @@ a { color: var(--color-primary-600); font-weight: 600; }
   color: #4285f4;
 }
 
-/* Separador "o" entre el formulario y el acceso con Google. */
+/* Separador "o" entre el formulario y el acceso con Google.
+ *
+ * Sin margen vertical propio: .tarjeta ya separa a sus hijos con gap, y un
+ * margen aqui se SUMA a ese gap en vez de reemplazarlo. Con margin:
+ * var(--space-6) quedaban 48 + 16 = 64 px arriba y abajo, y al agregar el
+ * CAPTCHA al inicio de sesion (16/09/2026) el boton de Google se salio de la
+ * pantalla.
+ */
 .separador {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin: var(--space-6) 0;
+  margin: 0;
   color: var(--color-neutral-500);
   font: var(--font-ayuda);
 }
@@ -272,7 +261,10 @@ a { color: var(--color-primary-600); font-weight: 600; }
   background: var(--color-neutral-400);
 }
 
-.captcha { margin: var(--space-4) 0; min-height: 65px; }
+/* Igual que el separador: el espaciado lo pone el gap de .tarjeta.
+ * min-height reserva el alto del widget ANTES de que cargue, para que el
+ * formulario no pegue un salto cuando Turnstile termina de dibujarse. */
+.captcha { margin: 0; min-height: 65px; }
 
 /* Botón que se comporta como enlace (reenviar código). */
 .enlace {
@@ -1313,3 +1305,90 @@ a.metrica:focus-visible { outline: 2px solid var(--color-primary-700); outline-o
 /* La composicion sin dona ocupa una sola columna: el grid de dos columnas
    dejaria la mitad vacia ahora que la dona vive arriba con la curva. */
 .composicion--solo-barras { grid-template-columns: 1fr; }
+
+
+/* ===========================================================================
+   RESPONSIVE MOVIL  (< 768 px)
+
+   ESTE BLOQUE VA AL FINAL DEL ARCHIVO A PROPOSITO, Y NO ES UN CAPRICHO.
+
+   Una media query NO aumenta la especificidad: si una regla normal aparece
+   mas abajo, gana igual. Y en este archivo .navegacion esta declarada DOS
+   veces —linea 106 y otra vez mas adelante, las dos con flex-direction:
+   column, las dos fuera de media query—. Con el bloque movil arriba, la
+   segunda declaracion lo pisaba y la navegacion volvia a quedar en vertical:
+   nueve enlaces apilados que se comian la pantalla entera del telefono antes
+   de dejar ver el contenido.
+
+   Estando al final, nada puede pisarlo. Las dos declaraciones duplicadas se
+   dejan como estan porque la primera aporta  flex: 1  —lo que empuja el pie
+   de la barra al fondo en escritorio— y quitarla a cuatro dias de la entrega
+   es tocar algo que hoy funciona. Queda anotado como deuda.
+   =========================================================================== */
+/* ---------- responsive: móvil < 768 px ---------- */
+@media (max-width: 767px) {
+  .pantalla-auth { grid-template-columns: 1fr; }
+  .pantalla-auth__lateral { padding: var(--space-3); }
+  .pantalla-auth__lema { font-size: 26px; }
+  .fila-doble { grid-template-columns: 1fr; }
+  .aplicacion { grid-template-columns: 1fr; }
+
+  /* LA BARRA EN MOVIL VA EN DOS FILAS, NO EN UNA
+   *
+   * Antes era una sola fila con todo dentro: el logo, los nueve enlaces y el
+   * nombre del usuario con "Cerrar sesion". En un telefono de 375 px el logo y
+   * el pie se comian unos 200 px, y a la navegacion le quedaban 170 px para
+   * nueve destinos. Quedaba ilegible y apretado.
+   *
+   * Ahora:
+   *   fila 1 -> logo a la izquierda, usuario a la derecha
+   *   fila 2 -> la navegacion completa, deslizable de lado
+   *
+   * Se consigue con flex-wrap y  flex: 1 0 100%  en la navegacion, que la
+   * obliga a ocupar una fila entera. Sin tocar el JSX. */
+  .barra-lateral {
+    flex-direction: row; flex-wrap: wrap; align-items: center;
+    gap: var(--space-1) var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    height: auto; overflow-y: visible;
+    position: sticky; top: 0; z-index: 2;
+  }
+
+  /* El margen de 48px de .marca esta pensado para la columna vertical. En una
+     fila horizontal empuja el logo fuera del centro. */
+  .barra-lateral .marca { margin: 0; flex: 0 0 auto; }
+
+  /* El pie deja de ser pie: pasa a ser la esquina derecha de la fila 1. Sin
+     borde superior, que en horizontal cruzaria la barra por la mitad. */
+  .barra-lateral__pie {
+    border-top: 0; padding-top: 0;
+    margin-left: auto; flex: 0 0 auto;
+  }
+  /* El nombre completo no cabe. Queda el avatar con las iniciales y el boton,
+     que es lo unico accionable. */
+  .barra-lateral__pie .usuario__nombre { display: none; }
+
+  .navegacion {
+    order: 3; flex: 1 0 100%;
+    flex-direction: row; gap: 4px;
+    overflow-x: auto;
+    /* La barra de desplazamiento horizontal sobre una tira de 40px de alto
+       tapa la mitad del texto. Se oculta: el corte de los enlaces al borde ya
+       indica que hay mas hacia el lado. */
+    scrollbar-width: none;
+  }
+  .navegacion::-webkit-scrollbar { display: none; }
+  .navegacion__item {
+    flex: 0 0 auto; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 12px; font-size: 14px;
+  }
+
+  /* 24px de margen a cada lado en una pantalla de 375 dejan 327 para el
+     contenido. Con 16 quedan 343, y en una tarjeta con cifras se nota. */
+  .contenido { padding: var(--space-2); }
+  .tarjeta { padding: var(--space-3); }
+
+  /* Seis casillas con 16px de separacion no caben: 80px se van solo en huecos. */
+  .codigo { gap: var(--space-1); margin: var(--space-2) 0; }
+}
