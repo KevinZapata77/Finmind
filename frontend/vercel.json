@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:ruta*",
-      "destination": "https://CAMBIA-ESTO.onrender.com/api/:ruta*"
+      "destination": "https://finmind-szny.onrender.com/api/:ruta*"
     },
     {
       "source": "/(.*)",
