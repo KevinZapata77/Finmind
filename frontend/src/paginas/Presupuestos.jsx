@@ -171,10 +171,22 @@ export default function Presupuestos() {
         octubre vacío parece un error. Es un tope que te pones para un mes
         concreto, y decirlo evita la confusión antes de que ocurra.
       */}
+      {/*
+        POR QUE ESTA SEGUNDA FRASE
+        La primera versión no decía CÓMO se llena la barra, y eso confundía: se
+        leía como si faltara un botón de "gastar del presupuesto". No falta —
+        no debe existir. El presupuesto no es una bolsa de la que se saca
+        dinero: es un tope contra el que se mide lo que ya se gastó.
+        Se llena solo con los movimientos de esa categoría.
+      */}
       <p className="contenido__bajada">
         Tus topes de gasto para <strong>{MESES[mes - 1]} de {anio}</strong>. Cada mes
         tiene los suyos, así puedes mirar atrás y ver qué límite regía y cuánto
         gastaste de verdad.
+      </p>
+      <p className="contenido__bajada">
+        No hay que descontar nada a mano: cada movimiento que registres en una
+        categoría consume su presupuesto solo.
       </p>
 
       {error && <Alerta tipo="error" titulo="No pudimos cargar tus presupuestos">{error}</Alerta>}

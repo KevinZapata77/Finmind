@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { ErrorApi } from '../api/cliente'
 import Campo from '../componentes/Campo'
+import Captcha from '../componentes/Captcha'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
 import BotonGoogle from '../componentes/BotonGoogle'
@@ -18,6 +19,11 @@ export default function IniciarSesion() {
   const [errorGeneral, setErrorGeneral] = useState(null)
   const [enviando, setEnviando] = useState(false)
   const [verClave, setVerClave] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState('')
+
+  // Igual que en el registro: si no hay clave configurada no se exige nada,
+  // porque el backend tambien lo tiene apagado.
+  const captchaExigido = Boolean(import.meta.env.VITE_CAPTCHA_SITE_KEY)
 
   /*
     DEF-023. El error del acceso con Google se quedaba en la barra de
@@ -51,7 +57,7 @@ export default function IniciarSesion() {
     e.preventDefault()
     setErrores({}); setErrorGeneral(null); setEnviando(true)
     try {
-      await iniciarSesion(datos.correo, datos.contrasena)
+      await iniciarSesion(datos.correo, datos.contrasena, captchaToken)
       navegar('/panel', { replace: true })
     } catch (err) {
       if (err instanceof ErrorApi && err.erroresPorCampo) setErrores(err.erroresPorCampo)
@@ -98,7 +104,10 @@ export default function IniciarSesion() {
             </button>
           </div>
 
-          <Boton type="submit" cargando={enviando}>Iniciar sesión</Boton>
+          <Captcha onToken={setCaptchaToken} />
+
+          <Boton type="submit" cargando={enviando}
+                 disabled={captchaExigido && !captchaToken}>Iniciar sesión</Boton>
 
           <p className="tarjeta__pie">
             <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>

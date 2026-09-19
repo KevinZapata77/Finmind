@@ -36,8 +36,8 @@ export function AuthProvider({ children }) {
     sessionStorage volvería justo el problema que este cambio vino a resolver.
     Se ignora a propósito.
   */
-  const iniciarSesion = useCallback(async (correo, contrasena) => {
-    const r = await api.login({ correo, contrasena })
+  const iniciarSesion = useCallback(async (correo, contrasena, captchaToken) => {
+    const r = await api.login({ correo, contrasena, captchaToken })
     setUsuario(r.usuario)
     return r.usuario
   }, [])

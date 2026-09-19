@@ -142,6 +142,22 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse autenticar(LoginRequest peticion, String ip) {
+        /*
+          El CAPTCHA va ANTES del limitador de intentos, y el orden importa.
+
+          Si fuera al reves, cualquiera podria dejar sin acceso a una persona
+          mandando peticiones con el CAPTCHA malo: cada una gastaria un intento
+          del limitador hasta bloquear esa cuenta. Verificando primero, una
+          peticion que no pasa el CAPTCHA no llega a contarse como intento
+          fallido, no toca la base y no puede usarse para bloquear a nadie.
+
+          Por que tambien aqui y no solo en el registro: el limitador frena a un
+          atacante que golpea desde una IP, pero no a uno que reparte los
+          intentos entre muchas. Son dos defensas distintas contra dos ataques
+          distintos, y ninguna reemplaza a la otra.
+        */
+        servicioCaptcha.verificar(peticion.captchaToken());
+
         String correo = peticion.correo().trim().toLowerCase();
         String clavePorCorreo = "login:" + correo;
         String clavePorIp = "login-ip:" + ip;
