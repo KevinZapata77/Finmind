@@ -16,6 +16,16 @@ spring:
     enabled: false
 
 finmind:
+  # Fijado a mano, sin leer la variable de entorno.
+  #
+  # En application.yml esto es ${MAIL_ENABLED:false}, y en la maquina de
+  # desarrollo el .env la pone en true. Sin esta linea, ejecutar las pruebas
+  # ahi intentaria enviar correos de verdad a direcciones @finmind.test: lento,
+  # ruidoso, y dependiente de que haya internet. Una prueba no debe cambiar de
+  # comportamiento segun el entorno de quien la corre.
+  correo:
+    habilitado: false
+    remitente: no-responder@finmind.test
   jwt:
     secret: clave_de_pruebas_unicamente_minimo_32_caracteres
     expiration-ms: 3600000

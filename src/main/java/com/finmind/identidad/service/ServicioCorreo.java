@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
@@ -14,6 +15,20 @@ import org.springframework.stereotype.Service;
  * en lugar de enviarse. Eso permite demostrar el flujo completo sin depender
  * de un servidor de correo externo, que es la mitigacion registrada para el
  * riesgo RSK-07.
+ *
+ * LOS ENVIOS SALEN EN UN HILO APARTE (@Async)
+ * Hablar con un servidor SMTP tarda segundos, y hacerlo dentro de la peticion
+ * dejaba a la persona mirando un boton girando mientras su cuenta ya estaba
+ * creada. El detalle de por que esto es seguro esta en ConfiguracionAsincrona.
+ *
+ * DOS CONSECUENCIAS QUE HAY QUE TENER PRESENTES
+ * 1. Quien llama a estos metodos NO se entera de si el correo salio. Es
+ *    intencional: nunca se entero, porque el try/catch de abajo ya se tragaba
+ *    el fallo. La unica prueba de que un correo salio es el log.
+ * 2. La anotacion solo hace efecto cuando el metodo se llama desde OTRO bean
+ *    —Spring la aplica con un proxy—. Si algun dia se llamara a
+ *    enviarCodigoVerificacion desde dentro de esta misma clase, volveria a ser
+ *    sincrono sin avisar. Hoy el unico que llama es ServicioIdentidad.
  */
 @Service
 public class ServicioCorreo {
@@ -32,6 +47,7 @@ public class ServicioCorreo {
         this.de = de;
     }
 
+    @Async("ejecutorCorreo")
     public void enviarCodigoVerificacion(String destino, String nombre, String codigo, int minutos) {
         enviar(destino,
                "Verifica tu correo en FinMind",
@@ -43,6 +59,7 @@ public class ServicioCorreo {
                codigo);
     }
 
+    @Async("ejecutorCorreo")
     public void enviarCodigoRecuperacion(String destino, String nombre, String codigo, int minutos) {
         enviar(destino,
                "Recupera tu contrasena de FinMind",

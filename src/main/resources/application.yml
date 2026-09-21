@@ -61,8 +61,14 @@ spring:
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
+      # Los tres tiempos de espera tapan las tres formas en que un servidor de
+      # correo puede dejar colgada la conexion: no aceptar, no responder, o no
+      # recibir lo que se le manda. Sin el tercero —el que suele olvidarse— un
+      # envio a medias retiene el hilo hasta que el sistema operativo se rinda,
+      # que pueden ser minutos.
       mail.smtp.connectiontimeout: 5000
       mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
 
 server:
   port: 8080
