@@ -16,6 +16,19 @@ spring:
     clean-disabled: true
 
 server:
+  # Detras del proxy de Vercel, la peticion le llega a Spring con el host de
+  # Render. Sin esto, al armar la direccion de retorno de Google escribiria
+  # finmind-szny.onrender.com en vez del dominio publico, Google la rechazaria
+  # por no estar autorizada, y la cookie de sesion quedaria puesta en el
+  # dominio equivocado.
+  #
+  # Con 'framework', Spring lee X-Forwarded-Host y X-Forwarded-Proto —los que
+  # pone Vercel— y arma las direcciones con el dominio que el navegador ve de
+  # verdad. Solo se activa en produccion: en local no hay proxy delante y
+  # confiar en esas cabeceras cuando cualquiera puede escribirlas seria un
+  # agujero.
+  forward-headers-strategy: framework
+
   error:
     # API-03: el manejo de errores no debe exponer trazas internas.
     include-message: never

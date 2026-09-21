@@ -6,6 +6,14 @@
       "destination": "https://finmind-szny.onrender.com/api/:ruta*"
     },
     {
+      "source": "/oauth2/authorization/:ruta*",
+      "destination": "https://finmind-szny.onrender.com/oauth2/authorization/:ruta*"
+    },
+    {
+      "source": "/login/oauth2/:ruta*",
+      "destination": "https://finmind-szny.onrender.com/login/oauth2/:ruta*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
