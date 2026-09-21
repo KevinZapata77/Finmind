@@ -7,6 +7,7 @@ import Captcha from '../componentes/Captcha'
 import Boton from '../componentes/Boton'
 import Alerta from '../componentes/Alerta'
 import BotonGoogle from '../componentes/BotonGoogle'
+import { mensajeDeGoogle } from '../auth/mensajesGoogle'
 import { IconoMarca } from '../componentes/Iconos'
 
 /** UI-001 — Iniciar sesión. Implementa HU-002 / RF-002. */
@@ -43,9 +44,12 @@ export default function IniciarSesion() {
     aparecer un error que ya no corresponde a nada.
   */
   useEffect(() => {
-    const deGoogle = params.get('error')
-    if (!deGoogle) return
-    setErrorGeneral(deGoogle)
+    const codigo = params.get('error')
+    if (!codigo) return
+    // Llega un código corto ('cuenta_sin_verificar'), no la frase. El texto
+    // sale de mensajesGoogle.js: así la URL queda legible y la redacción se
+    // cambia sin tocar el backend.
+    setErrorGeneral(mensajeDeGoogle(codigo))
     const limpios = new URLSearchParams(params)
     limpios.delete('error')
     setParams(limpios, { replace: true })

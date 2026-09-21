@@ -104,6 +104,17 @@ public class Usuario {
         return Boolean.TRUE.equals(correoVerificado);
     }
 
+    /**
+     * Una cuenta desactivada no entra por ningun camino.
+     *
+     * Se compara contra TRUE y no se niega FALSE: si la columna llegara nula
+     * —una fila insertada a mano, una migracion a medias—, la respuesta es
+     * "no esta activa". Ante la duda, no se abre la puerta.
+     */
+    public boolean estaActivo() {
+        return Boolean.TRUE.equals(activo);
+    }
+
     public void marcarCorreoVerificado() {
         this.correoVerificado = Boolean.TRUE;
     }
@@ -130,6 +141,56 @@ public class Usuario {
         return u;
     }
 
+    /**
+     * Suma el acceso con Google a una cuenta que ya existia (RN-033).
+     *
+     * QUIEN DECIDE QUE ESTO ES SEGURO NO ES ESTE METODO
+     * Aqui no se comprueba nada: cuando se llega a esta linea, la decision ya
+     * se tomo. Quien la toma es ServicioUsuarioGoogle, que exige dos pruebas
+     * independientes de que la persona controla ese buzon —el codigo que FinMind
+     * le mando y el email_verified que afirma Google— antes de llamar.
+     *
+     * Esta separacion es deliberada. Una entidad que valide permisos por su
+     * cuenta invita a que alguien la llame desde otro lado dando por hecho que
+     * "ella se encarga". Aqui el nombre lo dice: vincular, no "vincular si se
+     * puede".
+     *
+     * NO SE PISA NADA DE LA CUENTA EXISTENTE
+     * Ni el nombre, ni el apellido, ni el rol, ni la contrasena. La cuenta ya
+     * existia y sus datos son los buenos; Google solo aporta una forma mas de
+     * entrar. Pisar el nombre con el de Google seria cambiarle los datos a
+     * alguien por haber pulsado un boton de acceso.
+     */
+    public void vincularGoogle(String proveedorId) {
+        this.proveedorId = proveedorId;
+        this.correoVerificado = Boolean.TRUE;
+    }
+
+    /** Tiene Google vinculado, sin importar como haya nacido la cuenta. */
+    public boolean tieneGoogle() {
+        return proveedorId != null && !proveedorId.isBlank();
+    }
+
+    /**
+     * Puede entrar con contrasena.
+     *
+     * Se pregunta por el hash y no por el proveedor a proposito. Desde que
+     * existe la vinculacion, una cuenta con proveedor LOCAL puede tener Google,
+     * y preguntar por el proveedor responde "como nacio", que es otra cosa.
+     * La unica verdad sobre si el acceso con contrasena funciona es si hay un
+     * hash contra el cual comparar.
+     */
+    public boolean tieneContrasena() {
+        return contrasenaHash != null && !contrasenaHash.isBlank();
+    }
+
+    /**
+     * Como nacio la cuenta. Es historico.
+     *
+     * OJO: no responde "entra con contrasena". Para eso esta tieneContrasena().
+     * Antes de la vinculacion las dos preguntas tenian la misma respuesta y se
+     * usaban indistintamente; ya no.
+     */
     public boolean esLocal() {
         return LOCAL.equals(proveedor);
     }

@@ -97,9 +97,37 @@ public class ManejadorExitoGoogle implements AuthenticationSuccessHandler {
                     .build().toUriString());
 
         } catch (ServicioUsuarioGoogle.CuentaGoogleException ex) {
-            log.warn("Acceso con Google rechazado: {}", ex.getMessage());
+            /*
+              Vuelve un CODIGO, no una frase.
+
+              Antes viajaba el mensaje completo en castellano, y el resultado
+              era una barra de direcciones llena de %20 con el texto del error a
+              la vista. Se leia como una aplicacion rota, aunque el rechazo
+              fuera correcto y estuviera bien explicado en la pantalla.
+
+              Con el codigo la URL queda corta y legible, y el texto lo pone el
+              frontend, que es donde viven todos los demas mensajes. Ademas se
+              puede cambiar la redaccion sin volver a desplegar el backend.
+            */
+            log.warn("Acceso con Google rechazado: {}", ex.getMotivo().codigo());
             respuesta.sendRedirect(urlError + "?error="
-                    + URLEncoder.encode(ex.getMessage(), StandardCharsets.UTF_8));
+                    + URLEncoder.encode(ex.getMotivo().codigo(), StandardCharsets.UTF_8));
+
+        } catch (RuntimeException ex) {
+            /*
+              Cualquier otro fallo tambien tiene que devolver el navegador.
+
+              Sin esto, una excepcion inesperada aqui —la base caida al guardar,
+              por ejemplo— sube por el filtro de Spring Security y termina en
+              una pagina de error en blanco servida por el backend, en el
+              dominio del backend. La persona se queda fuera de la aplicacion,
+              sin pantalla de FinMind y sin forma de volver que no sea escribir
+              la direccion a mano.
+
+              El detalle queda en el log del servidor, no en la URL.
+            */
+            log.error("Fallo inesperado en el acceso con Google", ex);
+            respuesta.sendRedirect(urlError + "?error=google_fallo");
         }
     }
 }

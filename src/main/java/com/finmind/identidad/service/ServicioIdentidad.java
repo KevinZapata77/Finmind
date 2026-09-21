@@ -139,9 +139,25 @@ public class ServicioIdentidad {
         if (encontrado.isEmpty()) return;
 
         Usuario usuario = encontrado.get();
-        // Quien entra con Google no tiene contrasena en FinMind que recuperar.
-        // Se responde igual que en cualquier otro caso para no revelar nada.
-        if (!usuario.esLocal()) return;
+        /*
+          Se pregunta por la contrasena, no por el proveedor.
+
+          Antes decia !usuario.esLocal(), y desde que existe la vinculacion con
+          Google (RN-033) esa pregunta responde otra cosa: "como nacio la
+          cuenta". Una cuenta creada con correo y contrasena que despues vinculo
+          Google sigue siendo LOCAL y sigue teniendo su contrasena, asi que la
+          condicion anterior seguia funcionando para ella por casualidad.
+
+          Donde si fallaba es al reves, y era un callejon sin salida: una cuenta
+          nacida en Google no tiene contrasena, pero tampoco puede crear una,
+          porque recuperar es justamente el camino para ponerla. Preguntar por
+          el hash deja la puerta abierta el dia que se permita anadir contrasena
+          a una cuenta de Google, sin tener que acordarse de volver aqui.
+
+          Sin hash no hay nada que recuperar. Se responde igual que en cualquier
+          otro caso para no revelar si el correo existe (RN-014).
+        */
+        if (!usuario.tieneContrasena()) return;
 
         String codigo = servicioCodigos.emitir(usuario, CodigoVerificacion.RECUPERACION);
         correo.enviarCodigoRecuperacion(usuario.getCorreo(), usuario.getNombre(),

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { mensajeDeGoogle } from '../auth/mensajesGoogle'
 import Alerta from '../componentes/Alerta'
 
 /**
@@ -32,9 +33,10 @@ export default function CallbackGoogle() {
       Solo se sigue leyendo ?error=..., que no es secreto y conviene que el
       servidor lo pueda registrar.
     */
+    // Igual que en IniciarSesion: lo que llega es un código, no la frase.
     const fallo = params.get('error')
     if (fallo) {
-      setError(fallo)
+      setError(mensajeDeGoogle(fallo))
       return
     }
 
