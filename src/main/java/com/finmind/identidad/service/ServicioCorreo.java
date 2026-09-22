@@ -41,10 +41,50 @@ public class ServicioCorreo {
 
     public ServicioCorreo(JavaMailSender remitente,
                           @Value("${finmind.correo.habilitado:false}") boolean habilitado,
-                          @Value("${finmind.correo.remitente}") String de) {
+                          @Value("${finmind.correo.remitente}") String de,
+                          @Value("${spring.mail.username:}") String cuentaSmtp) {
         this.remitente = remitente;
         this.habilitado = habilitado;
-        this.de = de;
+        this.de = resolverRemitente(de, cuentaSmtp);
+    }
+
+    /**
+     * DEF-027. Gmail solo deja enviar "desde" la cuenta autenticada.
+     *
+     * EL DEFECTO QUE ESTO CORRIGE
+     * Los correos de verificacion dejaron de llegar, sin ningun error visible.
+     * La causa era la direccion del remitente: si MAIL_FROM no esta definida en
+     * el servidor, el valor por omision es no-responder@finmind.local, un
+     * dominio que no existe. Gmail acepta la conexion, acepta la
+     * autenticacion, y despues rechaza o descarta el mensaje porque el From no
+     * corresponde a la cuenta con la que uno se autentico.
+     *
+     * Y el rechazo llegaba al log del servidor, no a la persona: desde afuera
+     * el registro salia bien y el correo simplemente no aparecia nunca. Un
+     * fallo silencioso, que es la peor clase.
+     *
+     * QUE HACE
+     * Si el remitente configurado no es la propia cuenta SMTP, se usa la cuenta
+     * SMTP y se avisa en el log. Preferir lo que funciona sobre lo que estaba
+     * escrito es lo correcto aqui: la alternativa es no enviar nada.
+     *
+     * Cuando no hay cuenta SMTP —en desarrollo, con el correo apagado— se
+     * respeta el valor configurado y no se avisa nada, porque ahi ese valor
+     * nunca sale a la red.
+     */
+    private static String resolverRemitente(String configurado, String cuentaSmtp) {
+        if (cuentaSmtp == null || cuentaSmtp.isBlank()) {
+            return configurado;
+        }
+        if (!cuentaSmtp.equalsIgnoreCase(configurado)) {
+            log.warn("El remitente configurado ({}) no es la cuenta SMTP ({}). "
+                    + "Gmail rechaza los mensajes cuyo From no es la cuenta autenticada, "
+                    + "asi que se envia desde la cuenta SMTP. "
+                    + "Para quitar este aviso, pon MAIL_FROM igual a MAIL_USERNAME.",
+                    configurado, cuentaSmtp);
+            return cuentaSmtp;
+        }
+        return configurado;
     }
 
     @Async("ejecutorCorreo")
@@ -80,16 +120,31 @@ public class ServicioCorreo {
         }
         try {
             SimpleMailMessage mensaje = new SimpleMailMessage();
-            mensaje.setFrom(de);
+            /*
+              Con nombre visible, no la direccion pelada.
+              Un mensaje que llega de "FinMind" y no de una direccion suelta se
+              reconoce de un vistazo en la bandeja, y los filtros de correo
+              tratan bastante peor a los remitentes sin nombre.
+            */
+            mensaje.setFrom("FinMind <" + de + ">");
             mensaje.setTo(destino);
             mensaje.setSubject(asunto);
             mensaje.setText(cuerpo);
             remitente.send(mensaje);
             log.info("Codigo enviado a {}", destino);
         } catch (Exception ex) {
-            // Un fallo de correo no debe romper el registro del usuario.
-            // El codigo ya quedo persistido y se puede solicitar de nuevo.
-            log.error("No se pudo enviar el correo a {}", destino, ex);
+            /*
+              Un fallo de correo no rompe el registro: el codigo ya quedo
+              guardado y se puede pedir de nuevo.
+
+              Pero SI tiene que quedar rastro util. Antes esto se registraba y
+              nadie lo miraba, asi que el sintoma que llegaba era "no me llego
+              el correo" sin ninguna pista de por que. El mensaje de abajo dice
+              desde donde se intento enviar, que es justo el dato que faltaba
+              cuando el remitente estaba mal (DEF-027).
+            */
+            log.error("No se pudo enviar el correo a {} desde {}: {}",
+                    destino, de, ex.getMessage(), ex);
         }
     }
 }

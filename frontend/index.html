@@ -4,6 +4,49 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FinMind — Gestión financiera personal</title>
+
+    <!--
+      EL LOGO EN LA PESTAÑA (DEF-028)
+
+      Antes no había ninguno, así que el navegador dibujaba la hoja en blanco
+      genérica: en una barra con diez pestañas abiertas, FinMind era la única
+      sin identidad. Y al guardar la página en la pantalla de inicio de un
+      teléfono, el atajo salía con una miniatura de la captura.
+
+      Se declaran varios formatos a propósito, y no por exceso:
+
+        favicon.svg  lo prefieren los navegadores modernos. Al ser vectorial se
+                     ve nítido en cualquier densidad de pantalla, y pesa 1 KB.
+        favicon.ico  el respaldo. Windows y los navegadores viejos solo
+                     entienden este, y trae los tamaños 16, 32 y 48 dentro.
+        apple-touch  iOS ignora los dos anteriores al crear un atajo en la
+                     pantalla de inicio; sin este pone una captura recortada.
+
+      El orden importa: el navegador toma el primero que entiende.
+    -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!--
+      Color de la interfaz del navegador en móvil. Chrome en Android pinta la
+      barra superior con este color: sin él queda blanca y corta el tema oscuro
+      justo arriba de la aplicación, que se ve como un error de dibujo.
+    -->
+    <meta name="theme-color" content="#0B0E14" />
+
+    <!--
+      Lo que se ve cuando alguien comparte el enlace por WhatsApp o Slack. Sin
+      esto se muestra la URL pelada, que no dice qué es. Con el jurado y con
+      los compañeros, el enlace se va a compartir.
+    -->
+    <meta name="description" content="Registra ingresos y gastos, define presupuestos y mira a dónde se va tu dinero. FinMind te dice cuánto te queda de verdad, no solo cuánto tienes." />
+    <meta property="og:title" content="FinMind — Gestión financiera personal" />
+    <meta property="og:description" content="No te dice solo cuánto tienes. Te dice si te alcanza." />
+    <meta property="og:image" content="/icono-512.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://finmind.me" />
   </head>
   <body>
     <div id="root"></div>

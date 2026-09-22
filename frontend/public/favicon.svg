@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!--
+    Logo de FinMind para la pestana del navegador.
+
+    Es el mismo dibujo de IconoMarca, pero con el chip teal incorporado: en la
+    aplicacion el fondo lo pone el CSS (.marca__logo) y aqui no hay CSS que
+    valga, asi que el favicon tiene que traer su propio fondo o se veria un
+    trazo oscuro sobre oscuro, o sea nada.
+
+    Los colores van escritos y no como variables por la misma razon: un favicon
+    se carga fuera del documento y no ve las variables CSS del tema.
+    El #14B8A6 es el token primary-600 y el #0B0E14 es el token sobre-lleno.
+  -->
+  <rect width="24" height="24" rx="5.5" fill="#14B8A6"/>
+  <g transform="translate(2.5,2.6) scale(0.78)">
+    <g fill="#0B0E14" opacity="0.32">
+      <rect x="2.5" y="12" width="5" height="9" rx="1.1"/>
+      <rect x="9.5" y="9" width="5" height="12" rx="1.1"/>
+      <rect x="16.5" y="14" width="5" height="7" rx="1.1"/>
+    </g>
+    <polyline points="2,14 7,8.5 12,12 16,5 21.5,2.5" fill="none" stroke="#0B0E14"
+      stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

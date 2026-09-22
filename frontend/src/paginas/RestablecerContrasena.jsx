@@ -13,14 +13,27 @@ export default function RestablecerContrasena() {
   const ubicacion = useLocation()
   const correo = ubicacion.state?.correo || ''
 
-  const [datos, setDatos] = useState({ codigo: '', contrasena: '' })
+  /*
+    DEF-026. El campo se llama contrasenaNueva, igual que en la API.
+
+    Antes se llamaba 'contrasena' y se enviaba con {...datos}, así que el
+    cuerpo viajaba con un campo que el backend no conoce y sin el que sí
+    espera. La validación rechazaba la petición por "la contraseña es
+    obligatoria" —aunque la persona la hubiera escrito— y en pantalla se leía
+    como "datos inválidos", que no da ninguna pista de qué arreglar.
+
+    Es el riesgo de esparcir un objeto directo al cuerpo de la petición: si un
+    nombre no coincide, nada falla al compilar y el error aparece recién en
+    producción, redactado de la forma más confusa posible.
+  */
+  const [datos, setDatos] = useState({ codigo: '', contrasenaNueva: '' })
   const [repetida, setRepetida] = useState('')
   const [error, setError] = useState(null)
   const [enviando, setEnviando] = useState(false)
 
   useEffect(() => { if (!correo) navegar('/recuperar', { replace: true }) }, [correo, navegar])
 
-  const noCoinciden = repetida.length > 0 && repetida !== datos.contrasena
+  const noCoinciden = repetida.length > 0 && repetida !== datos.contrasenaNueva
 
   async function enviar(e) {
     e.preventDefault()
@@ -59,7 +72,8 @@ export default function RestablecerContrasena() {
 
           <Campo id="contrasena" name="contrasena" type="password" autoComplete="new-password"
             etiqueta="Nueva contraseña" ayuda="Mínimo 8 caracteres."
-            value={datos.contrasena} onChange={(e) => setDatos({ ...datos, contrasena: e.target.value })} required />
+            value={datos.contrasenaNueva}
+            onChange={(e) => setDatos({ ...datos, contrasenaNueva: e.target.value })} required />
 
           <Campo id="repetida" name="repetida" type="password" autoComplete="new-password"
             etiqueta="Repite la contraseña"
@@ -67,7 +81,7 @@ export default function RestablecerContrasena() {
             value={repetida} onChange={(e) => setRepetida(e.target.value)} required />
 
           <Boton type="submit" cargando={enviando}
-            disabled={noCoinciden || datos.codigo.length !== 6 || !datos.contrasena}>
+            disabled={noCoinciden || datos.codigo.length !== 6 || !datos.contrasenaNueva}>
             Cambiar contraseña
           </Boton>
 
