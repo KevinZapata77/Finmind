@@ -166,6 +166,41 @@ public class Usuario {
         this.correoVerificado = Boolean.TRUE;
     }
 
+    /**
+     * Google se queda con una cuenta local que nunca fue verificada (RN-034).
+     *
+     * CUANDO PASA
+     * Alguien se registro con correo y contrasena, no alcanzo a escribir el
+     * codigo, y despues entro con Google usando ese mismo correo.
+     *
+     * POR QUE NO ALCANZA CON VINCULAR
+     * Porque esa cuenta sin verificar no prueba nada. Cualquiera pudo haber
+     * escrito el correo de otra persona y una contrasena elegida por el: la
+     * verificacion existe justamente para distinguir esos dos casos, y aqui
+     * nunca ocurrio. Si se vinculara conservando el hash, el que escribio esa
+     * contrasena entraria despues a la cuenta del dueno real.
+     *
+     * POR QUE SI SE PUEDE ENTREGAR LA CUENTA
+     * Porque Google acaba de probar, con email_verified, que quien esta del
+     * otro lado controla ese buzon. Entre una credencial probada y una sin
+     * probar sobre el mismo correo, gana la probada.
+     *
+     * Y no se pierde nada de valor: una cuenta sin verificar no puede iniciar
+     * sesion (RN-011), asi que nunca tuvo sesion ni pudo registrar un solo
+     * movimiento. Es un cascaron.
+     *
+     * SE BORRA EL HASH, Y ESA ES LA PARTE IMPORTANTE
+     * Dejarlo seria justamente el agujero: la cuenta quedaria verificada y con
+     * la contrasena del otro adentro. La credencial que nadie probo tiene que
+     * desaparecer. Quien reciba la cuenta puede ponerse una nueva contrasena
+     * con "olvide mi contrasena", que ahora si le va a llegar a su buzon.
+     */
+    public void tomarPosesionConGoogle(String proveedorId) {
+        this.proveedorId = proveedorId;
+        this.contrasenaHash = null;
+        this.correoVerificado = Boolean.TRUE;
+    }
+
     /** Tiene Google vinculado, sin importar como haya nacido la cuenta. */
     public boolean tieneGoogle() {
         return proveedorId != null && !proveedorId.isBlank();

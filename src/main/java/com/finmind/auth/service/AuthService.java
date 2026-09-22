@@ -8,8 +8,7 @@ import com.finmind.common.exception.CorreoYaRegistradoException;
 import com.finmind.common.security.JwtService;
 import com.finmind.common.security.LimitadorDeIntentos;
 import com.finmind.common.security.UsuarioPrincipal;
-import com.finmind.cuentas.entity.Cuenta;
-import com.finmind.cuentas.repository.CuentaRepository;
+import com.finmind.cuentas.service.ServicioCuentaInicial;
 import com.finmind.identidad.service.ServicioCaptcha;
 import com.finmind.identidad.service.ServicioIdentidad;
 import com.finmind.usuarios.entity.Rol;
@@ -36,7 +35,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final ServicioIdentidad servicioIdentidad;
     private final ServicioCaptcha servicioCaptcha;
-    private final CuentaRepository cuentas;
+    private final ServicioCuentaInicial cuentaInicial;
     private final LimitadorDeIntentos limitador;
     private final int maxPorCorreo;
     private final int maxPorIp;
@@ -49,7 +48,7 @@ public class AuthService {
                        JwtService jwtService,
                        ServicioIdentidad servicioIdentidad,
                        ServicioCaptcha servicioCaptcha,
-                       CuentaRepository cuentas,
+                       ServicioCuentaInicial cuentaInicial,
                        LimitadorDeIntentos limitador,
                        @Value("${finmind.login.max-por-correo:5}") int maxPorCorreo,
                        @Value("${finmind.login.max-por-ip:20}") int maxPorIp,
@@ -61,7 +60,7 @@ public class AuthService {
         this.jwtService = jwtService;
         this.servicioIdentidad = servicioIdentidad;
         this.servicioCaptcha = servicioCaptcha;
-        this.cuentas = cuentas;
+        this.cuentaInicial = cuentaInicial;
         this.limitador = limitador;
         this.maxPorCorreo = maxPorCorreo;
         this.maxPorIp = maxPorIp;
@@ -99,14 +98,10 @@ public class AuthService {
         Usuario guardado = usuarioRepository.save(usuario);
 
         // Toda cuenta nueva arranca con una cuenta de efectivo.
-        //
-        // POR QUE: un movimiento exige cuenta por llave foranea. Sin esto, el
-        // primer gesto de un usuario recien registrado no era anotar su plata
-        // sino llenar un formulario de cuentas que no habia pedido. El tramite
-        // iba antes del valor, y eso es lo que hace que una aplicacion se
-        // abandone a los tres dias.
-        cuentas.save(new Cuenta(guardado, "Efectivo", Cuenta.EFECTIVO,
-                java.math.BigDecimal.ZERO, "COP"));
+        // El por que esta en ServicioCuentaInicial, y vive alli —y no aqui—
+        // porque el registro con Google tambien la necesita y durante un
+        // tiempo no la tuvo (DEF-030).
+        cuentaInicial.crearSiNoTiene(guardado);
 
         // RN-011: la cuenta nace sin verificar y no puede iniciar sesion todavia.
         // Se emite y envia el codigo; el usuario continua en la pantalla UI-010.

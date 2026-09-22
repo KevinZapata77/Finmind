@@ -2,6 +2,7 @@ package com.finmind.identidad.service;
 
 import com.finmind.identidad.service.ServicioUsuarioGoogle.CuentaGoogleException;
 import com.finmind.identidad.service.ServicioUsuarioGoogle.Motivo;
+import com.finmind.cuentas.service.ServicioCuentaInicial;
 import com.finmind.usuarios.entity.Rol;
 import com.finmind.usuarios.entity.Usuario;
 import com.finmind.usuarios.repository.RolRepository;
@@ -46,9 +47,16 @@ import static org.mockito.Mockito.when;
  * Apropiacion previa de cuenta: alguien registra victima@gmail.com en FinMind
  * con una contrasena que el elige, y espera. Si al llegar la persona real por
  * Google la aplicacion fusionara las cuentas por el correo, la dejaria entrar
- * en la cuenta del atacante —que conserva la contrasena y mira todo—. Lo que
- * lo impide es que esa cuenta usurpada nunca esta verificada: el codigo llega
- * al buzon real, no al atacante.
+ * en la cuenta del atacante —que conserva la contrasena y mira todo—.
+ *
+ * Lo que lo impide es que esa cuenta usurpada nunca esta verificada, porque el
+ * codigo llega al buzon real y no al atacante. Sobre esa diferencia se decide
+ * todo: la cuenta verificada se VINCULA y conserva su contrasena (RN-033); la
+ * que no lo esta pasa a Google y PIERDE la contrasena (RN-034).
+ *
+ * Ese borrado es el detalle que sostiene la seguridad del segundo caso, y por
+ * eso tiene su propia prueba. Sin el, entregar la cuenta seria regalarsela al
+ * atacante ya verificada.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Acceso con Google")
@@ -59,6 +67,7 @@ class ServicioUsuarioGoogleTest {
 
     @Mock private UsuarioRepository usuarios;
     @Mock private RolRepository roles;
+    @Mock private ServicioCuentaInicial cuentaInicial;
     @InjectMocks private ServicioUsuarioGoogle servicio;
 
     // ------------------------------------------------------------- vinculacion
@@ -103,23 +112,39 @@ class ServicioUsuarioGoogleTest {
         }
 
         @Test
-        @DisplayName("la cuenta local SIN verificar se rechaza y no se vincula")
-        void laCuentaSinVerificarNoSeVincula() {
+        @DisplayName("la cuenta local SIN verificar pasa a Google y pierde la contrasena")
+        void laCuentaSinVerificarPasaAGoogle() {
             /*
-              El escenario del atacante. Es la prueba que sostiene toda la
-              decision de permitir la vinculacion.
+              El escenario del atacante, y la prueba que sostiene RN-034.
+
+              Antes esto se rechazaba, y el efecto real era encerrar al dueno
+              legitimo: sin verificar no podia entrar por contrasena (RN-011)
+              ni por Google, y para verificar necesitaba un correo que podia no
+              llegarle. Tres puertas y las tres cerradas.
+
+              Ahora la cuenta se entrega a quien probo el buzon. Lo que hay que
+              demostrar aqui no es que entre —eso se ve—, sino que el hash que
+              nadie comprobo DESAPARECE. Si sobreviviera, el atacante entraria
+              despues con su contrasena a la cuenta de la victima, ya verificada
+              y con datos: exactamente el ataque que se quiere impedir.
             */
             Usuario usurpada = local(CORREO, false);
+            assertThat(usurpada.tieneContrasena()).isTrue();   // punto de partida
+
             when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.of(usurpada));
 
-            assertThatThrownBy(() -> servicio.obtenerOCrear(perfil(CORREO)))
-                    .isInstanceOf(CuentaGoogleException.class)
-                    .extracting(e -> ((CuentaGoogleException) e).getMotivo())
-                    .isEqualTo(Motivo.CUENTA_SIN_VERIFICAR);
+            Usuario resultado = servicio.obtenerOCrear(perfil(CORREO));
 
-            assertThat(usurpada.tieneGoogle())
-                    .as("una cuenta sin verificar no puede quedar vinculada")
+            assertThat(resultado).isSameAs(usurpada);
+            assertThat(resultado.tieneGoogle()).isTrue();
+            assertThat(resultado.estaVerificado())
+                    .as("Google probo el buzon, asi que la cuenta queda verificada")
+                    .isTrue();
+            assertThat(resultado.tieneContrasena())
+                    .as("la contrasena que nadie comprobo tiene que desaparecer")
                     .isFalse();
+
+            // Se reusa la cuenta existente, no se crea una segunda.
             verify(usuarios, never()).save(any());
         }
 
@@ -257,6 +282,28 @@ class ServicioUsuarioGoogleTest {
             assertThat(creado.getNombre()).isEqualTo("Kevin");
             assertThat(creado.getNombre()).doesNotContain("Usuario");
             assertThat(creado.getApellido()).isNotBlank();
+        }
+
+        @Test
+        @DisplayName("DEF-030: la cuenta nueva recibe su cuenta de efectivo inicial")
+        void laCuentaNuevaRecibeSuCuentaDeEfectivo() {
+            /*
+              Faltaba, y el sintoma era desconcertante: quien entraba con Google
+              llegaba a una aplicacion sin ninguna cuenta, y al anotar su primer
+              movimiento se encontraba un desplegable vacio sin explicacion.
+
+              El registro con correo y contrasena si la creaba. La logica estaba
+              escrita en un solo camino y nadie la repitio en el otro, que es
+              justo lo que pasa cuando algo importante vive suelto en vez de en
+              su propio servicio.
+            */
+            when(usuarios.findByCorreo(CORREO)).thenReturn(Optional.empty());
+            when(roles.findByNombre(Rol.USUARIO)).thenReturn(Optional.of(rol()));
+            when(usuarios.save(any(Usuario.class))).thenAnswer(i -> i.getArgument(0));
+
+            Usuario creado = servicio.obtenerOCrear(perfil(CORREO));
+
+            verify(cuentaInicial).crearSiNoTiene(creado);
         }
 
         @Test

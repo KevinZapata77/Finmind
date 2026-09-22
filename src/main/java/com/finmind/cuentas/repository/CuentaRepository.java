@@ -20,6 +20,9 @@ public interface CuentaRepository extends JpaRepository<Cuenta, Long> {
 
     List<Cuenta> findByUsuarioIdAndActivaTrueOrderByNombreAsc(Long usuarioId);
 
+    /** Si ya tiene alguna cuenta, no hay que crearle la de efectivo inicial. */
+    boolean existsByUsuarioId(Long usuarioId);
+
     boolean existsByUsuarioIdAndNombreIgnoreCase(Long usuarioId, String nombre);
 
     /** Para editar: el nombre puede repetirse consigo mismo, no con otras. */

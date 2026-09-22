@@ -28,6 +28,12 @@ const MENSAJES = {
     apropie de su cuenta. Es cierto, pero a quien solo quiere entrar no le
     sirve, y mencionar una amenaza asusta sin ayudar.
   */
+  /*
+    Ya no se emite: desde RN-034 una cuenta sin verificar no se rechaza, Google
+    se queda con ella. Se conserva por la ventana de despliegue —Vercel publica
+    antes que Render, asi que durante unos minutos el navegador nuevo habla con
+    el backend viejo— y porque borrarlo solo ahorraria seis lineas.
+  */
   cuenta_sin_verificar:
     'Ya tienes una cuenta con ese correo, pero te falta verificarla. '
     + 'Entra con tu contraseña y escribe el código que te enviamos; '

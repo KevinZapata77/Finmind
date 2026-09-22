@@ -1,5 +1,6 @@
 package com.finmind.identidad.service;
 
+import com.finmind.cuentas.service.ServicioCuentaInicial;
 import com.finmind.usuarios.entity.Rol;
 import com.finmind.usuarios.entity.Usuario;
 import com.finmind.usuarios.repository.RolRepository;
@@ -30,20 +31,23 @@ import org.springframework.transaction.annotation.Transactional;
  *      cuenta que creo el atacante — y el atacante entra cuando quiera, porque
  *      sabe la contrasena. Se queda mirando las finanzas de la victima.
  *
- * COMO SE CIERRA
- * Exigiendo DOS pruebas independientes de control del buzon, no una:
+ * COMO SE CIERRA: MIRANDO QUIEN PROBO QUE
+ * La clave esta en si la cuenta local fue verificada, porque verificarla exige
+ * leer un codigo que llego a ese buzon. Hay dos desenlaces y ninguno rechaza:
  *
- *   a) La cuenta local esta verificada. Verificarla exige leer un codigo que
- *      FinMind envio a ese buzon. El atacante del paso 1 jamas lo recibe, asi
- *      que su cuenta usurpada nunca llega a verificarse y nunca se vincula.
- *   b) Google afirma email_verified = true para ese correo.
+ *   a) CUENTA VERIFICADA -> se VINCULA (RN-033). Las dos partes probaron
+ *      controlar el mismo buzon por caminos que no se tocan: el codigo de
+ *      FinMind y el email_verified de Google. Es la misma persona, y la cuenta
+ *      conserva absolutamente todo, contrasena incluida.
  *
- * Las dos apuntan al mismo buzon por caminos que no se tocan. Con las dos, es
- * la misma persona. Sin alguna, se rechaza y se explica por que.
+ *   b) CUENTA SIN VERIFICAR -> Google SE QUEDA con ella (RN-034). Esa cuenta no
+ *      probo nada: pudo haberla creado cualquiera con el correo ajeno. Google
+ *      si acaba de probar el control del buzon, asi que recibe la cuenta y se
+ *      borra el hash que nadie comprobo. El atacante del paso 1 no solo no gana
+ *      nada: pierde la contrasena que habia puesto.
  *
- * Y AL CONTRARIO: UNA CUENTA DE GOOGLE NO REGALA LA CONTRASENA
- * Vincular agrega una forma de entrar; no revela ni cambia la que ya habia. El
- * hash queda intacto y este servicio no lo toca.
+ * Y AL CONTRARIO: UNA CUENTA VERIFICADA NO REGALA SU CONTRASENA
+ * Vincular agrega una forma de entrar; no revela ni cambia la que ya habia.
  *
  * Los mensajes no se escriben aqui: se devuelve un CODIGO corto y el frontend
  * decide el texto. Ver ManejadorExitoGoogle para el por que.
@@ -55,10 +59,13 @@ public class ServicioUsuarioGoogle {
 
     private final UsuarioRepository usuarios;
     private final RolRepository roles;
+    private final ServicioCuentaInicial cuentaInicial;
 
-    public ServicioUsuarioGoogle(UsuarioRepository usuarios, RolRepository roles) {
+    public ServicioUsuarioGoogle(UsuarioRepository usuarios, RolRepository roles,
+                                 ServicioCuentaInicial cuentaInicial) {
         this.usuarios = usuarios;
         this.roles = roles;
+        this.cuentaInicial = cuentaInicial;
     }
 
     @Transactional
@@ -96,7 +103,7 @@ public class ServicioUsuarioGoogle {
     }
 
     /**
-     * La cuenta ya existe. Tres caminos, y solo uno rechaza.
+     * La cuenta ya existe. Tres caminos, y ninguno deja a nadie afuera.
      */
     private Usuario usarCuentaExistente(Usuario u, String googleId) {
         if (!u.estaActivo()) {
@@ -110,21 +117,37 @@ public class ServicioUsuarioGoogle {
         }
 
         /*
-          Camino 2: cuenta local SIN verificar. Es el unico que se rechaza, y es
-          exactamente el escenario del atacante descrito arriba.
+          Camino 2: cuenta local SIN verificar. Google se queda con ella (RN-034).
 
-          El mensaje que vera la persona no dice "esa cuenta es de otro": dice
-          que verifique su correo primero. Si es el dueno legitimo —el caso
-          comun: se registro, no alcanzo a poner el codigo y volvio por Google—
-          tiene una salida clara y de un solo paso. Si es el atacante, esa
-          salida no existe porque el codigo no le llega.
+          DEF-029. ANTES ESTO SE RECHAZABA, Y DEJABA A LA PERSONA ENCERRADA.
+          El razonamiento era defendible pero el resultado no: quien se
+          registraba, no alcanzaba a escribir el codigo y volvia por Google se
+          quedaba sin ninguna puerta. Por Google, rechazado. Por contrasena,
+          rechazado tambien, porque sin verificar no se inicia sesion (RN-011).
+          Y para verificar hacia falta un correo que, si no llegaba, cerraba el
+          circulo. Tres caminos y los tres tapiados.
+
+          Un candado que deja afuera al dueno no esta protegiendo nada.
+
+          La salida no es aflojar la regla, es mirar quien probo que. Esa cuenta
+          sin verificar no probo nada: cualquiera pudo escribir el correo ajeno.
+          Google, en cambio, acaba de probar que quien esta del otro lado
+          controla el buzon. Entre una credencial probada y una sin probar sobre
+          el mismo correo, gana la probada, y la otra se borra.
+
+          El atacante del escenario de arriba no gana nada con esto: su cuenta
+          usurpada nunca pudo iniciar sesion, asi que esta vacia, y al entregarla
+          se le borra la contrasena que habia puesto. Queda peor que antes.
         */
         if (!u.estaVerificado()) {
-            log.warn("Vinculacion rechazada: la cuenta local de {} no esta verificada", u.getCorreo());
-            throw new CuentaGoogleException(Motivo.CUENTA_SIN_VERIFICAR);
+            u.tomarPosesionConGoogle(googleId);
+            u.registrarAcceso();
+            log.info("La cuenta sin verificar de {} pasa a Google: se borro la contrasena "
+                    + "que nadie habia comprobado", u.getCorreo());
+            return u;
         }
 
-        // Camino 3: cuenta local verificada. Se vincula (RN-033).
+        // Camino 3: cuenta local verificada. Se vincula y conserva todo (RN-033).
         u.vincularGoogle(googleId);
         u.registrarAcceso();
         log.info("Cuenta de {} vinculada con Google", u.getCorreo());
@@ -139,8 +162,23 @@ public class ServicioUsuarioGoogle {
         Usuario nuevo = Usuario.deGoogle(
                 nombreDe(perfil, correo), apellidoDe(perfil), correo, rolUsuario, googleId);
         nuevo.registrarAcceso();
+        Usuario guardado = usuarios.save(nuevo);
+
+        /*
+          DEF-030. Esta linea faltaba, y era la causa de que quien entraba con
+          Google llegara a una aplicacion sin ninguna cuenta: al intentar anotar
+          su primer movimiento se encontraba con un desplegable vacio y sin
+          ninguna explicacion.
+
+          El registro con correo y contrasena si la creaba. Cuando se agrego
+          Google, la logica quedo escrita en un solo camino y nadie la repitio
+          en el otro. Por eso ahora vive en su propio servicio: para que el
+          tercer camino de registro que aparezca no vuelva a olvidarla.
+        */
+        cuentaInicial.crearSiNoTiene(guardado);
+
         log.info("Cuenta nueva creada desde Google para {}", correo);
-        return usuarios.save(nuevo);
+        return guardado;
     }
 
     /*
@@ -225,7 +263,6 @@ public class ServicioUsuarioGoogle {
     public enum Motivo {
         SIN_CORREO("google_sin_correo"),
         GOOGLE_SIN_VERIFICAR("google_correo_sin_verificar"),
-        CUENTA_SIN_VERIFICAR("cuenta_sin_verificar"),
         CUENTA_INACTIVA("cuenta_inactiva");
 
         private final String codigo;
