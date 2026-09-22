@@ -2,7 +2,9 @@ package com.finmind.identidad;
 
 import com.finmind.identidad.entity.CodigoVerificacion;
 import com.finmind.identidad.repository.CodigoVerificacionRepository;
+import com.finmind.usuarios.entity.Rol;
 import com.finmind.usuarios.entity.Usuario;
+import com.finmind.usuarios.repository.RolRepository;
 import com.finmind.usuarios.repository.UsuarioRepository;
 import com.finmind.soporte.LimpiadorDeDatos;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +41,7 @@ class IdentidadFlujoTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private CodigoVerificacionRepository codigoRepository;
+    @Autowired private RolRepository rolRepository;
 
     @Autowired private LimpiadorDeDatos limpiador;
 
@@ -155,6 +158,49 @@ class IdentidadFlujoTest {
 
         // Distinguirlas permitiria averiguar que correos estan registrados
         assertThat(conCuenta).isEqualTo(sinCuenta);
+    }
+
+    @Test
+    @DisplayName("DEF-025: la cuenta de Google avisa que no hay contrasena que restablecer")
+    void laCuentaDeGoogleAvisaEnLugarDeCallar() throws Exception {
+        /*
+          Antes este caso caia en el mismo silencio que un correo inexistente:
+          "si ese correo esta registrado, te enviamos un codigo". La persona
+          pasaba a la pantalla de escribir el codigo y esperaba un correo que no
+          existia, porque no habia ninguna contrasena que restablecer. Volvia a
+          pedirlo, revisaba el spam, y concluia que la aplicacion estaba rota.
+
+          El silencio protegia un dato que ya se puede averiguar en el registro
+          -que no admite un correo repetido- y a cambio dejaba a alguien
+          encerrado en la unica pantalla a la que se llega cuando ya no se puede
+          entrar. La grieta en RN-014 esta documentada y aceptada en
+          ServicioIdentidad.
+
+          La bandera usaGoogle es lo que se comprueba, no el texto: el frontend
+          decide con ella si navega o se queda, y atar eso a una redaccion seria
+          romperlo con cualquier correccion de estilo.
+        */
+        Usuario deGoogle = usuarioRepository.save(Usuario.deGoogle(
+                "Kevin", "Zapata", "solo.google@finmind.test",
+                rolRepository.findByNombre(Rol.USUARIO).orElseThrow(),
+                "sub-de-google-12345"));
+
+        mockMvc.perform(post("/api/v1/auth/recuperar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"correo":"solo.google@finmind.test"}
+                                """))
+                // Sigue siendo 202: la peticion se entendio y se atendio bien.
+                // No es un error, y pintarlo en rojo diria lo contrario.
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.usaGoogle").value(true));
+
+        // Y no se emite ningun codigo: no hay nada que restablecer.
+        assertThat(codigoRepository
+                .findByUsuarioIdAndTipoAndUsadoEnIsNull(
+                        deGoogle.getId(), CodigoVerificacion.RECUPERACION))
+                .as("una cuenta sin contrasena no deberia generar codigo de recuperacion")
+                .isEmpty();
     }
 
     @Test

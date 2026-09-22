@@ -53,11 +53,26 @@ public class IdentidadController {
 
     @PostMapping("/recuperar")
     @Operation(summary = "Solicitar el codigo para restablecer la contrasena",
-            description = "RF-027. Regla RN-014: la respuesta es identica exista o no el correo registrado.")
-    public ResponseEntity<MensajeResponse> recuperar(@Valid @RequestBody CorreoRequest peticion) {
-        servicio.solicitarRecuperacion(peticion.correo());
-        return ResponseEntity.accepted().body(new MensajeResponse(
-                "Si ese correo esta registrado, te enviamos un codigo para restablecer la contrasena."));
+            description = "RF-027. RN-014: la respuesta es identica exista o no el correo registrado. "
+                    + "La unica excepcion es una cuenta que entra solo con Google (usaGoogle=true): "
+                    + "no tiene contrasena que restablecer y callarlo dejaria a esa persona "
+                    + "esperando un codigo que nunca va a llegar.")
+    public ResponseEntity<RecuperacionResponse> recuperar(@Valid @RequestBody CorreoRequest peticion) {
+        var resultado = servicio.solicitarRecuperacion(peticion.correo());
+
+        /*
+          Sigue siendo 202 en los dos casos.
+
+          Devolver un 4xx cuando la cuenta usa Google convertiria en error algo
+          que no lo es: la peticion se entendio y se atendio bien, y la persona
+          no hizo nada mal. Ademas el frontend trata los 4xx como fallos y lo
+          pintaria en rojo, que es justo lo que se quiere evitar. Lo que cambia
+          es el contenido, no el codigo de estado.
+        */
+        return ResponseEntity.accepted().body(
+                resultado == ServicioIdentidad.ResultadoRecuperacion.SOLO_GOOGLE
+                        ? RecuperacionResponse.soloGoogle()
+                        : RecuperacionResponse.enviado());
     }
 
     @PostMapping("/restablecer")

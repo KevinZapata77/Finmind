@@ -1,4 +1,4 @@
--- V10 — Una cuenta puede tener contrasena Y Google a la vez.
+-- V11 — Una cuenta puede tener contrasena Y Google a la vez.
 --
 -- EL PROBLEMA (DEF-024)
 -- Alguien creaba su cuenta con correo y contrasena, la verificaba, y despues

@@ -129,14 +129,28 @@ public class ServicioIdentidad {
                 .ifPresent(this::enviarCodigoVerificacion);
     }
 
+    /**
+     * Resultado de pedir la recuperacion. RF-027.
+     *
+     * Es un enum y no un booleano porque el que llama tiene que distinguir tres
+     * situaciones que terminan en dos respuestas distintas, y un booleano
+     * obligaria a recordar cual es cual cada vez que se lee.
+     */
+    public enum ResultadoRecuperacion {
+        /** Se envio el codigo, o el correo no existe. Desde afuera es lo mismo. */
+        ENVIADO,
+        /** La cuenta existe pero entra solo con Google: no hay nada que restablecer. */
+        SOLO_GOOGLE
+    }
+
     /** RF-027. RN-014: respuesta uniforme, exista o no el correo. */
     @Transactional
-    public void solicitarRecuperacion(String correoRecibido) {
+    public ResultadoRecuperacion solicitarRecuperacion(String correoRecibido) {
         String correoNormalizado = correoRecibido.trim().toLowerCase();
         comprobarLimiteDeEnvios(correoNormalizado);
 
         Optional<Usuario> encontrado = usuarios.findByCorreo(correoNormalizado);
-        if (encontrado.isEmpty()) return;
+        if (encontrado.isEmpty()) return ResultadoRecuperacion.ENVIADO;
 
         Usuario usuario = encontrado.get();
         /*
@@ -148,20 +162,47 @@ public class ServicioIdentidad {
           Google sigue siendo LOCAL y sigue teniendo su contrasena, asi que la
           condicion anterior seguia funcionando para ella por casualidad.
 
-          Donde si fallaba es al reves, y era un callejon sin salida: una cuenta
-          nacida en Google no tiene contrasena, pero tampoco puede crear una,
-          porque recuperar es justamente el camino para ponerla. Preguntar por
-          el hash deja la puerta abierta el dia que se permita anadir contrasena
-          a una cuenta de Google, sin tener que acordarse de volver aqui.
-
-          Sin hash no hay nada que recuperar. Se responde igual que en cualquier
-          otro caso para no revelar si el correo existe (RN-014).
+          Preguntar por el hash deja ademas la puerta abierta el dia que se
+          permita anadir contrasena a una cuenta de Google, sin tener que
+          acordarse de volver aqui.
         */
-        if (!usuario.tieneContrasena()) return;
+        if (!usuario.tieneContrasena()) {
+            /*
+              DEF-025. AQUI SE ROMPE LA RESPUESTA UNIFORME, Y ES A PROPOSITO.
+
+              Antes esto era un return mudo: la persona veia "si ese correo esta
+              registrado, te enviamos un codigo", iba a la pantalla de escribir
+              el codigo, y esperaba un correo que no iba a llegar nunca. Volvia a
+              pedirlo, lo buscaba en el spam, y terminaba creyendo que la
+              aplicacion estaba rota. El silencio protegia un dato y a cambio
+              dejaba a la persona atrapada sin ninguna salida.
+
+              QUE SE REVELA
+              Que ese correo existe y entra con Google. Es una grieta real en
+              RN-014 y hay que nombrarla, no disimularla.
+
+              POR QUE SE ACEPTA
+              1. El dato ya se puede obtener por otro lado: el registro rechaza
+                 un correo que ya existe, asi que averiguar si esta registrado no
+                 necesita pasar por aqui. Callar en esta pantalla no cierra la
+                 enumeracion, solo la encarece un poco.
+              2. Lo que se revela no sirve para entrar. Saber que alguien usa
+                 Google no acerca a nadie a su cuenta: la contrasena la guarda
+                 Google, con su propio segundo factor.
+              3. Del otro lado hay una persona bloqueada de verdad, sin ningun
+                 camino, en la pantalla a la que se llega justamente cuando ya
+                 no se puede entrar.
+
+              El correo que NO existe sigue recibiendo la respuesta uniforme, que
+              es el caso que de verdad importa proteger.
+            */
+            return ResultadoRecuperacion.SOLO_GOOGLE;
+        }
 
         String codigo = servicioCodigos.emitir(usuario, CodigoVerificacion.RECUPERACION);
         correo.enviarCodigoRecuperacion(usuario.getCorreo(), usuario.getNombre(),
                 codigo, servicioCodigos.getVigenciaMinutos());
+        return ResultadoRecuperacion.ENVIADO;
     }
 
     /** RF-028. Cambia la contrasena y deja al usuario autenticado. */

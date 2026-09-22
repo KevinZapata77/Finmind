@@ -11,16 +11,39 @@ export default function RecuperarContrasena() {
   const navegar = useNavigate()
   const [correo, setCorreo] = useState('')
   const [error, setError] = useState(null)
+  const [usaGoogle, setUsaGoogle] = useState(false)
   const [enviando, setEnviando] = useState(false)
 
   async function enviar(e) {
     e.preventDefault()
-    setError(null); setEnviando(true)
+    setError(null); setUsaGoogle(false); setEnviando(true)
     try {
       const r = await api.recuperar(correo)
+
+      /*
+        DEF-025. La cuenta entra solo con Google: no hay contraseña que
+        restablecer.
+
+        Antes esta respuesta era idéntica a las demás y la persona terminaba en
+        la pantalla de escribir el código, esperando un correo que no existía.
+        Volvía a pedirlo, lo buscaba en el spam, y concluía que la aplicación
+        estaba rota. No lo estaba: simplemente no había nada que enviar.
+
+        Se decide por el campo usaGoogle y no leyendo el texto del mensaje: la
+        navegación no puede depender de cómo esté redactada una frase.
+
+        Y NO se navega. Quedarse aquí importa, porque el botón de Google está en
+        la pantalla anterior, a un clic del enlace de abajo. Mandarla a
+        /restablecer sería alejarla del único camino que le sirve.
+      */
+      if (r.usaGoogle) {
+        setUsaGoogle(true)
+        return
+      }
+
       // RN-014: la respuesta es la misma exista o no la cuenta. Decir "ese correo
       // no está registrado" le confirmaría a un atacante qué direcciones existen.
-      navegar('/restablecer', { state: { correo, aviso: r.mensaje } })
+      navegar('/restablecer', { state: { correo, aviso: r.message } })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -43,6 +66,21 @@ export default function RecuperarContrasena() {
           </p>
 
           {error && <Alerta tipo="error" titulo="No pudimos continuar">{error}</Alerta>}
+
+          {/*
+            Aviso, no error. El color importa: en rojo se lee como "hiciste algo
+            mal", y quien llega aquí no hizo nada mal. Solo está en la puerta
+            equivocada, y la buena está a un clic.
+          */}
+          {usaGoogle && (
+            <Alerta tipo="aviso" titulo="Esta cuenta entra con Google">
+              No tiene contraseña que restablecer, así que no hay ningún código
+              que enviarte. Vuelve a iniciar sesión y usa el botón
+              <strong> Continuar con Google</strong>.
+              <br />
+              <Link to="/iniciar-sesion">Ir a iniciar sesión con Google</Link>
+            </Alerta>
+          )}
 
           <Campo id="correo" name="correo" type="email" autoComplete="email"
             etiqueta="Correo electrónico" placeholder="kevin@ejemplo.com"
