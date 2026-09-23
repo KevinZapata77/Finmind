@@ -82,7 +82,7 @@ finmind:
   # log en lugar de enviarse. Permite demostrar el flujo sin depender del
   # servidor de correo (mitigacion del riesgo RSK-07).
   correo:
-    remitente: ${MAIL_FROM:no-responder@finmind.local}
+    remitente: ${MAIL_FROM:no-responder@finmind.me}
     habilitado: ${MAIL_ENABLED:false}
   # A donde vuelve el navegador tras autenticarse con Google, con el token
   oauth2:

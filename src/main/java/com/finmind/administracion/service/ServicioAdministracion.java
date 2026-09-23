@@ -1,6 +1,8 @@
 package com.finmind.administracion.service;
 
 import com.finmind.administracion.dto.*;
+
+import java.time.LocalDateTime;
 import com.finmind.administracion.entity.AuditoriaAdmin;
 import com.finmind.administracion.repository.AuditoriaAdminRepository;
 import com.finmind.common.exception.RecursoNoEncontradoException;
@@ -40,11 +42,28 @@ public class ServicioAdministracion {
 
     @Transactional(readOnly = true)
     public ResumenAdminResponse resumen() {
+        /*
+          El "ahora" se calcula una sola vez y se reparte.
+
+          Si cada conteo llamara a LocalDateTime.now() por su cuenta, los ocho
+          numeros quedarian medidos en instantes distintos. Con milisegundos de
+          diferencia da igual casi siempre, pero no cuando alguien se registra
+          justo en el medio: ahi el resumen se contradice a si mismo y nadie
+          entiende por que. Una sola foto del reloj, ocho numeros coherentes.
+        */
+        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime hace7 = ahora.minusDays(7);
+        LocalDateTime hace30 = ahora.minusDays(30);
+
         return new ResumenAdminResponse(
                 usuarios.count(),
                 usuarios.countByActivoTrueAndCorreoVerificadoTrue(),
                 usuarios.countByCorreoVerificadoFalse(),
-                usuarios.countByActivoFalse());
+                usuarios.countByActivoFalse(),
+                usuarios.countByFechaCreacionAfter(hace7),
+                usuarios.countByFechaCreacionAfter(hace30),
+                usuarios.countByUltimoAccesoAfter(hace7),
+                usuarios.countByUltimoAccesoIsNull());
     }
 
     @Transactional

@@ -71,16 +71,119 @@ export default function Administracion() {
         queda registrada con tu correo y la fecha.
       </Alerta>
 
+      {/*
+        Dos filas, y la separación tiene sentido: arriba el ESTADO de las
+        cuentas —cuántas hay y cómo están—, abajo la ACTIVIDAD —si la
+        plataforma se está usando—.
+
+        Son preguntas distintas y se responden con números distintos. Tener
+        veinte cuentas activas no dice nada si ninguna entró en un mes; por eso
+        no se mezclan en una sola fila de ocho, donde el ojo las leería como
+        variantes de lo mismo.
+      */}
       {resumen && (
-        <section className="tarjetas" aria-label="Resumen de la plataforma">
-          {[['Usuarios en total', resumen.total], ['Activos', resumen.activos],
-            ['Sin verificar', resumen.sinVerificar], ['Desactivados', resumen.desactivados]]
-            .map(([rot, val]) => (
+        <>
+          <section className="tarjetas" aria-label="Estado de las cuentas">
+            {[['Usuarios en total', resumen.total], ['Activos', resumen.activos],
+              ['Sin verificar', resumen.sinVerificar], ['Desactivados', resumen.desactivados]]
+              .map(([rot, val]) => (
+                <article key={rot} className="tarjeta-dato">
+                  <p className="tarjeta-dato__rotulo">{rot}</p>
+                  <p className="tarjeta-dato__valor">{val}</p>
+                </article>
+              ))}
+          </section>
+
+          <section className="tarjetas" aria-label="Actividad de la plataforma">
+            {[
+              ['Nuevos, últimos 7 días', resumen.registrosUltimos7Dias,
+               'Cuentas creadas en la última semana'],
+              ['Nuevos, últimos 30 días', resumen.registrosUltimos30Dias,
+               'Cuentas creadas en el último mes'],
+              ['Entraron esta semana', resumen.activosUltimos7Dias,
+               'Iniciaron sesión en los últimos 7 días'],
+              /*
+                Este es el número que más dice de los ocho, y por eso lleva su
+                propia explicación: alguien que se registró y nunca volvió
+                significa que algo se rompió entre el registro y el primer uso
+                —el correo que no llega, por ejemplo—. Ese hueco no aparece en
+                ningún otro contador.
+              */
+              ['Nunca han entrado', resumen.nuncaIniciaronSesion,
+               'Se registraron pero jamás iniciaron sesión'],
+            ].map(([rot, val, ayuda]) => (
               <article key={rot} className="tarjeta-dato">
                 <p className="tarjeta-dato__rotulo">{rot}</p>
                 <p className="tarjeta-dato__valor">{val}</p>
+                <p className="tarjeta-dato__ayuda">{ayuda}</p>
               </article>
             ))}
+          </section>
+        </>
+      )}
+
+      {/*
+        La misma información de arriba, pero vista.
+
+        Las cifras dicen cuántas hay; la barra dice qué proporción representan,
+        y eso el ojo lo saca de un vistazo mientras que con números hay que
+        hacer la cuenta. Tres estados y cien por ciento: no hace falta más.
+
+        Es SVG dibujado a mano, como el resto de los gráficos de FinMind. Sin
+        librería: son cuatro rectángulos, y traer una dependencia entera para
+        esto sería cargar cien kilobytes para dibujar lo que cabe en veinte
+        líneas.
+      */}
+      {resumen && resumen.total > 0 && (
+        <section className="tarjeta" aria-label="Distribución de las cuentas">
+          <h2 className="tarjeta__titulo">Cómo están las {resumen.total} cuentas</h2>
+
+          {(() => {
+            const partes = [
+              ['Activas', resumen.activos, 'var(--color-success-600)'],
+              ['Sin verificar', resumen.sinVerificar, 'var(--color-warning-600)'],
+              ['Desactivadas', resumen.desactivados, 'var(--color-error-600)'],
+            ]
+            // El total se recalcula sumando, en vez de usar resumen.total.
+            // Si algún día los estados dejaran de cubrir todas las cuentas, la
+            // barra seguiría sumando 100% en vez de quedar corta sin avisar.
+            const suma = partes.reduce((a, [, v]) => a + v, 0) || 1
+            let x = 0
+
+            return (
+              <>
+                <svg viewBox="0 0 100 8" className="barra-estados" role="img"
+                  aria-label={partes.map(([n, v]) => `${n}: ${v}`).join('. ')}>
+                  {partes.map(([nombre, valor, color]) => {
+                    const ancho = (valor / suma) * 100
+                    const inicio = x
+                    x += ancho
+                    return ancho > 0 ? (
+                      <rect key={nombre} x={inicio} y="0" width={ancho} height="8"
+                        fill={color} rx="0.6">
+                        <title>{`${nombre}: ${valor}`}</title>
+                      </rect>
+                    ) : null
+                  })}
+                </svg>
+
+                {/* La leyenda no es decorativa: sin ella el gráfico solo se
+                    entiende por color, y eso deja afuera a quien no distingue
+                    verde de rojo (criterio UXA-03). */}
+                <ul className="leyenda-estados">
+                  {partes.map(([nombre, valor, color]) => (
+                    <li key={nombre} className="leyenda-estados__item">
+                      <span className="leyenda-estados__punto" style={{ background: color }} />
+                      <strong>{valor}</strong> {nombre}
+                      <span className="leyenda-estados__pct">
+                        {Math.round((valor / suma) * 100)}%
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )
+          })()}
         </section>
       )}
 

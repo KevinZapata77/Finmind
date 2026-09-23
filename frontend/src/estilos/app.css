@@ -510,6 +510,12 @@ a { color: var(--color-primary-600); font-weight: 600; }
 
 .tarjeta-dato__rotulo { font: var(--font-etiqueta); color: var(--color-neutral-700); margin: 0 0 var(--space-2); }
 
+/* Aclaración bajo una cifra, cuando el rótulo solo no basta para entenderla.
+   Va en el gris de ayuda —el más tenue que cumple AA— justamente para que no
+   compita con el número: si pesara lo mismo, la tarjeta dejaría de leerse de
+   un vistazo, que es lo único que se le pide. */
+.tarjeta-dato__ayuda { font: var(--font-ayuda); color: var(--color-neutral-500); margin: var(--space-1) 0 0; }
+
 .tarjeta-dato__valor {
   font: var(--font-titulo);
   color: var(--color-neutral-900);
@@ -1407,3 +1413,42 @@ a.metrica:focus-visible { outline: 2px solid var(--color-primary-700); outline-o
     background: var(--color-velo);
   }
 }
+
+/* ------------------------------------------- Barra de estados (Administración)
+   Una sola barra apilada con la proporción de cuentas activas, sin verificar y
+   desactivadas. El alto es fijo y generoso: una barra fina se ve elegante en el
+   monitor y desaparece proyectada en una pared, que es donde se va a mostrar. */
+.barra-estados {
+  width: 100%;
+  height: 34px;
+  display: block;
+  margin: var(--space-2) 0 var(--space-2);
+}
+
+.leyenda-estados {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;            /* en móvil se apilan solas, sin media query */
+  gap: var(--space-1) var(--space-3);
+}
+
+.leyenda-estados__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--font-cuerpo);
+  color: var(--color-neutral-700);
+}
+
+.leyenda-estados__item strong { color: var(--color-neutral-900); }
+
+.leyenda-estados__punto {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;             /* si no, el punto se aplasta al faltar espacio */
+}
+
+.leyenda-estados__pct { color: var(--color-neutral-500); }

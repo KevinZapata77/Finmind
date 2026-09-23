@@ -210,6 +210,34 @@ class MetasYAdministracionTest {
     }
 
     @Test
+    @DisplayName("RF-056: el resumen informa la actividad, no solo cuantas cuentas hay")
+    void elResumenInformaLaActividad() throws Exception {
+        /*
+          Los cuatro contadores de estado dicen cuantas cuentas existen. No
+          dicen si alguien las usa, que es lo que un administrador necesita
+          saber: veinte cuentas activas no significan nada si ninguna entro en
+          un mes.
+
+          Las dos cuentas de esta prueba se crearon y usaron recien, asi que
+          entran en las ventanas de 7 y 30 dias, y ninguna queda sin estrenar.
+          El valor de comprobarlo esta en la ultima aserccion: si algun dia se
+          rompe el calculo y todo diera cero, la prueba lo detecta.
+        */
+        usuarioListo("ana@finmind.test");
+        String admin = administradorListo("admin@finmind.test");
+
+        mockMvc.perform(get("/api/v1/admin/resumen").header("Authorization", "Bearer " + admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.registrosUltimos7Dias").value(2))
+                .andExpect(jsonPath("$.registrosUltimos30Dias").value(2))
+                .andExpect(jsonPath("$.activosUltimos7Dias").value(2))
+                .andExpect(jsonPath("$.nuncaIniciaronSesion").value(0))
+                // Y sigue sin exponer nada del dinero de nadie (RN-005).
+                .andExpect(jsonPath("$.saldoTotal").doesNotExist())
+                .andExpect(jsonPath("$.movimientos").doesNotExist());
+    }
+
+    @Test
     @DisplayName("RN-005: el administrador NO ve el dinero de nadie")
     void elAdminNoVeElDineroDeNadie() throws Exception {
         // Ana registra plata.

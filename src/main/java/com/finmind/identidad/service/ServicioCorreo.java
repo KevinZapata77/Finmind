@@ -40,6 +40,7 @@ public class ServicioCorreo {
     private final String de;
 
     private final String host;
+    private final int puerto;
     private final boolean hayUsuario;
     private final boolean hayClave;
 
@@ -48,11 +49,13 @@ public class ServicioCorreo {
                           @Value("${finmind.correo.remitente}") String de,
                           @Value("${spring.mail.username:}") String cuentaSmtp,
                           @Value("${spring.mail.password:}") String claveSmtp,
-                          @Value("${spring.mail.host:}") String host) {
+                          @Value("${spring.mail.host:}") String host,
+                          @Value("${spring.mail.port:0}") int puerto) {
         this.remitente = remitente;
         this.habilitado = habilitado;
         this.de = resolverRemitente(de, cuentaSmtp);
         this.host = host;
+        this.puerto = puerto;
         this.hayUsuario = cuentaSmtp != null && !cuentaSmtp.isBlank();
         this.hayClave = claveSmtp != null && !claveSmtp.isBlank();
     }
@@ -82,8 +85,8 @@ public class ServicioCorreo {
                     + "significa que nadie va a recibir nada: define MAIL_ENABLED=true.");
             return;
         }
-        log.info("Correo ACTIVO. Servidor={} remitente={} usuario={} clave={}",
-                host.isBlank() ? "(sin definir)" : host,
+        log.info("Correo ACTIVO. Servidor={}:{} remitente={} usuario={} clave={}",
+                host.isBlank() ? "(sin definir)" : host, puerto,
                 de,
                 hayUsuario ? "definido" : "SIN DEFINIR",
                 hayClave ? "definida" : "SIN DEFINIR");
@@ -92,6 +95,33 @@ public class ServicioCorreo {
             log.error("El correo esta activo pero faltan credenciales SMTP. Cada envio va a "
                     + "fallar y el unico rastro sera una linea de error por mensaje. "
                     + "Revisa MAIL_USERNAME y MAIL_PASSWORD.");
+        }
+
+        /*
+          DEF-032. El aviso que nos habria ahorrado media noche.
+
+          Render bloquea el trafico saliente a los puertos 25, 465 y 587 en los
+          servicios gratuitos desde el 26 de septiembre de 2025. No rechaza la
+          conexion: descarta los paquetes. Asi que el sintoma no es un error de
+          autenticacion ni de remitente —los dos primeros lugares donde uno
+          mira—, sino un timeout seco al conectar:
+
+            Couldn't connect to host, port: smtp.gmail.com, 587; timeout 5000
+
+          Con credenciales correctas y configuracion correcta. El problema esta
+          en la red, no en la aplicacion, y eso es justo lo que no se deduce
+          mirando el codigo.
+
+          El puerto 2525 no esta bloqueado, y lo ofrecen los relays de correo
+          habituales. Cambiar MAIL_HOST, MAIL_PORT, MAIL_USERNAME y
+          MAIL_PASSWORD alcanza: no hay una sola linea de codigo que tocar.
+        */
+        if (puerto == 25 || puerto == 465 || puerto == 587) {
+            log.warn("El puerto {} suele estar bloqueado en los planes gratuitos de las "
+                    + "plataformas de despliegue (Render lo hace desde septiembre de 2025). "
+                    + "Si los envios fallan con 'Couldn't connect to host ... timeout', no es "
+                    + "la configuracion: es la red. Usa un relay de correo por el puerto 2525.",
+                    puerto);
         }
     }
 
@@ -120,14 +150,31 @@ public class ServicioCorreo {
      * nunca sale a la red.
      */
     private static String resolverRemitente(String configurado, String cuentaSmtp) {
-        if (cuentaSmtp == null || cuentaSmtp.isBlank()) {
+        boolean haySmtp = cuentaSmtp != null && !cuentaSmtp.isBlank();
+        if (!haySmtp) {
             return configurado;
         }
-        if (!cuentaSmtp.equalsIgnoreCase(configurado)) {
-            log.warn("El remitente configurado ({}) no es la cuenta SMTP ({}). "
-                    + "Gmail rechaza los mensajes cuyo From no es la cuenta autenticada, "
-                    + "asi que se envia desde la cuenta SMTP. "
-                    + "Para quitar este aviso, pon MAIL_FROM igual a MAIL_USERNAME.",
+        /*
+          OJO: solo se reemplaza el valor SIN CONFIGURAR, no cualquiera que no
+          coincida.
+
+          La primera version de este metodo usaba la cuenta SMTP siempre que
+          fuera distinta del remitente, y con Gmail funcionaba porque ahi las
+          dos cosas son la misma direccion. Pero en un relay de correo NO lo
+          son: el usuario SMTP puede ser un identificador como
+          8a1b2c001@smtp-brevo.com, mientras el remitente es la direccion real
+          que uno verifico. Forzar el primero habria roto el envio justo al
+          cambiar de proveedor, y por una "correccion" anterior.
+
+          La regla buena es mas humilde: si el remitente sigue siendo el valor
+          de relleno, no esta configurado y se usa la cuenta SMTP. Si alguien se
+          tomo el trabajo de poner una direccion de verdad, se respeta.
+        */
+        boolean sinConfigurar = configurado == null || configurado.isBlank()
+                || configurado.endsWith("@finmind.local");
+        if (sinConfigurar) {
+            log.warn("MAIL_FROM no esta configurado (vale '{}'), se envia desde la cuenta "
+                    + "SMTP {}. Definilo para que el remitente sea el que vos elijas.",
                     configurado, cuentaSmtp);
             return cuentaSmtp;
         }
@@ -172,8 +219,16 @@ public class ServicioCorreo {
               Un mensaje que llega de "FinMind" y no de una direccion suelta se
               reconoce de un vistazo en la bandeja, y los filtros de correo
               tratan bastante peor a los remitentes sin nombre.
+
+              DEF-033. Pero solo si no lo trae ya.
+              La plantilla .env.example sugiere MAIL_FROM=FinMind <correo>, con
+              el nombre incluido. Envolviendolo de nuevo salia
+              "FinMind <FinMind <correo>>", que no es una direccion valida: el
+              servidor la rechaza y el correo no sale. Un fallo que depende de
+              como este escrita una variable de entorno es de los mas dificiles
+              de ver, porque el codigo se lee bien.
             */
-            mensaje.setFrom("FinMind <" + de + ">");
+            mensaje.setFrom(de.contains("<") ? de : "FinMind <" + de + ">");
             mensaje.setTo(destino);
             mensaje.setSubject(asunto);
             mensaje.setText(cuerpo);
