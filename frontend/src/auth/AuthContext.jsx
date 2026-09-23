@@ -24,6 +24,28 @@ export function AuthProvider({ children }) {
     red, que no debe hacerse pasar por sesión cerrada.
   */
   useEffect(() => {
+    /*
+      DEF-036. Solo se pregunta si alguna vez hubo sesión en este navegador.
+
+      La consola mostraba un 401 en rojo cada vez que alguien abría la
+      aplicación sin haber entrado. No era un error —es la respuesta correcta a
+      "¿quién soy?" cuando no hay nadie—, pero un error rojo en la consola de
+      una aplicación recién abierta preocupa a cualquiera que la inspeccione, y
+      en una sustentación eso es justo lo que no se quiere.
+
+      La marca es un simple 'sí' en localStorage: se pone al entrar y se borra
+      al salir. NO es una credencial ni sustituye a nada; la sesión sigue
+      viviendo entera en la cookie HttpOnly y el servidor sigue siendo la única
+      fuente de verdad. Si alguien la escribiera a mano, lo único que lograría
+      es que la aplicación pregunte y reciba un 401, exactamente como antes.
+
+      El 401 sigue apareciendo cuando la sesión venció de verdad, que es cuando
+      hay algo que mirar.
+    */
+    if (localStorage.getItem('finmind:hubo-sesion') !== 'si') {
+      setCargando(false)
+      return
+    }
     sesionActual()
       .then(setUsuario)
       .catch(() => setUsuario(null))
@@ -38,6 +60,7 @@ export function AuthProvider({ children }) {
   */
   const iniciarSesion = useCallback(async (correo, contrasena, captchaToken) => {
     const r = await api.login({ correo, contrasena, captchaToken })
+    localStorage.setItem('finmind:hubo-sesion', 'si')
     setUsuario(r.usuario)
     return r.usuario
   }, [])
@@ -54,12 +77,14 @@ export function AuthProvider({ children }) {
   /** Tras verificar el código la sesión queda abierta: el backend pone la cookie. */
   const verificarCorreo = useCallback(async (correo, codigo) => {
     const r = await api.verificar({ correo, codigo })
+    localStorage.setItem('finmind:hubo-sesion', 'si')
     setUsuario(r.usuario)
     return r.usuario
   }, [])
 
   const restablecerContrasena = useCallback(async (datos) => {
     const r = await api.restablecer(datos)
+    localStorage.setItem('finmind:hubo-sesion', 'si')
     setUsuario(r.usuario)
     return r.usuario
   }, [])
@@ -75,6 +100,7 @@ export function AuthProvider({ children }) {
   */
   const entrarConToken = useCallback(async () => {
     const u = await api.miPerfil()
+    localStorage.setItem('finmind:hubo-sesion', 'si')
     setUsuario(u)
     return u
   }, [])
@@ -96,6 +122,7 @@ export function AuthProvider({ children }) {
     } catch {
       // Da igual por qué falló: la sesión se cierra de este lado igual.
     }
+    localStorage.removeItem('finmind:hubo-sesion')
     setUsuario(null)
   }, [])
 

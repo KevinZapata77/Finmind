@@ -3,8 +3,9 @@ package com.finmind.identidad.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -183,29 +184,40 @@ public class ServicioCorreo {
 
     @Async("ejecutorCorreo")
     public void enviarCodigoVerificacion(String destino, String nombre, String codigo, int minutos) {
-        enviar(destino,
-               "Verifica tu correo en FinMind",
-               "Hola " + nombre + ",\n\n"
-             + "Tu codigo de verificacion es: " + codigo + "\n\n"
-             + "Vence en " + minutos + " minutos y solo se puede usar una vez.\n"
-             + "Si no creaste esta cuenta, ignora este mensaje.\n\n"
-             + "FinMind",
-               codigo);
+        enviar(destino, "Verifica tu correo en FinMind", codigo,
+               PlantillaCorreo.verificacion(nombre, codigo, minutos),
+               PlantillaCorreo.texto(nombre, codigo, minutos,
+                       "Escribe este codigo en FinMind para terminar de crear tu cuenta.",
+                       "Si no creaste esta cuenta, ignora este mensaje: sin el codigo no se activa nada."));
     }
 
     @Async("ejecutorCorreo")
     public void enviarCodigoRecuperacion(String destino, String nombre, String codigo, int minutos) {
-        enviar(destino,
-               "Recupera tu contrasena de FinMind",
-               "Hola " + nombre + ",\n\n"
-             + "Tu codigo para restablecer la contrasena es: " + codigo + "\n\n"
-             + "Vence en " + minutos + " minutos y solo se puede usar una vez.\n"
-             + "Si no solicitaste este cambio, ignora este mensaje: tu contrasena no cambia.\n\n"
-             + "FinMind",
-               codigo);
+        enviar(destino, "Restablece tu contrasena de FinMind", codigo,
+               PlantillaCorreo.recuperacion(nombre, codigo, minutos),
+               PlantillaCorreo.texto(nombre, codigo, minutos,
+                       "Escribe este codigo en FinMind para crear una contrasena nueva.",
+                       "Si no pediste este cambio, ignora este mensaje: tu contrasena sigue igual."));
     }
 
-    private void enviar(String destino, String asunto, String cuerpo, String codigo) {
+    /**
+     * Manda el mensaje con sus DOS versiones: HTML y texto plano.
+     *
+     * POR QUE MimeMessage Y NO SimpleMailMessage
+     * SimpleMailMessage solo sabe de texto: no hay forma de darle formato. Para
+     * mandar HTML hace falta MimeMessage, y el helper con multipart=true arma un
+     * multipart/alternative, que es el formato donde las dos versiones viajan
+     * juntas y cada cliente elige la que puede mostrar.
+     *
+     * LAS DOS VERSIONES NO SON UN LUJO
+     * El orden importa: el texto va primero y el HTML despues, porque el estandar
+     * dice que la ultima parte es la preferida. Asi el que puede ver HTML lo ve,
+     * y el que no —un reloj, un lector de pantalla, un cliente de terminal— cae
+     * en un texto escrito para leerse, no en etiquetas sueltas. Ademas los
+     * filtros de spam desconfian del HTML sin alternativa.
+     */
+    private void enviar(String destino, String asunto, String codigo,
+                        String html, String texto) {
         if (!habilitado) {
             // Modo desarrollo: el codigo queda a la vista de quien opera la aplicacion.
             // Nunca debe activarse en un ambiente con usuarios reales.
@@ -213,25 +225,26 @@ public class ServicioCorreo {
             return;
         }
         try {
-            SimpleMailMessage mensaje = new SimpleMailMessage();
+            MimeMessage mensaje = remitente.createMimeMessage();
+            MimeMessageHelper ayudante =
+                    new MimeMessageHelper(mensaje, true, "UTF-8");
+
             /*
               Con nombre visible, no la direccion pelada.
               Un mensaje que llega de "FinMind" y no de una direccion suelta se
               reconoce de un vistazo en la bandeja, y los filtros de correo
               tratan bastante peor a los remitentes sin nombre.
 
-              DEF-033. Pero solo si no lo trae ya.
-              La plantilla .env.example sugiere MAIL_FROM=FinMind <correo>, con
-              el nombre incluido. Envolviendolo de nuevo salia
-              "FinMind <FinMind <correo>>", que no es una direccion valida: el
-              servidor la rechaza y el correo no sale. Un fallo que depende de
-              como este escrita una variable de entorno es de los mas dificiles
-              de ver, porque el codigo se lee bien.
+              DEF-033. Pero solo si no lo trae ya: la plantilla .env.example
+              sugeria MAIL_FROM=FinMind <correo>, y envolverlo otra vez daba
+              "FinMind <FinMind <correo>>", una direccion invalida que el
+              servidor rechaza.
             */
-            mensaje.setFrom(de.contains("<") ? de : "FinMind <" + de + ">");
-            mensaje.setTo(destino);
-            mensaje.setSubject(asunto);
-            mensaje.setText(cuerpo);
+            ayudante.setFrom(de.contains("<") ? de : "FinMind <" + de + ">");
+            ayudante.setTo(destino);
+            ayudante.setSubject(asunto);
+            ayudante.setText(texto, html);   // (texto, html): ese es el orden
+
             remitente.send(mensaje);
             log.info("Codigo enviado a {}", destino);
         } catch (Exception ex) {

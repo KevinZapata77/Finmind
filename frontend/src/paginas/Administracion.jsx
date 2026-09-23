@@ -212,15 +212,15 @@ export default function Administracion() {
             <tbody>
               {usuarios.map((u) => (
                 <tr key={u.id} className={u.activo ? '' : 'fila--inactiva'}>
-                  <td>{u.nombre} {u.apellido}</td>
-                  <td>{u.correo}</td>
-                  <td>{u.proveedor === 'GOOGLE' ? 'Google' : 'Contraseña'}</td>
-                  <td>
+                  <td data-rotulo="Usuario">{u.nombre} {u.apellido}</td>
+                  <td data-rotulo="Correo">{u.correo}</td>
+                  <td data-rotulo="Acceso">{u.proveedor === 'GOOGLE' ? 'Google' : 'Contraseña'}</td>
+                  <td data-rotulo="Estado">
                     {/* Estado en texto además del color. */}
                     <span className={`insignia insignia--${clase(u.estado)}`}>{u.estado}</span>
                   </td>
-                  <td>{u.ultimoAcceso ? u.ultimoAcceso.slice(0, 10) : 'Nunca'}</td>
-                  <td>
+                  <td data-rotulo="Último acceso">{u.ultimoAcceso ? u.ultimoAcceso.slice(0, 10) : 'Nunca'}</td>
+                  <td data-rotulo="Acciones">
                     {u.id === usuario.id ? (
                       // Si el último admin se apaga, nadie puede reactivarlo.
                       <span className="apagado">Tu cuenta</span>
@@ -255,10 +255,10 @@ export default function Administracion() {
             <tbody>
               {auditoria.map((a) => (
                 <tr key={a.id}>
-                  <td>{a.fecha.replace('T', ' ').slice(0, 16)}</td>
-                  <td>{a.adminCorreo}</td>
-                  <td>{a.accion === 'DESACTIVAR_USUARIO' ? 'Desactivó una cuenta' : 'Reactivó una cuenta'}</td>
-                  <td>{a.detalle}</td>
+                  <td data-rotulo="Fecha">{a.fecha.replace('T', ' ').slice(0, 16)}</td>
+                  <td data-rotulo="Administrador">{a.adminCorreo}</td>
+                  <td data-rotulo="Acción">{a.accion === 'DESACTIVAR_USUARIO' ? 'Desactivó una cuenta' : 'Reactivó una cuenta'}</td>
+                  <td data-rotulo="Sobre">{a.detalle}</td>
                 </tr>
               ))}
             </tbody>

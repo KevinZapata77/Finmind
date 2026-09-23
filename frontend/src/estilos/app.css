@@ -1412,6 +1412,76 @@ a.metrica:focus-visible { outline: 2px solid var(--color-primary-700); outline-o
     position: fixed; inset: 0; z-index: 9;
     background: var(--color-velo);
   }
+
+  /* ---- DEF-035: el hueco encima del contenido ----
+
+     .aplicacion es una cuadricula y en movil pasa a una sola columna, o sea
+     dos filas: la barra y el contenido. Sin decir nada, las dos filas se
+     reparten el alto en partes iguales, y como la cuadricula tiene
+     min-height:100vh, la fila de la barra reclamaba media pantalla aunque el
+     menu estuviera cerrado y solo midiera 48px. Eso es la franja vacia que
+     aparecia arriba al entrar a un modulo.
+
+     Con 'auto 1fr' la barra ocupa exactamente lo que mide su contenido y el
+     contenido se queda con el resto. */
+  .aplicacion { grid-template-rows: auto 1fr; }
+
+  /* ---- Tablas: de rejilla a lista de tarjetas ----
+
+     Una tabla de seis columnas en 375px solo tiene dos salidas: desplazarse a
+     lo ancho —y entonces la mitad de los datos vive fuera de la pantalla, sin
+     avisar— o apilarse. Se apila.
+
+     Cada fila pasa a ser una tarjeta y cada celda una linea "rotulo: valor".
+     El rotulo sale del atributo data-rotulo del HTML, porque el encabezado de
+     la tabla deja de verse y sin el cada dato queda suelto sin decir que es.
+
+     La tabla sigue siendo una tabla en el marcado: un lector de pantalla la
+     recorre igual y no se pierde ninguna relacion entre dato y encabezado. Lo
+     que cambia es como se dibuja. */
+  .tabla-envoltura { border: 0; background: none; overflow-x: visible; }
+  .tabla thead { display: none; }
+  .tabla, .tabla tbody, .tabla tr, .tabla td { display: block; width: 100%; }
+
+  .tabla__titulo { padding: 0 0 var(--space-2); }
+
+  .tabla tr {
+    background: var(--color-tarjeta);
+    border: 1px solid var(--color-neutral-400);
+    border-radius: var(--radio-lg);
+    padding: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+  .tabla tbody tr:hover { background: var(--color-tarjeta); }  /* sin hover tactil */
+
+  .tabla td {
+    border: 0;
+    padding: 6px 0;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-2);
+    text-align: right;
+  }
+  .tabla td + td { border-top: 1px solid var(--color-neutral-300); }
+
+  .tabla td::before {
+    content: attr(data-rotulo);
+    font: var(--font-etiqueta);
+    color: var(--color-neutral-700);
+    text-align: left;
+    flex: none;
+  }
+
+  /* ---- Pestanas y tarjetas de dato ---- */
+  .pestanas { gap: var(--space-2); margin-bottom: var(--space-3); overflow-x: auto; }
+  .pestana { white-space: nowrap; padding-bottom: 10px; }
+
+  /* Dos por fila en vez de cuatro: a una sola columna, ocho tarjetas obligan a
+     desplazarse media pantalla para ver un resumen, que es lo contrario de un
+     resumen. */
+  .tarjetas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+  .tarjeta-dato { padding: var(--space-2); }
+  .tarjeta-dato__valor { font-size: 22px; }
+  .barra-estados { height: 26px; }
 }
 
 /* ------------------------------------------- Barra de estados (Administración)
