@@ -6,6 +6,7 @@ import com.finmind.identidad.entity.CodigoVerificacion;
 import com.finmind.identidad.repository.CodigoVerificacionRepository;
 import com.finmind.usuarios.entity.Rol;
 import com.finmind.usuarios.entity.Usuario;
+import com.finmind.cuentas.repository.CuentaRepository;
 import com.finmind.usuarios.repository.UsuarioRepository;
 import com.finmind.soporte.LimpiadorDeDatos;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +52,9 @@ class AuthFlujoTest {
 
     @Autowired
     private CodigoVerificacionRepository codigoRepository;
+
+    @Autowired
+    private CuentaRepository cuentaRepository;
 
     @Autowired private LimpiadorDeDatos limpiador;
 
@@ -232,6 +236,33 @@ class AuthFlujoTest {
     }
 
     // ------------------------------------------------------------------- apoyo
+
+    @Test
+    @DisplayName("DEF-030: al registrarse queda creada la cuenta de efectivo inicial")
+    void elRegistroCreaLaCuentaDeEfectivo() throws Exception {
+        /*
+          Un movimiento exige una cuenta por llave foranea. Sin esta, el primer
+          gesto de alguien recien registrado no seria anotar su plata sino
+          llenar un formulario de cuentas que no pidio.
+
+          Esta prueba existe porque la logica estuvo escrita suelta dentro del
+          registro local y, al agregar el acceso con Google, nadie la repitio
+          alli: esas cuentas llegaban a un desplegable vacio. Ahora vive en
+          ServicioCuentaInicial y los dos caminos la usan, pero la unica forma
+          de que no se vuelva a perder es que falle una prueba si se pierde.
+        */
+        registrarSinVerificar();
+
+        Usuario creado = usuarioRepository.findByCorreo(CORREO).orElseThrow();
+        var cuentas = cuentaRepository.findByUsuarioIdOrderByNombreAsc(creado.getId());
+
+        assertThat(cuentas)
+                .as("toda cuenta nueva arranca con una cuenta de efectivo")
+                .hasSize(1);
+        assertThat(cuentas.get(0).getNombre()).isEqualTo("Efectivo");
+        assertThat(cuentas.get(0).getTipo()).isEqualTo("EFECTIVO");
+        assertThat(cuentas.get(0).getSaldoInicial()).isEqualByComparingTo("0.00");
+    }
 
     /** Registra la cuenta y la deja sin verificar. */
     private void registrarSinVerificar() throws Exception {

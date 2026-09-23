@@ -39,13 +39,60 @@ public class ServicioCorreo {
     private final boolean habilitado;
     private final String de;
 
+    private final String host;
+    private final boolean hayUsuario;
+    private final boolean hayClave;
+
     public ServicioCorreo(JavaMailSender remitente,
                           @Value("${finmind.correo.habilitado:false}") boolean habilitado,
                           @Value("${finmind.correo.remitente}") String de,
-                          @Value("${spring.mail.username:}") String cuentaSmtp) {
+                          @Value("${spring.mail.username:}") String cuentaSmtp,
+                          @Value("${spring.mail.password:}") String claveSmtp,
+                          @Value("${spring.mail.host:}") String host) {
         this.remitente = remitente;
         this.habilitado = habilitado;
         this.de = resolverRemitente(de, cuentaSmtp);
+        this.host = host;
+        this.hayUsuario = cuentaSmtp != null && !cuentaSmtp.isBlank();
+        this.hayClave = claveSmtp != null && !claveSmtp.isBlank();
+    }
+
+    /**
+     * Deja escrito en el log como quedo configurado el correo al arrancar.
+     *
+     * POR QUE HACE FALTA
+     * Cuando un correo no llega hay cuatro sospechosos —el envio esta apagado,
+     * falta el usuario, falta la clave, o el remitente esta mal— y desde afuera
+     * los cuatro se ven igual: no pasa nada. Diagnosticarlo a ciegas es cambiar
+     * cosas al azar y volver a probar, que es justo lo que se hizo tres veces
+     * antes de escribir esto.
+     *
+     * Dos lineas en el arranque responden la pregunta de una vez, y quedan
+     * disponibles en el panel del servidor sin tener que reproducir nada.
+     *
+     * NO SE REGISTRA NINGUN SECRETO
+     * De la clave solo se dice si existe, nunca su valor. Un log es un archivo
+     * que sobrevive al despliegue y que puede leer mas gente de la que uno cree.
+     */
+    @jakarta.annotation.PostConstruct
+    void avisarComoQuedo() {
+        if (!habilitado) {
+            log.warn("CORREO APAGADO (finmind.correo.habilitado=false). Los codigos se "
+                    + "escriben en este log en vez de enviarse. En produccion esto "
+                    + "significa que nadie va a recibir nada: define MAIL_ENABLED=true.");
+            return;
+        }
+        log.info("Correo ACTIVO. Servidor={} remitente={} usuario={} clave={}",
+                host.isBlank() ? "(sin definir)" : host,
+                de,
+                hayUsuario ? "definido" : "SIN DEFINIR",
+                hayClave ? "definida" : "SIN DEFINIR");
+
+        if (!hayUsuario || !hayClave) {
+            log.error("El correo esta activo pero faltan credenciales SMTP. Cada envio va a "
+                    + "fallar y el unico rastro sera una linea de error por mensaje. "
+                    + "Revisa MAIL_USERNAME y MAIL_PASSWORD.");
+        }
     }
 
     /**
